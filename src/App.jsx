@@ -66,7 +66,8 @@ const callClaude = async (transcript, frameworkPrompt) => {
   "Content-Type": "application/json",
   "Authorization": "Bearer " + import.meta.env.VITE_OPENAI_API_KEY,
 },
-      model: "gpt-4o",
+body: JSON.stringify({
+  model: "gpt-4o",
       max_tokens: 1000,
       messages: [
         {
