@@ -47,8 +47,8 @@ export default function WorkflowDemo() {
     <div className="rounded-2xl glass-strong overflow-hidden">
       {/* chrome */}
       <div className="flex flex-wrap items-center gap-3 border-b border-white/8 px-5 py-3">
-        <span className="font-mono text-[11px] text-mist-400">workflow-simulator</span>
-        <span lang="ja" className="font-mono text-[10.5px] text-mist-500">操作できるデモ</span>
+        <span className="font-mono text-[11px] text-mist-400">try-my-ai — upload simulator</span>
+        <span lang="ja" className="font-mono text-[10.5px] text-mist-500">アップロード体験デモ</span>
         <button
           onClick={run}
           disabled={running}
@@ -103,10 +103,13 @@ export default function WorkflowDemo() {
             key={sampleIdx}
             initial={{ opacity: 0, x: -14 }}
             animate={{ opacity: 1, x: 0 }}
-            className={`rounded-xl border px-4 py-3 transition-colors ${
-              step >= 0 ? 'border-pulse-500/40 bg-pulse-500/8' : 'border-white/10 bg-ink-950/50'
+            className={`relative rounded-xl border border-dashed px-4 py-3 transition-colors ${
+              step >= 0 ? 'border-pulse-500/50 bg-pulse-500/8' : 'border-white/15 bg-ink-950/50'
             }`}
           >
+            <span className="absolute -top-2 right-3 rounded-full bg-ink-900 border border-white/10 px-2 py-0.5 font-mono text-[8.5px] uppercase tracking-wider text-mist-500">
+              simulated upload
+            </span>
             <p className="font-mono text-[10.5px] text-mist-500">source: {sample.source}</p>
             <p lang="ja" className="mt-1 text-[13.5px] font-semibold text-white">{sample.subject}</p>
             <p lang="ja" className="mt-0.5 truncate text-[12px] text-mist-400">{sample.preview}</p>

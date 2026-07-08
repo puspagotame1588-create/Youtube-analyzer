@@ -1,6 +1,32 @@
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { nav as LINKS, profile } from '../config/content'
+import { motion, AnimatePresence } from 'framer-motion'
+import { nav as LINKS, profile, ops } from '../config/content'
+
+/* tiny live-ops ticker: cycles system activity messages */
+function OpsTicker() {
+  const [i, setI] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setI((v) => (v + 1) % ops.length), 3200)
+    return () => clearInterval(id)
+  }, [])
+  return (
+    <span className="hidden xl:inline-flex items-center gap-1.5 font-mono text-[10px] text-mist-500 w-40">
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-glow animate-pulse-soft" />
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={i}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.3 }}
+          className="truncate"
+        >
+          {ops[i]}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  )
+}
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
@@ -45,6 +71,7 @@ export default function Navbar() {
         </ul>
 
         <div className="flex items-center gap-3">
+          <OpsTicker />
           <a
             href={profile.resumeUrl}
             download

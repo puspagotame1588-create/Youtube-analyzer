@@ -71,6 +71,19 @@ export const nav = [
   { href: '#contact', label: 'Contact' },
 ]
 
+/* ============ 2.5 LIVE OPS TICKER (navbar microactivity) ============ */
+
+export const ops = [
+  'email received',
+  'agent thinking…',
+  'classification complete',
+  'knowledge retrieved',
+  'task executed',
+  'calendar updated',
+  'workflow complete ✓',
+]
+
+
 /* ============ 3. HERO ============ */
 
 export const hero = {
@@ -83,11 +96,11 @@ export const hero = {
   headlineJa: '複雑な業務情報を、確実なアクションへ。',
   // subheadline segments; bold: true renders emphasized
   sub: [
-    { t: 'Junior AI automation / DX solutions candidate in Japan — ' },
+    { t: 'Building practical AI systems for Japanese businesses — workflow automation, bilingual experiences, operational efficiency. ' },
     { t: `${JLPT} Japanese`, bold: true },
-    { t: ' and ' },
+    { t: ' · ' },
     { t: `${TOEIC} English`, bold: true },
-    { t: ', a business degree, and 2+ years of frontline operations, applied to working systems: email-to-action agents, RAG assistants, and bilingual training automation.' },
+    { t: ', a business degree, and 2+ years of frontline operations behind every build: email-to-action agents, RAG assistants, bilingual training automation.' },
   ],
   // trust badges (JLPT/TOEIC pulled from profile automatically)
   badges: [
@@ -116,6 +129,23 @@ export const hero = {
   ],
   nodeHint: 'Hover or tap any node · ノードをタップ',
   dragHint: 'drag to rotate · 回転できます',
+  // live workflow run: tapping the trigger node animates a packet through
+  // the pipeline, stage by stage. Edit captions/timings freely.
+  run: {
+    trigger: 'gmail',
+    hint: 'Tap Gmail to watch a live run ▶ · Gmailをタップして実行',
+    steps: [
+      { type: 'travel', from: 'gmail', to: 'core', ms: 950, caption: 'New email received → routed to the LLM core' },
+      { type: 'process', at: 'core', ms: 1600, caption: 'LLM classifying… priority HIGH · deadline found · reply drafted' },
+      { type: 'travel', from: 'core', to: 'review', ms: 850, caption: 'Proposed action sent to human review' },
+      { type: 'process', at: 'review', ms: 1300, caption: 'Human approves ✓ — nothing executes without a person' },
+      { type: 'travel', from: 'review', to: 'dashboard', ms: 1000, caption: 'Result pushed to the dashboard' },
+      { type: 'process', at: 'dashboard', ms: 900, caption: 'Dashboard updated — the run is logged and measurable' },
+      { type: 'travel', from: 'dashboard', to: 'calendar', ms: 1000, caption: 'Deadline handed to Calendar' },
+      { type: 'process', at: 'calendar', ms: 1200, caption: 'Calendar task created ✓ — workflow complete' },
+    ],
+    done: 'Email → classified → approved → logged → scheduled. This is the system I build.',
+  },
 }
 
 /* ============ 4. PORTFOLIO VIDEO ============ */
@@ -143,6 +173,24 @@ export const video = {
   ],
 }
 
+/* ============ 4.5 IMPACT ============
+   Animated counters shown above Projects. KEEP THESE HONEST —
+   update the numbers here as your work grows. */
+
+export const impact = {
+  title: 'Measured in outcomes, not technologies',
+  lead: 'What the systems on this page add up to — updated as the work grows.',
+  note: 'Counts as of July 2026 · targets marked where measurement is still running.',
+  stats: [
+    { value: 11, suffix: '+', label: 'Projects built', ja: '制作プロジェクト' },
+    { value: 15, suffix: '+', label: 'Automation workflows', ja: '自動化ワークフロー' },
+    { value: 4, suffix: '', label: 'Working languages', ja: '使用言語' },
+    { value: 20, suffix: '+', label: 'Tools in AI stack', ja: 'AIツール' },
+    { value: 2, suffix: '+', label: 'Years frontline experience', ja: '現場経験' },
+    { value: 5, suffix: 'h+', label: 'Saved monthly (pilot)', ja: '月間削減時間' },
+  ],
+}
+
 /* ============ 5. PROJECTS ============
    Each project also powers its module in the hero command center.
    The FIRST project is the flagship used by the case-study section. */
@@ -167,6 +215,7 @@ export const projects = [
     ],
     result: 'Working prototype processing a real inbox: deadlines land in Calendar, every decision is logged to Sheets, and drafts wait for my approval — nothing missed since the pilot began.',
     learned: 'Reliability beats cleverness: the human-review gate and the audit log did more for trust than any prompt tweak. Automation is a workflow-design problem first, an AI problem second.',
+    timeSaved: '~5 hrs / month per user (pilot est.)',
     talkingPoint: '“I designed the workflow, the prompt logic, and the human-review step — I can walk through every node and explain why it exists from a business-risk perspective.”',
     signal: 'GenAI automation · workflow design · API integration · business process improvement',
     demo: '#', // TODO: live demo or Loom walkthrough link
@@ -191,6 +240,7 @@ export const projects = [
     ],
     result: 'Scenario library built from real store situations; JP/EN roleplay loop working in prototype — feedback on politeness level, phrasing, and next-best response.',
     learned: 'Domain knowledge is the moat: the hardest part wasn’t the LLM, it was encoding what actually happens at a Japanese register — which I knew from experience.',
+    timeSaved: 'onboarding weeks → days (target)',
     talkingPoint: '“This came from my own first weeks behind a register in Japan — I know exactly which situations break new foreign staff, so the scenarios are real, not invented.”',
     signal: 'Japanese context · frontline DX · training automation · localization',
     demo: '#',
@@ -215,6 +265,7 @@ export const projects = [
     ],
     result: 'Prototype answers questions from uploaded documents with inline citations; wrong-answer rate drops sharply when retrieval is tuned before the prompt is.',
     learned: 'RAG quality is decided at ingestion: chunking and retrieval tuning moved accuracy more than model choice — and citations are what make enterprises trust the answer.',
+    timeSaved: '60s → 5s per lookup (target)',
     talkingPoint: '“I can explain chunking, embeddings, retrieval quality, and why citations matter for enterprise trust — in Japanese or English.”',
     signal: 'Enterprise GenAI · document AI · knowledge management · responsible AI',
     demo: '#',
@@ -282,9 +333,26 @@ export const demo = {
       result: { priority: 'HIGH', action: 'Calendar task + drafted reply', decision: 'Human approves → sent' },
     },
     {
+      type: 'pdf',
+      tab: 'PDF',
+      tabJa: '英文PDF',
+      source: 'invoices/supplier_invoice_0231.pdf',
+      subject: 'Supplier invoice — ¥184,000 due',
+      preview: 'Payment due within 14 days of issue date (July 3). Wire to account…',
+      log: [
+        '→ New PDF: supplier_invoice_0231.pdf (2 pages, English)',
+        '✓ Extracted: ¥184,000 · due Jul 17 · vendor + PO number',
+        '✓ Category: Finance / Payable · Priority: HIGH',
+        '✓ Payment reminder created · row added to payables sheet',
+        '⏸ Waiting for human approval… money never moves automatically.',
+        '✓ Logged with source-page references — audit-ready.',
+      ],
+      result: { priority: 'HIGH', action: 'Payment reminder + payables row', decision: 'Human approves → scheduled' },
+    },
+    {
       type: 'document',
-      tab: 'Document',
-      tabJa: '文書',
+      tab: 'JP Doc',
+      tabJa: '日本語文書',
       source: 'store-ops/レジ操作マニュアル_v3.pdf',
       subject: '新レジ操作マニュアル（改訂版・12ページ）',
       preview: 'レジ点検は毎週月曜 9:00 までに完了すること。未実施の場合は店長へ報告…',
@@ -316,6 +384,15 @@ export const demo = {
       result: { priority: 'MEDIUM', action: '3 tasks + summary from 45-min video', decision: 'Human edits → saved' },
     },
   ],
+}
+
+/* ============ 6.5 TRY MY AI ============ */
+
+export const tryMyAI = {
+  kicker: 'Try My AI',
+  kickerJa: '体験デモ',
+  title: 'Experience a workflow, don’t just read about it',
+  lead: 'Simulate an upload — an email, an invoice PDF, a Japanese manual, or a 45-minute video — and watch the pipeline extract, categorize, act, and log. Mocked data, real workflow design.',
 }
 
 /* ============ 7. BEFORE / AFTER ============ */

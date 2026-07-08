@@ -193,6 +193,56 @@ body {
   animation: pulse-soft 2.4s ease-in-out infinite;
 }
 
+/* ---------- Floating particles + ambient glow drift ---------- */
+
+@keyframes particle-float {
+  0%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0.15;
+  }
+  50% {
+    transform: translate(14px, -32px);
+    opacity: 0.5;
+  }
+}
+
+.particle {
+  position: absolute;
+  border-radius: 9999px;
+  background: #8ab8ff;
+  box-shadow: 0 0 8px 2px rgba(138, 184, 255, 0.35);
+  animation: particle-float ease-in-out infinite;
+}
+
+@keyframes glow-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-2.5%, 1.8%) scale(1.05);
+  }
+}
+
+@keyframes glow-drift-alt {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(2%, -2%) scale(1.06);
+  }
+}
+
+.animate-glow-drift {
+  animation: glow-drift 26s ease-in-out infinite;
+}
+
+.animate-glow-drift-alt {
+  animation: glow-drift-alt 34s ease-in-out infinite;
+}
+
 /* Custom scrollbar — subtle, premium */
 ::-webkit-scrollbar {
   width: 10px;
@@ -215,7 +265,10 @@ body {
   }
   .data-stream,
   .animate-marquee,
-  .animate-pulse-soft {
+  .animate-pulse-soft,
+  .particle,
+  .animate-glow-drift,
+  .animate-glow-drift-alt {
     animation: none !important;
   }
 }

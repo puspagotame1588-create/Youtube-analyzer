@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion'
 import { caseStudy, flagship } from '../config/content'
 import SectionHeading from './SectionHeading'
-import WorkflowDemo from './WorkflowDemo'
 import { useCountUp, fadeUp, stagger, viewportOnce } from '../lib/anim'
 
 // tone name (from content.js) → presentation classes
@@ -78,17 +77,6 @@ export default function CaseStudy() {
               )
             })}
           </div>
-        </motion.div>
-
-        {/* Interactive demo */}
-        <motion.div
-          className="mt-10"
-          initial={{ opacity: 0, y: 36 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={viewportOnce}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <WorkflowDemo />
         </motion.div>
 
         {/* Metrics */}

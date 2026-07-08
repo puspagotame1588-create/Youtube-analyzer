@@ -106,6 +106,7 @@ export default function Projects() {
                     <Row label="Problem">{p.problem}</Row>
                     <Row label="Solution">{p.solution}</Row>
                     <Row label="Result">{p.result}</Row>
+                    <Row label="Business value">{p.value}</Row>
 
                     {/* floating tech tags */}
                     <div className="flex flex-wrap gap-1.5" style={{ transform: 'translateZ(24px)' }}>
@@ -126,6 +127,12 @@ export default function Projects() {
                       {p.metrics.map((m) => (
                         <Metric key={m.label} {...m} toneText={tone.text} />
                       ))}
+                    </div>
+
+                    {/* time saved */}
+                    <div className="flex items-center justify-between rounded-xl border border-white/6 bg-ink-950/50 px-3.5 py-2.5">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-mist-500">Time saved</span>
+                      <span className={`font-mono text-[12px] font-semibold ${tone.text}`}>{p.timeSaved}</span>
                     </div>
 
                     {/* what I learned */}

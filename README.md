@@ -62,6 +62,9 @@ Quick placeholder checklist:
 | Roadmap progress | `roadmap.months[].status` | Move `'now'` forward: `'done'` / `'now'` / `'next'` |
 | Screenshots | `proof.screens` + files in `public/screenshots/` | Drop PNG/JPGs in the folder, set `src: '/screenshots/your-file.png'` |
 | 3D workflow nodes | `hero.nodes` | Edit each node's `label`, `ja`, and `desc` (shown on hover/tap) |
+| Live run animation | `hero.run` | Steps, captions, and timings of the tap-Gmail workflow run |
+| Impact counters | `impact.stats` | ★ Keep these numbers honest — update as your work grows |
+| Ops ticker messages | `ops` | The cycling activity messages in the navbar |
 | Case-study fields | `problem` / `solution` / `result` / `learned` per project | Keep them honest — recruiters ask about these in interviews |
 
 ## 4. Deploy to Vercel (free)

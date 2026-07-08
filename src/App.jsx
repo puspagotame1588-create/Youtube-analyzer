@@ -2,10 +2,12 @@ import Background from './components/Background'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import VideoSection from './components/VideoSection'
+import Impact from './components/Impact'
 import Projects from './components/Projects'
 import CaseStudy from './components/CaseStudy'
 import BeforeAfter from './components/BeforeAfter'
 import Proof from './components/Proof'
+import TryMyAI from './components/TryMyAI'
 import Skills from './components/Skills'
 import About from './components/About'
 import RecruiterProof from './components/RecruiterProof'
@@ -26,8 +28,10 @@ export default function App() {
       <main>
         <Hero />
         <VideoSection />
+        <Impact />
         <Projects />
         <CaseStudy />
+        <TryMyAI />
         <BeforeAfter />
         <Proof />
         <Skills />
