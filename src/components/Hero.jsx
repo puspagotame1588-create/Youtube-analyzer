@@ -27,6 +27,15 @@ export default function Hero() {
             <span className="text-gradient">{hero.headline.gradient}</span>
           </motion.h1>
 
+          <motion.p
+            variants={fadeUp}
+            custom={1.5}
+            lang="ja"
+            className="mt-4 text-[19px] md:text-[22px] font-bold tracking-wide text-mist-100"
+          >
+            {hero.headlineJa}
+          </motion.p>
+
           <motion.p variants={fadeUp} custom={2} className="mt-6 max-w-xl text-[16.5px] leading-relaxed text-mist-300">
             {hero.sub.map((seg, i) =>
               seg.bold ? (

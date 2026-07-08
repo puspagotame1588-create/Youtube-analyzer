@@ -1,44 +1,36 @@
 import { useRef, useState } from 'react'
 import { useAnimationFrame, useReducedMotion } from 'framer-motion'
-import { projects, hero } from '../config/content'
+import { hero } from '../config/content'
 
 /**
  * Interactive 3D "AI Operations Command Center" — the hero visual.
  *
- * Drag (mouse or touch) to spin the scene. The three project modules
- * orbit a central "digital torii" — the gateway between business and
- * technology. Module names come from `projects` in config/content.js.
+ * A workflow diagram in 3D: the real nodes of my automation pipeline
+ * (Gmail, RAG Docs, Sheets, Calendar, Human Review, Dashboard) orbit
+ * the LLM core (a digital torii — the gateway between business and
+ * technology). Drag to rotate; hover or tap a node to see its role.
+ * Node labels and descriptions live in config/content.js (hero.nodes).
  *
  * Implementation: a tiny hand-rolled 3D projection (translate + scale
- * per frame) so the card text stays crisp DOM text, plus CSS 3D for
- * the torii itself. No WebGL — light and fast on mobile.
+ * per frame) so text stays crisp DOM, plus CSS 3D for the torii.
+ * No WebGL — light and fast on mobile.
  */
 
 const TILT = 0.22 // camera pitch in radians (looking slightly down)
 const PERSP = 950 // perspective distance in px
 const AUTO_SPEED = 0.00022 // idle spin, rad per ms
-const CARD_W = 168
 
-const TONES = {
-  pulse: 'text-pulse-300 border-pulse-500/35',
-  beni: 'text-beni-400 border-beni-500/35',
-  cyan: 'text-cyan-glow border-cyan-glow/35',
-}
-
-// orbit slots for up to three modules: base angle + vertical offset
+// orbit slots: base angle + vertical offset for the six workflow nodes
 const SLOTS = [
-  { angle: 0, y: -96 },
-  { angle: (Math.PI * 2) / 3, y: -6 },
-  { angle: (Math.PI * 4) / 3, y: 70 },
+  { angle: 0, y: -102 },
+  { angle: Math.PI / 3, y: -18 },
+  { angle: (Math.PI * 2) / 3, y: 76 },
+  { angle: Math.PI, y: -78 },
+  { angle: (Math.PI * 4) / 3, y: 10 },
+  { angle: (Math.PI * 5) / 3, y: 96 },
 ]
 
-const MODULES = projects.slice(0, 3).map((p, i) => ({
-  id: p.id,
-  label: p.shortLabel,
-  sub: p.shortSub,
-  tone: p.tone,
-  ...SLOTS[i],
-}))
+const NODES = hero.nodes.slice(0, 6).map((n, i) => ({ ...n, ...SLOTS[i] }))
 
 /* project a world point (x, y, z) through camera tilt + perspective */
 function project(x, y, z) {
@@ -51,7 +43,7 @@ function project(x, y, z) {
 export default function CommandCenter() {
   const stageRef = useRef(null)
   const toriiRef = useRef(null)
-  const cardRefs = useRef([])
+  const nodeRefs = useRef([])
   const lineRefs = useRef([])
   const dotRefs = useRef([])
   const rotY = useRef(0.6)
@@ -60,39 +52,39 @@ export default function CommandCenter() {
   const lastX = useRef(0)
   const lastInteract = useRef(0)
   const [hasDragged, setHasDragged] = useState(false)
+  const [selected, setSelected] = useState(null) // node object or 'core'
   const reduced = useReducedMotion()
 
   useAnimationFrame((t, dt) => {
     const stage = stageRef.current
     if (!stage || dt > 200) return
     const w = stage.clientWidth
-    const radius = Math.min(215, Math.max(96, w * 0.3))
+    const radius = Math.min(210, Math.max(96, w * 0.31))
 
-    // idle auto-rotation + inertia
+    // idle auto-rotation + inertia (paused while a node is selected)
     if (!dragging.current) {
       if (Math.abs(velocity.current) > 0.00001) {
         rotY.current += velocity.current * dt
         velocity.current *= Math.pow(0.994, dt)
-      } else if (!reduced && t - lastInteract.current > 1800) {
+      } else if (!reduced && !selected && t - lastInteract.current > 1800) {
         rotY.current += AUTO_SPEED * dt
       }
     }
 
-    // torii rotates in true CSS 3D
     if (toriiRef.current) {
       toriiRef.current.style.transform = `translate(-50%, -50%) rotateX(${TILT}rad) rotateY(${rotY.current}rad)`
     }
 
     const core = project(0, -18, 0)
 
-    MODULES.forEach((m, i) => {
-      const a = m.angle + rotY.current
-      const p = project(radius * Math.sin(a), m.y, radius * Math.cos(a))
-      const el = cardRefs.current[i]
+    NODES.forEach((n, i) => {
+      const a = n.angle + rotY.current
+      const p = project(radius * Math.sin(a), n.y, radius * Math.cos(a))
+      const el = nodeRefs.current[i]
       if (el) {
         el.style.transform = `translate(-50%, -50%) translate(${p.x}px, ${p.y}px) scale(${p.s})`
         el.style.zIndex = p.z > 0 ? 30 : 10
-        el.style.opacity = p.z > 0 ? 1 : 0.28
+        el.style.opacity = p.z > 0 ? 1 : 0.35
       }
       const line = lineRefs.current[i]
       if (line) {
@@ -100,14 +92,14 @@ export default function CommandCenter() {
         line.setAttribute('y1', core.y)
         line.setAttribute('x2', p.x)
         line.setAttribute('y2', p.y)
-        line.setAttribute('opacity', p.z > 0 ? 0.5 : 0.18)
+        line.setAttribute('opacity', p.z > 0 ? 0.5 : 0.16)
       }
       const dot = dotRefs.current[i]
       if (dot) {
-        const k = reduced ? 0.65 : ((t * 0.00035 + i / 3) % 1)
+        const k = reduced ? 0.65 : ((t * 0.00035 + i / 6) % 1)
         dot.setAttribute('cx', core.x + (p.x - core.x) * k)
         dot.setAttribute('cy', core.y + (p.y - core.y) * k)
-        dot.setAttribute('opacity', p.z > 0 ? 0.9 : 0.3)
+        dot.setAttribute('opacity', p.z > 0 ? 0.9 : 0.25)
       }
     })
   })
@@ -133,6 +125,8 @@ export default function CommandCenter() {
     lastInteract.current = performance.now()
   }
 
+  const info = selected === 'core' ? hero.core : selected
+
   return (
     <div className="relative rounded-2xl glass-strong ring-glow overflow-hidden select-none">
       {/* window chrome */}
@@ -152,11 +146,14 @@ export default function CommandCenter() {
       {/* 3D stage — drag to rotate */}
       <div
         ref={stageRef}
-        className="relative h-[380px] sm:h-[420px] cursor-grab active:cursor-grabbing touch-pan-y"
+        className="relative h-[400px] sm:h-[430px] cursor-grab active:cursor-grabbing touch-pan-y"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
-        onPointerLeave={endDrag}
+        onPointerLeave={(e) => {
+          endDrag()
+          if (e.pointerType === 'mouse') setSelected(null)
+        }}
         onPointerCancel={endDrag}
       >
         {/* soft core glow (billboard) */}
@@ -182,8 +179,8 @@ export default function CommandCenter() {
             </linearGradient>
           </defs>
           <g style={{ transform: 'translate(50%, 50%)' }}>
-            {MODULES.map((m, i) => (
-              <g key={m.id}>
+            {NODES.map((n, i) => (
+              <g key={n.id}>
                 <line
                   ref={(el) => (lineRefs.current[i] = el)}
                   stroke="url(#cc-edge)"
@@ -195,7 +192,7 @@ export default function CommandCenter() {
           </g>
         </svg>
 
-        {/* the digital torii — CSS 3D core */}
+        {/* the digital torii — CSS 3D LLM core */}
         <div
           className="absolute left-1/2 top-1/2 h-0 w-0"
           style={{ perspective: `${PERSP}px`, zIndex: 20 }}
@@ -204,6 +201,16 @@ export default function CommandCenter() {
             <Torii />
           </div>
         </div>
+
+        {/* invisible core hit area (select the LLM core) */}
+        <button
+          type="button"
+          aria-label={hero.core.label}
+          onPointerEnter={() => setSelected('core')}
+          onClick={() => setSelected(selected === 'core' ? null : 'core')}
+          className="absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{ zIndex: 21 }}
+        />
 
         {/* core label */}
         <div
@@ -214,24 +221,54 @@ export default function CommandCenter() {
           <p lang="ja" className="mt-0.5 font-mono text-[9.5px] text-mist-500">{hero.core.sub}</p>
         </div>
 
-        {/* orbiting project modules (crisp DOM text, billboarded) */}
-        {MODULES.map((m, i) => (
+        {/* orbiting workflow nodes (crisp DOM text, billboarded) */}
+        {NODES.map((n, i) => (
           <button
-            key={m.id}
-            ref={(el) => (cardRefs.current[i] = el)}
+            key={n.id}
+            ref={(el) => (nodeRefs.current[i] = el)}
             type="button"
-            onClick={() => document.querySelector('#projects')?.scrollIntoView({ behavior: 'smooth' })}
-            className={`absolute left-1/2 top-1/2 rounded-xl glass border px-3 py-2.5 text-left transition-[opacity] duration-200 hover:!opacity-100 ${TONES[m.tone]}`}
-            style={{ width: `clamp(136px, 36vw, ${CARD_W}px)`, willChange: 'transform' }}
+            onPointerEnter={() => setSelected(n)}
+            onClick={() => setSelected(selected?.id === n.id ? null : n)}
+            className={`absolute left-1/2 top-1/2 flex items-center gap-2 rounded-lg glass border px-2.5 py-2 text-left transition-[opacity,border-color] duration-200 hover:!opacity-100 ${
+              selected?.id === n.id
+                ? 'border-cyan-glow/70 shadow-[0_0_18px_-4px_rgba(79,216,208,0.7)]'
+                : 'border-white/12'
+            }`}
+            style={{ willChange: 'transform' }}
           >
-            <p className="text-[12px] font-semibold leading-tight text-white">{m.label}</p>
-            <p lang="ja" className="mt-1 font-mono text-[10px] text-mist-400">{m.sub}</p>
-            <div className="mt-1.5 flex items-center gap-1.5">
-              <span className="h-1 w-1 rounded-full bg-current animate-pulse-soft" />
-              <span className="font-mono text-[9.5px] uppercase tracking-wider opacity-80">running</span>
-            </div>
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-pulse-500/15 text-pulse-300">
+              <NodeIcon name={n.icon} />
+            </span>
+            <span>
+              <span className="block text-[11.5px] font-semibold leading-tight text-white whitespace-nowrap">
+                {n.label}
+              </span>
+              <span lang="ja" className="block font-mono text-[9.5px] text-mist-500">{n.ja}</span>
+            </span>
           </button>
         ))}
+
+        {/* node info panel */}
+        <div
+          className="absolute left-3 top-3 max-w-[240px] rounded-xl glass-strong px-3.5 py-3 pointer-events-none"
+          style={{ zIndex: 35 }}
+        >
+          {info ? (
+            <>
+              <p className="text-[12px] font-bold text-cyan-glow">
+                {info.label}
+                {info.ja && (
+                  <span lang="ja" className="ml-2 font-mono text-[10px] font-medium text-mist-500">
+                    {info.ja}
+                  </span>
+                )}
+              </p>
+              <p className="mt-1 text-[11.5px] leading-relaxed text-mist-300">{info.desc}</p>
+            </>
+          ) : (
+            <p className="font-mono text-[10.5px] leading-relaxed text-mist-400">{hero.nodeHint}</p>
+          )}
+        </div>
 
         {/* drag hint — fades after first interaction */}
         <div
@@ -247,8 +284,8 @@ export default function CommandCenter() {
 
       {/* bottom readout */}
       <div className="relative flex items-center justify-between border-t border-white/8 bg-ink-950/40 px-4 py-2 font-mono text-[10px] text-mist-400" style={{ zIndex: 25 }}>
-        <span className="truncate">in: gmail · docs · 店舗運営</span>
-        <span className="hidden sm:inline">out: sheets · calendar · replies</span>
+        <span className="truncate">in: gmail · docs · video · 店舗運営</span>
+        <span className="hidden sm:inline">out: actions · logs · drafts</span>
       </div>
     </div>
   )
@@ -292,17 +329,12 @@ function Cuboid({ w, h, d, x = 0, y = 0, z = 0 }) {
 function Torii() {
   return (
     <>
-      {/* kasagi (top lintel) + shimaki below it */}
       <Cuboid w={184} h={12} d={18} y={-64} />
       <Cuboid w={158} h={8} d={14} y={-53} />
-      {/* nuki (tie beam) */}
       <Cuboid w={148} h={8} d={11} y={-24} />
-      {/* gakuzuka (center strut) */}
       <Cuboid w={9} h={21} d={8} y={-38} />
-      {/* pillars */}
       <Cuboid w={12} h={96} d={12} x={-56} y={4} />
       <Cuboid w={12} h={96} d={12} x={56} y={4} />
-      {/* glowing platform ring under the gate (flat in 3D) */}
       <div
         aria-hidden
         className="absolute left-1/2 top-1/2 rounded-full border border-cyan-glow/40"
@@ -324,6 +356,73 @@ function Torii() {
       />
     </>
   )
+}
+
+/* ---------- tiny stroke icon set for the workflow nodes ---------- */
+
+function NodeIcon({ name }) {
+  const common = {
+    width: 13,
+    height: 13,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+  }
+  switch (name) {
+    case 'mail':
+      return (
+        <svg {...common}>
+          <rect x="2" y="4" width="20" height="16" rx="2" />
+          <path d="m22 7-10 6L2 7" />
+        </svg>
+      )
+    case 'docs':
+      return (
+        <svg {...common}>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="9" y1="13" x2="15" y2="13" />
+        </svg>
+      )
+    case 'table':
+      return (
+        <svg {...common}>
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <line x1="3" y1="9" x2="21" y2="9" />
+          <line x1="3" y1="15" x2="21" y2="15" />
+          <line x1="12" y1="3" x2="12" y2="21" />
+        </svg>
+      )
+    case 'calendar':
+      return (
+        <svg {...common}>
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      )
+    case 'user':
+      return (
+        <svg {...common}>
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <polyline points="16 11 18 13 22 9" />
+        </svg>
+      )
+    case 'gauge':
+      return (
+        <svg {...common}>
+          <path d="M12 15l3.5-3.5" />
+          <path d="M20.3 18a9 9 0 1 0-16.6 0" />
+        </svg>
+      )
+    default:
+      return null
+  }
 }
 
 function RotateIcon() {

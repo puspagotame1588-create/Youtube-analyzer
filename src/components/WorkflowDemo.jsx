@@ -34,8 +34,13 @@ export default function WorkflowDemo() {
 
   const run = () => {
     if (running) return
-    if (done) setSampleIdx((i) => (i + 1) % SAMPLES.length)
     setStep(0)
+  }
+
+  const pickTab = (i) => {
+    if (running || i === sampleIdx) return
+    setSampleIdx(i)
+    setStep(-1)
   }
 
   return (
@@ -58,7 +63,7 @@ export default function WorkflowDemo() {
               <Spinner /> Processing…
             </>
           ) : done ? (
-            '▶ Run next sample'
+            '▶ Run again'
           ) : (
             '▶ Run AI Workflow'
           )}
@@ -66,9 +71,34 @@ export default function WorkflowDemo() {
       </div>
 
       <div className="grid lg:grid-cols-[0.9fr_1.1fr]">
-        {/* left: email + pipeline */}
+        {/* left: input + pipeline */}
         <div className="border-b lg:border-b-0 lg:border-r border-white/8 p-5">
-          {/* sample email */}
+          {/* input type tabs */}
+          <div className="mb-4 flex rounded-full glass p-1">
+            {SAMPLES.map((smp, i) => (
+              <button
+                key={smp.type}
+                onClick={() => pickTab(i)}
+                disabled={running}
+                className={`relative flex-1 rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+                  sampleIdx === i ? 'text-white' : 'text-mist-400 hover:text-mist-100'
+                } ${running ? 'cursor-wait' : ''}`}
+              >
+                {sampleIdx === i && (
+                  <motion.span
+                    layoutId="demo-tab"
+                    className="absolute inset-0 rounded-full bg-gradient-to-r from-pulse-500 to-pulse-600"
+                    transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                  />
+                )}
+                <span className="relative">
+                  {smp.tab} <span lang="ja" className="text-[10px] opacity-70">{smp.tabJa}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* sample input */}
           <motion.div
             key={sampleIdx}
             initial={{ opacity: 0, x: -14 }}
@@ -77,7 +107,7 @@ export default function WorkflowDemo() {
               step >= 0 ? 'border-pulse-500/40 bg-pulse-500/8' : 'border-white/10 bg-ink-950/50'
             }`}
           >
-            <p className="font-mono text-[10.5px] text-mist-500">from: {sample.from}</p>
+            <p className="font-mono text-[10.5px] text-mist-500">source: {sample.source}</p>
             <p lang="ja" className="mt-1 text-[13.5px] font-semibold text-white">{sample.subject}</p>
             <p lang="ja" className="mt-0.5 truncate text-[12px] text-mist-400">{sample.preview}</p>
           </motion.div>
@@ -121,7 +151,7 @@ export default function WorkflowDemo() {
           <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-mist-500">Agent log</p>
           <div className="mt-3 grow rounded-xl bg-ink-950/70 border border-white/6 p-4 font-mono text-[12px] leading-[1.9] min-h-[220px]">
             {step < 0 ? (
-              <p className="text-mist-500">Press “Run AI Workflow” to process a sample email…</p>
+              <p className="text-mist-500">Choose an input type, then press “Run AI Workflow”…</p>
             ) : (
               sample.log.slice(0, Math.min(step + 1, sample.log.length)).map((line, i) => (
                 <motion.p

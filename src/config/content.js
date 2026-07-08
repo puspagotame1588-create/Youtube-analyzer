@@ -64,6 +64,7 @@ export const nav = [
   { href: '#video', label: 'Video' },
   { href: '#projects', label: 'Projects' },
   { href: '#case-study', label: 'Case Study' },
+  { href: '#proof', label: 'Proof' },
   { href: '#skills', label: 'Skills' },
   { href: '#about', label: 'About' },
   { href: '#roadmap', label: 'Roadmap' },
@@ -77,15 +78,16 @@ export const hero = {
     en: 'Open to 2026 new-grad & internship roles',
     ja: '26卒・インターン',
   },
-  // headline = plain part + gradient part
-  headline: { pre: 'I turn real workplace problems into ', gradient: 'working AI automation.' },
+  // headline = plain part + gradient part, with a Japanese line below it
+  headline: { pre: 'I build AI/DX systems that turn messy information into ', gradient: 'clear actions.' },
+  headlineJa: '複雑な業務情報を、確実なアクションへ。',
   // subheadline segments; bold: true renders emphasized
   sub: [
-    { t: 'AI/DX consultant candidate in Japan — combining ' },
+    { t: 'Junior AI automation / DX solutions candidate in Japan — ' },
     { t: `${JLPT} Japanese`, bold: true },
-    { t: ', ' },
+    { t: ' and ' },
     { t: `${TOEIC} English`, bold: true },
-    { t: ', a business degree, and 2+ years of frontline operations into practical AI tools: email-to-action agents, RAG assistants, and bilingual training automation.' },
+    { t: ', a business degree, and 2+ years of frontline operations, applied to working systems: email-to-action agents, RAG assistants, and bilingual training automation.' },
   ],
   // trust badges (JLPT/TOEIC pulled from profile automatically)
   badges: [
@@ -95,10 +97,24 @@ export const hero = {
     { label: 'AI/DX Portfolio' },
     { label: 'Business × Automation' },
   ],
-  commandCenterCaption: 'Drag the command center — my three systems orbit one core. Explore them below.',
+  commandCenterCaption: 'Drag to rotate · hover or tap a node to see its role in the workflow.',
   // the 3D core in the middle of the command center (a torii gate = the
-  // "bridge between business and technology")
-  core: { label: 'AI CORE', sub: 'business ⇄ technology · 橋渡し' },
+  // "bridge between business and technology"). It represents the LLM.
+  core: {
+    label: 'LLM CORE',
+    sub: 'classify · extract · draft',
+    desc: 'The language model at the center: it classifies priority, extracts deadlines and key facts, and drafts responses — but never acts alone.',
+  },
+  // the workflow nodes orbiting the core; hover/tap reveals `desc`
+  nodes: [
+    { id: 'gmail', label: 'Gmail', ja: '受信', icon: 'mail', desc: 'Entry point — watches the inbox and feeds every new message into the pipeline.' },
+    { id: 'rag', label: 'RAG Docs', ja: '文書検索', icon: 'docs', desc: 'Retrieves relevant company documents so every answer can cite a real source.' },
+    { id: 'sheets', label: 'Sheets', ja: '記録', icon: 'table', desc: 'Structured log — every decision lands in an auditable row, nothing disappears.' },
+    { id: 'calendar', label: 'Calendar', ja: '予定登録', icon: 'calendar', desc: 'Extracted deadlines become scheduled tasks with reminders, automatically.' },
+    { id: 'review', label: 'Human Review', ja: '人の承認', icon: 'user', desc: 'The safety gate — a person approves every outgoing action. AI proposes, humans decide.' },
+    { id: 'dashboard', label: 'Dashboard', ja: '可視化', icon: 'gauge', desc: 'Status and metrics at a glance, so the workflow stays measurable and improvable.' },
+  ],
+  nodeHint: 'Hover or tap any node · ノードをタップ',
   dragHint: 'drag to rotate · 回転できます',
 }
 
@@ -149,6 +165,8 @@ export const projects = [
       { value: 90, suffix: '%+', label: 'classification accuracy (target)' },
       { value: 5, suffix: ' hrs', label: 'saved per month (pilot est.)' },
     ],
+    result: 'Working prototype processing a real inbox: deadlines land in Calendar, every decision is logged to Sheets, and drafts wait for my approval — nothing missed since the pilot began.',
+    learned: 'Reliability beats cleverness: the human-review gate and the audit log did more for trust than any prompt tweak. Automation is a workflow-design problem first, an AI problem second.',
     talkingPoint: '“I designed the workflow, the prompt logic, and the human-review step — I can walk through every node and explain why it exists from a business-risk perspective.”',
     signal: 'GenAI automation · workflow design · API integration · business process improvement',
     demo: '#', // TODO: live demo or Loom walkthrough link
@@ -171,6 +189,8 @@ export const projects = [
       { value: 20, suffix: '+', label: 'real store scenarios' },
       { value: 2, suffix: ' langs', label: 'JP/EN bilingual feedback' },
     ],
+    result: 'Scenario library built from real store situations; JP/EN roleplay loop working in prototype — feedback on politeness level, phrasing, and next-best response.',
+    learned: 'Domain knowledge is the moat: the hardest part wasn’t the LLM, it was encoding what actually happens at a Japanese register — which I knew from experience.',
     talkingPoint: '“This came from my own first weeks behind a register in Japan — I know exactly which situations break new foreign staff, so the scenarios are real, not invented.”',
     signal: 'Japanese context · frontline DX · training automation · localization',
     demo: '#',
@@ -193,6 +213,8 @@ export const projects = [
       { value: 100, suffix: '%', label: 'answers with citations' },
       { value: 60, suffix: 's → 5s', label: 'target lookup time' },
     ],
+    result: 'Prototype answers questions from uploaded documents with inline citations; wrong-answer rate drops sharply when retrieval is tuned before the prompt is.',
+    learned: 'RAG quality is decided at ingestion: chunking and retrieval tuning moved accuracy more than model choice — and citations are what make enterprises trust the answer.',
     talkingPoint: '“I can explain chunking, embeddings, retrieval quality, and why citations matter for enterprise trust — in Japanese or English.”',
     signal: 'Enterprise GenAI · document AI · knowledge management · responsible AI',
     demo: '#',
@@ -232,56 +254,66 @@ export const caseStudy = {
 /* ---- Interactive demo: pipeline stages + sample emails ---- */
 
 export const demo = {
+  // input tabs — each sample shows a different kind of messy input
   stages: [
-    { id: 'inbox', label: 'Email received', ja: '受信' },
-    { id: 'classify', label: 'AI classification', ja: '優先度判定' },
-    { id: 'extract', label: 'Deadline extraction', ja: '期限抽出' },
-    { id: 'log', label: 'Sheets + Calendar', ja: '記録・登録' },
-    { id: 'draft', label: 'Draft reply', ja: '返信案作成' },
+    { id: 'input', label: 'Input received', ja: '受信' },
+    { id: 'extract', label: 'AI extracts key info', ja: '情報抽出' },
+    { id: 'categorize', label: 'Categorized', ja: '分類' },
+    { id: 'action', label: 'Action created', ja: 'アクション作成' },
     { id: 'review', label: 'Human review', ja: '人による承認' },
+    { id: 'log', label: 'Result logged', ja: '記録完了' },
   ],
   samples: [
     {
-      from: 'prof.tanaka@teikyo-u.ac.jp',
+      type: 'email',
+      tab: 'Email',
+      tabJa: 'メール',
+      source: 'prof.tanaka@teikyo-u.ac.jp',
       subject: '【重要】期末レポート提出について',
       preview: 'レポートは7月18日（金）17:00までに提出してください…',
       log: [
         '→ New email from prof.tanaka@teikyo-u.ac.jp',
-        '✓ Priority: HIGH · Category: Academic / Deadline',
-        '✓ Deadline found: Jul 18 (Fri) 17:00 JST',
-        '✓ Logged to Sheets · Calendar task “期末レポート提出” created',
-        '✓ Draft reply (polite JP): 「承知いたしました。期限までに提出いたします。」',
+        '✓ Extracted: deadline Jul 18 (Fri) 17:00 JST · required action: submit report',
+        '✓ Category: Academic / Deadline · Priority: HIGH',
+        '✓ Calendar task “期末レポート提出” created · reply drafted in polite Japanese',
         '⏸ Waiting for human approval… nothing is sent automatically.',
+        '✓ Logged to Sheets: source, deadline, action, approval status.',
       ],
       result: { priority: 'HIGH', action: 'Calendar task + drafted reply', decision: 'Human approves → sent' },
     },
     {
-      from: 'manager@store-shift.jp',
-      subject: 'シフト変更のお願い（今週土曜）',
-      preview: '今週土曜日のシフトを17時からに変更できますか…',
+      type: 'document',
+      tab: 'Document',
+      tabJa: '文書',
+      source: 'store-ops/レジ操作マニュアル_v3.pdf',
+      subject: '新レジ操作マニュアル（改訂版・12ページ）',
+      preview: 'レジ点検は毎週月曜 9:00 までに完了すること。未実施の場合は店長へ報告…',
       log: [
-        '→ New email from manager@store-shift.jp',
-        '✓ Priority: MEDIUM · Category: Work / Scheduling',
-        '✓ Date reference found: Saturday 17:00 (tentative)',
-        '✓ Logged to Sheets · Calendar hold created (pending confirm)',
-        '✓ Draft reply: availability confirmation in polite Japanese',
-        '⏸ Waiting for human approval… you decide, the AI prepares.',
+        '→ New document: レジ操作マニュアル_v3.pdf (12 pages)',
+        '✓ Extracted: recurring rule — register check every Monday by 9:00, escalation: report to manager',
+        '✓ Category: Operations / Recurring duty',
+        '✓ Recurring calendar task created · checklist row added to Sheets',
+        '⏸ Waiting for human approval… a person confirms the rule was read correctly.',
+        '✓ Logged with citation: page 4, section 2.1 — verifiable, not a guess.',
       ],
-      result: { priority: 'MEDIUM', action: 'Calendar hold + drafted confirmation', decision: 'Human edits → sent' },
+      result: { priority: 'MEDIUM', action: 'Recurring task + cited checklist', decision: 'Human confirms → active' },
     },
     {
-      from: 'newsletter@shopping-mall.com',
-      subject: '☆今週のセール情報☆',
-      preview: '今だけ全品20%オフ！お見逃しなく…',
+      type: 'video',
+      tab: 'Video',
+      tabJa: '動画',
+      source: 'youtube.com/watch?v=seminar-recording',
+      subject: 'ゼミ発表の録画（45分）',
+      preview: '「…来週までに先行研究を3本まとめて、スライドを共有してください…」',
       log: [
-        '→ New email from newsletter@shopping-mall.com',
-        '✓ Priority: LOW · Category: Promotion',
-        '– No deadline relevant to the user',
-        '✓ Logged to Sheets (archive) · no calendar action',
-        '– No reply needed',
-        '✓ Auto-archived. Knowing when NOT to act is part of the design.',
+        '→ New video: seminar recording, 45 min — transcript generated',
+        '✓ Extracted: 3 action items · deadline “next week” resolved to Jul 15 (Wed)',
+        '✓ Category: Academic / Task list',
+        '✓ Summary + action list written to Sheets · calendar reminder created',
+        '⏸ Waiting for human approval… I check the AI’s reading before it commits.',
+        '✓ Logged: 45 minutes of video → 6 lines of accountable actions.',
       ],
-      result: { priority: 'LOW', action: 'Archived, zero noise', decision: 'No human time used' },
+      result: { priority: 'MEDIUM', action: '3 tasks + summary from 45-min video', decision: 'Human edits → saved' },
     },
   ],
 }
@@ -491,6 +523,33 @@ export const recruiter = {
   githubNote: 'Project source code & activity',
   linkedinNote: 'Profile, education & experience',
   closingJa: 'カジュアル面談も歓迎です。ポートフォリオの詳細について、日本語でも英語でもご説明できます。',
+}
+
+/* ============ 12.5 PROOF ============
+   Screenshots: drop PNG/JPG files into public/screenshots/ and set `src`
+   below (e.g. '/screenshots/n8n-workflow.png'). Empty src = placeholder. */
+
+export const proof = {
+  title: 'Proof over promises',
+  lead: 'Code, demos, and documentation you can inspect. If it can’t be verified, it isn’t on this page.',
+  github: {
+    label: 'GitHub repositories',
+    desc: 'Source for each project, with commit history and READMEs that explain the architecture and setup.',
+  },
+  video: {
+    label: 'Demo walkthroughs',
+    desc: 'Short screen recordings of each system running end-to-end — set links in each project’s demo field.',
+  },
+  readme: {
+    label: 'Written like handover docs',
+    desc: 'Each README covers the problem, the workflow diagram, setup steps, and known limitations — the way client documentation should read.',
+  },
+  screens: [
+    { src: '', caption: 'Email agent — n8n workflow canvas' },
+    { src: '', caption: 'RAG assistant — answer with citations' },
+    { src: '', caption: 'Sheets — auditable action log' },
+  ],
+  stack: ['Python', 'n8n', 'OpenAI API', 'Claude API', 'Gmail API', 'Google Sheets', 'Google Calendar', 'Vector DB', 'React', 'Tailwind CSS'],
 }
 
 /* ============ 13. FOOTER ============ */

@@ -5,6 +5,7 @@ import VideoSection from './components/VideoSection'
 import Projects from './components/Projects'
 import CaseStudy from './components/CaseStudy'
 import BeforeAfter from './components/BeforeAfter'
+import Proof from './components/Proof'
 import Skills from './components/Skills'
 import About from './components/About'
 import RecruiterProof from './components/RecruiterProof'
@@ -28,6 +29,7 @@ export default function App() {
         <Projects />
         <CaseStudy />
         <BeforeAfter />
+        <Proof />
         <Skills />
         <About />
         <Roadmap />

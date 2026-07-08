@@ -105,7 +105,7 @@ export default function Projects() {
                   <div className="flex flex-col gap-4 px-6 pb-6 grow">
                     <Row label="Problem">{p.problem}</Row>
                     <Row label="Solution">{p.solution}</Row>
-                    <Row label="Business value">{p.value}</Row>
+                    <Row label="Result">{p.result}</Row>
 
                     {/* floating tech tags */}
                     <div className="flex flex-wrap gap-1.5" style={{ transform: 'translateZ(24px)' }}>
@@ -128,10 +128,11 @@ export default function Projects() {
                       ))}
                     </div>
 
-                    {/* interview talking point */}
-                    <blockquote className="rounded-xl border-l-2 border-white/15 bg-white/[0.03] px-4 py-3 text-[12.5px] italic leading-relaxed text-mist-300">
-                      {p.talkingPoint}
-                    </blockquote>
+                    {/* what I learned */}
+                    <div className="rounded-xl border-l-2 border-white/15 bg-white/[0.03] px-4 py-3">
+                      <p className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-mist-500">What I learned</p>
+                      <p className="mt-1 text-[12.5px] leading-relaxed text-mist-300">{p.learned}</p>
+                    </div>
 
                     <p className="font-mono text-[10.5px] leading-relaxed text-mist-500">
                       <span className={tone.text}>Hiring signal —</span> {p.signal}
