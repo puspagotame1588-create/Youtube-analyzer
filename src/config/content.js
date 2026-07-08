@@ -95,7 +95,11 @@ export const hero = {
     { label: 'AI/DX Portfolio' },
     { label: 'Business × Automation' },
   ],
-  commandCenterCaption: 'My three portfolio systems, wired into one operations core — explore them below.',
+  commandCenterCaption: 'Drag the command center — my three systems orbit one core. Explore them below.',
+  // the 3D core in the middle of the command center (a torii gate = the
+  // "bridge between business and technology")
+  core: { label: 'AI CORE', sub: 'business ⇄ technology · 橋渡し' },
+  dragHint: 'drag to rotate · 回転できます',
 }
 
 /* ============ 4. PORTFOLIO VIDEO ============ */
