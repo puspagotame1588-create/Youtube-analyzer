@@ -47,7 +47,8 @@ export const profile = {
   linkedin: 'https://www.linkedin.com/in/your-linkedin-id', // TODO: replace with your LinkedIn URL
 
   // ---- Resume: put your PDF at public/resume/Puspa_Gotame_Resume.pdf ----
-  resumeUrl: '/resume/Puspa_Gotame_Resume.pdf',
+  // (BASE_URL keeps the link working on GitHub Pages sub-paths too)
+  resumeUrl: `${import.meta.env.BASE_URL}resume/Puspa_Gotame_Resume.pdf`,
 
   // ---- Portfolio video: YouTube embed URL, or '' for the placeholder ----
   // e.g. 'https://www.youtube.com/embed/VIDEO_ID'
