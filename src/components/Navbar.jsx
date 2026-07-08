@@ -1,16 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import site from '../config/site'
-
-const LINKS = [
-  { href: '#video', label: 'Video' },
-  { href: '#projects', label: 'Projects' },
-  { href: '#case-study', label: 'Case Study' },
-  { href: '#skills', label: 'Skills' },
-  { href: '#about', label: 'About' },
-  { href: '#roadmap', label: 'Roadmap' },
-  { href: '#contact', label: 'Contact' },
-]
+import { nav as LINKS, profile } from '../config/content'
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
@@ -34,10 +24,10 @@ export default function Navbar() {
       <nav className="mx-auto max-w-6xl px-5 md:px-8 h-16 flex items-center justify-between">
         <a href="#top" className="flex items-center gap-2.5 group">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-pulse-500 to-cyan-glow text-[13px] font-bold text-white shadow-[0_4px_16px_-4px_rgba(61,118,232,0.6)]">
-            PG
+            {profile.initials}
           </span>
           <span className="text-[15px] font-semibold tracking-tight">
-            Puspa Gotame
+            {profile.name}
             <span className="ml-2 hidden sm:inline text-[12px] font-medium text-mist-400">
               AI / DX
             </span>
@@ -56,7 +46,7 @@ export default function Navbar() {
 
         <div className="flex items-center gap-3">
           <a
-            href={site.resumeUrl}
+            href={profile.resumeUrl}
             download
             className="hidden md:inline-flex items-center gap-2 rounded-full bg-white text-ink-950 px-4 py-2 text-[13px] font-semibold hover:bg-mist-100 transition-colors"
           >
@@ -88,7 +78,7 @@ export default function Navbar() {
               </li>
             ))}
             <li>
-              <a href={site.resumeUrl} download className="block py-1.5 text-pulse-300">
+              <a href={profile.resumeUrl} download className="block py-1.5 text-pulse-300">
                 Download Resume
               </a>
             </li>

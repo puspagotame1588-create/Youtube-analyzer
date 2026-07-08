@@ -1,34 +1,11 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { about } from '../config/content'
 import SectionHeading from './SectionHeading'
 import { viewportOnce } from '../lib/anim'
 
-const CONTENT = {
-  en: {
-    lead: 'Business student in Japan. Builder of practical AI automation.',
-    paras: [
-      'I am a Nepali international student at Teikyo University (Economics / Business Administration), living and working in Japan. Alongside my degree, I have spent 2+ years on the frontline — McDonald’s and convenience store operations — learning how Japanese workplaces actually run: the standards, the pace, and the small failures that cost real money.',
-      'That frontline view is where my AI work starts. I don’t build demos for technology’s sake — I build tools for problems I have personally watched happen: missed emails and deadlines, foreign staff struggling with customer-service Japanese, teams losing time searching internal documents.',
-      'My goal is to grow into an AI Product Manager / AI-DX Consultant — the person who can sit with business stakeholders in Japanese, define the problem precisely, and then build (or direct) the automation that solves it.',
-    ],
-  },
-  ja: {
-    lead: '現場を知る、AI自動化を作るビジネス学生です。',
-    paras: [
-      '帝京大学で経済学・経営学を学ぶ、ネパール出身の留学生です。日本語（JLPT N1）と英語（TOEIC 905）でのコミュニケーションに加え、マクドナルドで2年以上、コンビニエンスストアでの勤務を通じて、日本の現場のオペレーションを実際に経験してきました。',
-      'その経験から「現場の課題を理解し、テクノロジーで解決する」ことに強い関心を持ち、現在はメール自動処理エージェント、RAGナレッジアシスタント、接客トレーニングAIなど、実務に直結するAIツールを自ら開発しています。',
-      '将来の目標は、ビジネスと技術の橋渡しができるAI/DXコンサルタント・AIプロダクトマネージャーとして、日本企業のDX推進に貢献することです。',
-    ],
-  },
-}
-
-const FACTS = [
-  { k: 'University', v: 'Teikyo University — Economics / Business Administration' },
-  { k: 'Languages', v: 'Japanese (JLPT N1) · English (TOEIC 905) · Nepali · Hindi' },
-  { k: 'Frontline experience', v: 'McDonald’s (2+ yrs) · Convenience store operations' },
-  { k: 'Certifications', v: 'JLPT N1 · TOEIC 905 · MOS Excel · MOS Word' },
-  { k: 'Career goal', v: 'AI Product Manager / AI-DX Consultant' },
-]
+const CONTENT = { en: about.en, ja: about.ja }
+const FACTS = about.facts
 
 export default function About() {
   const [lang, setLang] = useState('en')
@@ -40,7 +17,7 @@ export default function About() {
         <SectionHeading
           kicker="About Me"
           kickerJa="自己紹介"
-          title="Frontline experience is my unfair advantage"
+          title={about.title}
         />
 
         <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">

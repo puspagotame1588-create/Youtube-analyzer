@@ -1,37 +1,12 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { beforeAfter } from '../config/content'
 import SectionHeading from './SectionHeading'
 import { viewportOnce } from '../lib/anim'
 
 const MODES = {
-  before: {
-    title: 'Manual workflow',
-    ja: '手作業',
-    tone: 'text-beni-400',
-    time: '~45 min / day',
-    steps: [
-      { t: 'Open inbox, scan 40+ unread emails', cost: '10 min' },
-      { t: 'Re-read important ones to find deadlines', cost: '10 min' },
-      { t: 'Copy dates into calendar by hand', cost: '8 min' },
-      { t: 'Write each reply from scratch', cost: '15 min' },
-      { t: 'Hope nothing was missed', cost: 'risk: high' },
-    ],
-    verdict: 'Attention-dependent. One busy day = missed deadline.',
-  },
-  after: {
-    title: 'AI-assisted workflow',
-    ja: 'AI活用',
-    tone: 'text-cyan-glow',
-    time: '~8 min / day',
-    steps: [
-      { t: 'Agent triages every email on arrival', cost: 'auto' },
-      { t: 'Deadlines extracted and logged to Sheets', cost: 'auto' },
-      { t: 'Calendar tasks created with reminders', cost: 'auto' },
-      { t: 'Replies pre-drafted in polite Japanese', cost: 'auto' },
-      { t: 'Human reviews a short action list & approves', cost: '8 min' },
-    ],
-    verdict: 'Process-dependent. The system catches what attention misses.',
-  },
+  before: { ...beforeAfter.modes.before, tone: 'text-beni-400' },
+  after: { ...beforeAfter.modes.after, tone: 'text-cyan-glow' },
 }
 
 export default function BeforeAfter() {
@@ -44,8 +19,8 @@ export default function BeforeAfter() {
         <SectionHeading
           kicker="The Transformation"
           kickerJa="変革"
-          title="Same inbox. Different system."
-          lead="DX is not about tools — it's about redesigning who does what. Toggle to compare the daily routine before and after the agent."
+          title={beforeAfter.title}
+          lead={beforeAfter.lead}
         />
 
         <motion.div

@@ -1,45 +1,10 @@
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
+import { roadmap } from '../config/content'
 import SectionHeading from './SectionHeading'
 import { viewportOnce } from '../lib/anim'
 
-const MONTHS = [
-  {
-    m: 'Month 1',
-    title: 'AI automation foundations',
-    ja: '自動化の基礎',
-    desc: 'n8n, APIs, Gmail/Sheets/Calendar integration, prompt design. Shipped the first working email pipeline.',
-    status: 'done',
-  },
-  {
-    m: 'Month 2',
-    title: 'RAG + document AI',
-    ja: 'RAG・文書AI',
-    desc: 'Embeddings, vector search, chunking strategy, citation UX. Building the knowledge assistant.',
-    status: 'done',
-  },
-  {
-    m: 'Month 3',
-    title: 'Agents + evaluation',
-    ja: 'エージェント・評価',
-    desc: 'Multi-step agent design, human-in-the-loop patterns, measuring accuracy and failure cases.',
-    status: 'now',
-  },
-  {
-    m: 'Month 4',
-    title: 'Portfolio case studies',
-    ja: 'ケーススタディ化',
-    desc: 'Turning each build into a documented case study: metrics, demo videos, and write-ups.',
-    status: 'next',
-  },
-  {
-    m: 'Month 5',
-    title: 'Applications + interviews',
-    ja: '応募・面接',
-    desc: 'Targeting AI/DX consulting and AI product roles — ready to demo, explain, and defend every project.',
-    status: 'next',
-  },
-]
+const MONTHS = roadmap.months
 
 const statusStyle = {
   done: { dot: 'bg-cyan-glow border-cyan-glow', label: 'Completed', text: 'text-cyan-glow' },
@@ -58,8 +23,8 @@ export default function Roadmap() {
         <SectionHeading
           kicker="Build Roadmap"
           kickerJa="ロードマップ"
-          title="A deliberate 5-month path to the target role"
-          lead="Not casual learning — a scheduled build program where every month produces something a recruiter can inspect."
+          title={roadmap.title}
+          lead={roadmap.lead}
         />
 
         <div ref={ref} className="relative pl-8 md:pl-10">

@@ -1,13 +1,9 @@
 import { motion } from 'framer-motion'
-import site from '../config/site'
+import { recruiter, profile } from '../config/content'
 import SectionHeading from './SectionHeading'
 import { fadeUp, stagger, viewportOnce } from '../lib/anim'
 
-const STATUS = [
-  { text: 'Available for internship / new-grad opportunities', ja: 'インターン・新卒応募可' },
-  { text: 'Based in Japan — no relocation needed', ja: '日本在住' },
-  { text: 'Open to AI/DX, automation, and product roles', ja: 'AI/DX・自動化・プロダクト職' },
-]
+const STATUS = recruiter.status
 
 export default function RecruiterProof() {
   return (
@@ -16,8 +12,8 @@ export default function RecruiterProof() {
         <SectionHeading
           kicker="For Recruiters"
           kickerJa="採用ご担当者様へ"
-          title="Everything you need to evaluate me, in one place"
-          lead="Resume, code, and a direct line. If my profile looks like a fit, I can walk you through any project live — in Japanese or English."
+          title={recruiter.title}
+          lead={recruiter.lead}
         />
 
         <motion.div
@@ -44,19 +40,19 @@ export default function RecruiterProof() {
           {/* action grid */}
           <motion.div variants={fadeUp} custom={1} className="mt-8 grid gap-3.5 sm:grid-cols-2">
             <a
-              href={site.resumeUrl}
+              href={profile.resumeUrl}
               download
               className="group flex items-center gap-4 rounded-2xl bg-gradient-to-r from-pulse-500 to-pulse-600 px-6 py-5 shadow-[0_10px_32px_-10px_rgba(61,118,232,0.7)] transition-transform hover:scale-[1.02]"
             >
               <IconWrap><DocIcon /></IconWrap>
               <div>
                 <p className="text-[15px] font-bold text-white">Download Resume</p>
-                <p className="text-[12px] text-white/70">PDF · one page, updated regularly</p>
+                <p className="text-[12px] text-white/70">{recruiter.resumeNote}</p>
               </div>
               <Arrow />
             </a>
             <a
-              href={site.github}
+              href={profile.github}
               target="_blank"
               rel="noreferrer"
               className="group flex items-center gap-4 rounded-2xl glass px-6 py-5 hover:border-white/25 transition-colors"
@@ -64,12 +60,12 @@ export default function RecruiterProof() {
               <IconWrap><GitHubIcon /></IconWrap>
               <div>
                 <p className="text-[15px] font-bold text-white">GitHub</p>
-                <p className="text-[12px] text-mist-400">Project source code & activity</p>
+                <p className="text-[12px] text-mist-400">{recruiter.githubNote}</p>
               </div>
               <Arrow />
             </a>
             <a
-              href={site.linkedin}
+              href={profile.linkedin}
               target="_blank"
               rel="noreferrer"
               className="group flex items-center gap-4 rounded-2xl glass px-6 py-5 hover:border-white/25 transition-colors"
@@ -77,18 +73,18 @@ export default function RecruiterProof() {
               <IconWrap><LinkedInIcon /></IconWrap>
               <div>
                 <p className="text-[15px] font-bold text-white">LinkedIn</p>
-                <p className="text-[12px] text-mist-400">Profile, education & experience</p>
+                <p className="text-[12px] text-mist-400">{recruiter.linkedinNote}</p>
               </div>
               <Arrow />
             </a>
             <a
-              href={`mailto:${site.email}`}
+              href={`mailto:${profile.email}`}
               className="group flex items-center gap-4 rounded-2xl glass px-6 py-5 hover:border-white/25 transition-colors"
             >
               <IconWrap><MailIcon /></IconWrap>
               <div>
                 <p className="text-[15px] font-bold text-white">Email Me</p>
-                <p className="text-[12px] text-mist-400 break-all">{site.email}</p>
+                <p className="text-[12px] text-mist-400 break-all">{profile.email}</p>
               </div>
               <Arrow />
             </a>
@@ -100,7 +96,7 @@ export default function RecruiterProof() {
             lang="ja"
             className="mt-8 text-center text-[13px] leading-relaxed text-mist-400"
           >
-            カジュアル面談も歓迎です。ポートフォリオの詳細について、日本語でも英語でもご説明できます。
+            {recruiter.closingJa}
           </motion.p>
         </motion.div>
       </div>

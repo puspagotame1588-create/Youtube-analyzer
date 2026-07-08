@@ -1,17 +1,29 @@
 import { useRef } from 'react'
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
+import { projects } from '../config/content'
 
 /**
  * 3D "AI Operations Command Center" — the hero visual.
  * Projects rendered as live modules wired into a central AI core.
+ * Module names/subtitles come from `projects` in config/content.js —
+ * edit a project there and this visual updates too.
  * CSS 3D + SVG animation only (no WebGL) for stability and mobile perf.
  */
 
-const MODULES = [
-  { id: 'email', label: 'Email → Action Agent', sub: 'Gmail · Sheets · Calendar', x: 4, y: 12, tone: 'pulse' },
-  { id: 'coach', label: 'AI Training Coach', sub: '日本語接客 Roleplay', x: 64, y: 8, tone: 'beni' },
-  { id: 'rag', label: 'RAG Knowledge Assistant', sub: 'Docs · Citations', x: 8, y: 66, tone: 'cyan' },
+// screen positions for up to three modules (presentation only)
+const SLOTS = [
+  { x: 4, y: 12 },
+  { x: 64, y: 8 },
+  { x: 8, y: 66 },
 ]
+
+const MODULES = projects.slice(0, 3).map((p, i) => ({
+  id: p.id,
+  label: p.shortLabel,
+  sub: p.shortSub,
+  tone: p.tone,
+  ...SLOTS[i],
+}))
 
 const CORE = { x: 58, y: 52 } // % coordinates of the AI core center
 

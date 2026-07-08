@@ -1,65 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
+import { demo } from '../config/content'
+
 /**
  * Interactive mini-demo: recruiter clicks "Run AI Workflow" and watches a
  * sample email travel through the automation pipeline, with a live log.
- * Pure front-end simulation — no API calls.
+ * Stages and sample emails live in config/content.js (demo.stages /
+ * demo.samples). Pure front-end simulation — no API calls.
  */
 
-const STAGES = [
-  { id: 'inbox', label: 'Email received', ja: '受信' },
-  { id: 'classify', label: 'AI classification', ja: '優先度判定' },
-  { id: 'extract', label: 'Deadline extraction', ja: '期限抽出' },
-  { id: 'log', label: 'Sheets + Calendar', ja: '記録・登録' },
-  { id: 'draft', label: 'Draft reply', ja: '返信案作成' },
-  { id: 'review', label: 'Human review', ja: '人による承認' },
-]
-
-const SAMPLES = [
-  {
-    from: 'prof.tanaka@teikyo-u.ac.jp',
-    subject: '【重要】期末レポート提出について',
-    preview: 'レポートは7月18日（金）17:00までに提出してください…',
-    log: [
-      '→ New email from prof.tanaka@teikyo-u.ac.jp',
-      '✓ Priority: HIGH · Category: Academic / Deadline',
-      '✓ Deadline found: Jul 18 (Fri) 17:00 JST',
-      '✓ Logged to Sheets · Calendar task “期末レポート提出” created',
-      '✓ Draft reply (polite JP): 「承知いたしました。期限までに提出いたします。」',
-      '⏸ Waiting for human approval… nothing is sent automatically.',
-    ],
-    result: { priority: 'HIGH', action: 'Calendar task + drafted reply', decision: 'Human approves → sent' },
-  },
-  {
-    from: 'manager@store-shift.jp',
-    subject: 'シフト変更のお願い（今週土曜）',
-    preview: '今週土曜日のシフトを17時からに変更できますか…',
-    log: [
-      '→ New email from manager@store-shift.jp',
-      '✓ Priority: MEDIUM · Category: Work / Scheduling',
-      '✓ Date reference found: Saturday 17:00 (tentative)',
-      '✓ Logged to Sheets · Calendar hold created (pending confirm)',
-      '✓ Draft reply: availability confirmation in polite Japanese',
-      '⏸ Waiting for human approval… you decide, the AI prepares.',
-    ],
-    result: { priority: 'MEDIUM', action: 'Calendar hold + drafted confirmation', decision: 'Human edits → sent' },
-  },
-  {
-    from: 'newsletter@shopping-mall.com',
-    subject: '☆今週のセール情報☆',
-    preview: '今だけ全品20%オフ！お見逃しなく…',
-    log: [
-      '→ New email from newsletter@shopping-mall.com',
-      '✓ Priority: LOW · Category: Promotion',
-      '– No deadline relevant to the user',
-      '✓ Logged to Sheets (archive) · no calendar action',
-      '– No reply needed',
-      '✓ Auto-archived. Knowing when NOT to act is part of the design.',
-    ],
-    result: { priority: 'LOW', action: 'Archived, zero noise', decision: 'No human time used' },
-  },
-]
+const STAGES = demo.stages
+const SAMPLES = demo.samples
 
 const STEP_MS = 1100
 

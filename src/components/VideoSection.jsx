@@ -1,26 +1,7 @@
 import { motion } from 'framer-motion'
-import site from '../config/site'
+import { video, profile } from '../config/content'
 import SectionHeading from './SectionHeading'
 import { fadeUp, stagger, viewportOnce } from '../lib/anim'
-
-const SUMMARY = [
-  {
-    q: 'Who I am',
-    a: 'Business student in Japan (Teikyo University, Economics) with JLPT N1, TOEIC 905, and 2+ years of frontline operations at McDonald’s and a convenience store.',
-  },
-  {
-    q: 'What I build',
-    a: 'Practical AI automation — an email-to-action agent, a bilingual customer-service training coach, and a RAG knowledge assistant — all born from problems I saw at work.',
-  },
-  {
-    q: 'Why AI/DX consulting',
-    a: 'I sit between business and technology: I can map an operation in Japanese, spec the automation in English, and build the working prototype myself.',
-  },
-  {
-    q: 'Roles I’m targeting',
-    a: 'AI/DX Consultant · AI Solutions Consultant · AI Product & Automation roles — new-grad and internship positions in Japan.',
-  },
-]
 
 export default function VideoSection() {
   return (
@@ -29,8 +10,8 @@ export default function VideoSection() {
         <SectionHeading
           kicker="Portfolio Video"
           kickerJa="自己紹介動画"
-          title="Three minutes: who I am and what I build"
-          lead="A short introduction covering my background, my three AI/DX projects, and why I fit AI consulting roles in Japan."
+          title={video.title}
+          lead={video.lead}
         />
 
         <motion.div
@@ -43,11 +24,11 @@ export default function VideoSection() {
           {/* Player */}
           <motion.div variants={fadeUp} className="relative rounded-2xl glass-strong p-2 ring-glow">
             <div className="relative aspect-video overflow-hidden rounded-xl bg-ink-900">
-              {site.videoEmbedUrl ? (
+              {profile.videoEmbedUrl ? (
                 <iframe
                   className="absolute inset-0 h-full w-full"
-                  src={site.videoEmbedUrl}
-                  title="Portfolio introduction video — Puspa Gotame"
+                  src={profile.videoEmbedUrl}
+                  title={`Portfolio introduction video — ${profile.name}`}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 />
@@ -61,8 +42,8 @@ export default function VideoSection() {
                     </div>
                     <p className="mt-4 text-[15px] font-semibold text-white">Portfolio video</p>
                     <p className="mt-1 text-[13px] text-mist-400">
-                      Set <code className="font-mono text-pulse-300">videoEmbedUrl</code> in{' '}
-                      <code className="font-mono text-pulse-300">src/config/site.js</code>
+                      Set <code className="font-mono text-pulse-300">profile.videoEmbedUrl</code> in{' '}
+                      <code className="font-mono text-pulse-300">src/config/content.js</code>
                     </p>
                   </div>
                 </div>
@@ -75,7 +56,7 @@ export default function VideoSection() {
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-pulse-300">
               Video summary
             </p>
-            {SUMMARY.map((s) => (
+            {video.summary.map((s) => (
               <div key={s.q}>
                 <p className="text-[13.5px] font-semibold text-white">{s.q}</p>
                 <p className="mt-1 text-[13.5px] leading-relaxed text-mist-400">{s.a}</p>

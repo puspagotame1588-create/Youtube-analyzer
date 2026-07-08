@@ -1,15 +1,7 @@
 import { motion } from 'framer-motion'
-import site from '../config/site'
+import { hero, profile } from '../config/content'
 import CommandCenter from './CommandCenter'
 import { fadeUp, stagger } from '../lib/anim'
-
-const BADGES = [
-  { label: 'JLPT N1', ja: '日本語能力試験' },
-  { label: 'TOEIC 905' },
-  { label: 'Japan-based', ja: '東京' },
-  { label: 'AI/DX Portfolio' },
-  { label: 'Business × Automation' },
-]
 
 export default function Hero() {
   return (
@@ -22,8 +14,8 @@ export default function Hero() {
             className="inline-flex items-center gap-2 rounded-full glass px-4 py-1.5 text-[13px] font-medium text-mist-300"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-beni-400" />
-            Open to 2026 new-grad & internship roles
-            <span lang="ja" className="border-l border-white/10 pl-2 text-mist-400">26卒・インターン</span>
+            {hero.availability.en}
+            <span lang="ja" className="border-l border-white/10 pl-2 text-mist-400">{hero.availability.ja}</span>
           </motion.div>
 
           <motion.h1
@@ -31,16 +23,18 @@ export default function Hero() {
             custom={1}
             className="mt-6 text-[2.6rem] leading-[1.08] font-extrabold tracking-tight sm:text-5xl md:text-[3.6rem]"
           >
-            I turn real workplace problems into{' '}
-            <span className="text-gradient">working AI automation.</span>
+            {hero.headline.pre}
+            <span className="text-gradient">{hero.headline.gradient}</span>
           </motion.h1>
 
           <motion.p variants={fadeUp} custom={2} className="mt-6 max-w-xl text-[16.5px] leading-relaxed text-mist-300">
-            AI/DX consultant candidate in Japan — combining{' '}
-            <strong className="font-semibold text-white">JLPT N1 Japanese</strong>,{' '}
-            <strong className="font-semibold text-white">TOEIC 905 English</strong>, a business
-            degree, and 2+ years of frontline operations into practical AI tools:
-            email-to-action agents, RAG assistants, and bilingual training automation.
+            {hero.sub.map((seg, i) =>
+              seg.bold ? (
+                <strong key={i} className="font-semibold text-white">{seg.t}</strong>
+              ) : (
+                <span key={i}>{seg.t}</span>
+              ),
+            )}
           </motion.p>
 
           <motion.div variants={fadeUp} custom={3} className="mt-8 flex flex-wrap gap-3">
@@ -57,7 +51,7 @@ export default function Hero() {
               View Projects
             </a>
             <a
-              href={site.resumeUrl}
+              href={profile.resumeUrl}
               download
               className="inline-flex items-center gap-2 rounded-full glass px-6 py-3 text-[14px] font-semibold text-white transition-colors hover:border-pulse-400/40"
             >
@@ -73,7 +67,7 @@ export default function Hero() {
 
           {/* trust badges */}
           <motion.ul variants={fadeUp} custom={4} className="mt-10 flex flex-wrap gap-2.5">
-            {BADGES.map((b) => (
+            {hero.badges.map((b) => (
               <li
                 key={b.label}
                 className="inline-flex items-center gap-2 rounded-lg glass px-3.5 py-2 text-[12.5px] font-semibold text-mist-100"
@@ -98,7 +92,7 @@ export default function Hero() {
         >
           <CommandCenter />
           <p className="mt-4 text-center font-mono text-[11px] text-mist-500">
-            My three portfolio systems, wired into one operations core — explore them below.
+            {hero.commandCenterCaption}
           </p>
         </motion.div>
       </div>

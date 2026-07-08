@@ -24,7 +24,7 @@ public/
     Puspa_Gotame_Resume.pdf    # ← REPLACE with your real resume (keep the same filename)
 src/
   config/
-    site.js                    # ★ ALL personal links & video URL — edit this first
+    content.js                 # ★ ALL text, links, projects, metrics — the ONLY file you edit
   lib/anim.js                  # shared animation variants + count-up hook
   components/
     Background.jsx             # Tokyo grid + data-stream ambient layer
@@ -39,22 +39,27 @@ src/
   index.css                    # design tokens (colors, fonts, effects)
 ```
 
-## 3. Replace placeholders (15 minutes)
+## 3. Edit content (one file controls the whole site)
 
-Everything personal lives in **`src/config/site.js`**:
+**Every word, link, and number on the site lives in `src/config/content.js`.**
+Components contain no text — they only render what's in that file.
 
-| What | Where | How |
+Shared facts are defined once in the `profile` object at the top and ripple everywhere:
+
+- Change `profile.certs.toeic` → hero badge, subheadline, skills list, fact sheet, and Japan-fit section all update.
+- Edit a project in `projects` → its card, the hero command-center module, and (for the first project) the case-study title all update.
+- Edit `nav` → navbar and footer navigation both update.
+
+Quick placeholder checklist:
+
+| What | Where in `content.js` | How |
 | --- | --- | --- |
-| Portfolio video | `site.videoEmbedUrl` | Upload to YouTube (unlisted is fine) → use `https://www.youtube.com/embed/VIDEO_ID` |
-| Resume PDF | `public/resume/Puspa_Gotame_Resume.pdf` | Overwrite the placeholder file with your real PDF (same filename) |
-| GitHub | `site.github` | Your profile URL |
-| LinkedIn | `site.linkedin` | Your profile URL |
-| Email | `site.email` | Already set — change if needed |
-| Project demo/GitHub links | `site.projects.*` | Replace each `'#'` with a repo or demo/Loom link |
-
-Text content (project descriptions, About paragraphs, metrics) lives at the top of each
-component in plain arrays/objects — open the component and edit the strings.
-**Update the metric numbers to your real measured results as your projects mature.**
+| Portfolio video | `profile.videoEmbedUrl` | Upload to YouTube (unlisted is fine) → use `https://www.youtube.com/embed/VIDEO_ID` |
+| Resume PDF | `public/resume/Puspa_Gotame_Resume.pdf` (file, not config) | Overwrite the placeholder PDF (same filename) |
+| GitHub / LinkedIn / Email | `profile.github` / `profile.linkedin` / `profile.email` | Your real URLs |
+| Project demo/GitHub links | `demo` / `github` inside each entry of `projects` | Replace each `'#'` |
+| Metrics | `metrics` inside each project + `caseStudy.metrics` | Replace targets with measured results as projects mature |
+| Roadmap progress | `roadmap.months[].status` | Move `'now'` forward: `'done'` / `'now'` / `'next'` |
 
 ## 4. Deploy to Vercel (free)
 

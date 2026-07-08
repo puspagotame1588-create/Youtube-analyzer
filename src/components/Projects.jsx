@@ -1,65 +1,15 @@
 import { useRef } from 'react'
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
-import site from '../config/site'
+import { projects, projectsSection } from '../config/content'
 import SectionHeading from './SectionHeading'
 import { useCountUp, viewportOnce } from '../lib/anim'
 
-const PROJECTS = [
-  {
-    id: 'emailAgent',
-    tone: { text: 'text-pulse-300', bg: 'from-pulse-500/15', border: 'hover:border-pulse-400/40', chip: 'bg-pulse-500/12 text-pulse-300' },
-    tag: 'Flagship · GenAI Automation',
-    title: 'AI Email-to-Action Operations Agent',
-    titleJa: 'メール自動アクション化エージェント',
-    problem: 'Students and workers miss important emails, deadlines, and required actions buried in crowded inboxes.',
-    solution: 'An agent reads Gmail, classifies priority, extracts deadlines, logs everything to Google Sheets, creates Calendar tasks, and drafts replies — with a human approving before anything is sent.',
-    tools: ['n8n', 'Gmail API', 'OpenAI/Claude API', 'Google Sheets', 'Google Calendar', 'Python'],
-    value: 'Turns an unstructured inbox into a managed task pipeline — fewer missed deadlines, faster response, and an audit trail of every decision.',
-    status: { label: 'Working prototype', live: true },
-    metrics: [
-      { value: 90, suffix: '%+', label: 'classification accuracy (target)' },
-      { value: 5, suffix: ' hrs', label: 'saved per month (pilot est.)' },
-    ],
-    talkingPoint: '“I designed the workflow, the prompt logic, and the human-review step — I can walk through every node and explain why it exists from a business-risk perspective.”',
-    signal: 'GenAI automation · workflow design · API integration · business process improvement',
-  },
-  {
-    id: 'trainingCoach',
-    tone: { text: 'text-beni-400', bg: 'from-beni-500/12', border: 'hover:border-beni-400/40', chip: 'bg-beni-500/12 text-beni-400' },
-    tag: 'Frontline DX · Japan Context',
-    title: 'Japanese Convenience Store AI Training Coach',
-    titleJa: 'コンビニ接客AIトレーニングコーチ',
-    problem: 'Foreign staff struggle with Japanese customer-service phrases, payment situations, and reporting mistakes to managers — I lived this problem myself.',
-    solution: 'An AI roleplay coach that simulates real store situations: greetings, customer questions, payments, complaint handling, and manager communication — with feedback on politeness and phrasing.',
-    tools: ['LLM roleplay prompts', 'Speech-friendly UI', 'Scenario library', 'JP/EN localization'],
-    value: 'Cuts onboarding time for foreign staff and reduces service errors — a real pain point for Japan’s labor-short retail sector.',
-    status: { label: 'In development', live: false },
-    metrics: [
-      { value: 20, suffix: '+', label: 'real store scenarios' },
-      { value: 2, suffix: ' langs', label: 'JP/EN bilingual feedback' },
-    ],
-    talkingPoint: '“This came from my own first weeks behind a register in Japan — I know exactly which situations break new foreign staff, so the scenarios are real, not invented.”',
-    signal: 'Japanese context · frontline DX · training automation · localization',
-  },
-  {
-    id: 'ragAssistant',
-    tone: { text: 'text-cyan-glow', bg: 'from-cyan-glow/10', border: 'hover:border-cyan-glow/40', chip: 'bg-cyan-glow/10 text-cyan-glow' },
-    tag: 'Enterprise GenAI · Knowledge',
-    title: 'RAG Company Knowledge Assistant',
-    titleJa: '社内ナレッジRAGアシスタント',
-    problem: 'Employees waste time digging through manuals, rules, PDFs, and internal documents to answer routine questions.',
-    solution: 'A retrieval-augmented assistant that answers questions from uploaded documents and always cites its sources, so answers stay verifiable and trustworthy.',
-    tools: ['RAG pipeline', 'Vector database', 'Embeddings', 'Python', 'Citation UI'],
-    value: 'Shrinks document-search time from minutes to seconds and keeps institutional knowledge accessible — with citations for responsible AI use.',
-    status: { label: 'In development', live: false },
-    metrics: [
-      { value: 100, suffix: '%', label: 'answers with citations' },
-      { value: 60, suffix: 's → 5s', label: 'target lookup time' },
-    ],
-    talkingPoint: '“I can explain chunking, embeddings, retrieval quality, and why citations matter for enterprise trust — in Japanese or English.”',
-    signal: 'Enterprise GenAI · document AI · knowledge management · responsible AI',
-  },
-]
+// tone name (from content.js) → presentation classes
+const TONES = {
+  pulse: { text: 'text-pulse-300', bg: 'from-pulse-500/15', border: 'hover:border-pulse-400/40', chip: 'bg-pulse-500/12 text-pulse-300' },
+  beni: { text: 'text-beni-400', bg: 'from-beni-500/12', border: 'hover:border-beni-400/40', chip: 'bg-beni-500/12 text-beni-400' },
+  cyan: { text: 'text-cyan-glow', bg: 'from-cyan-glow/10', border: 'hover:border-cyan-glow/40', chip: 'bg-cyan-glow/10 text-cyan-glow' },
+}
 
 function TiltCard({ children, className }) {
   const ref = useRef(null)
@@ -119,13 +69,13 @@ export default function Projects() {
         <SectionHeading
           kicker="Featured Projects"
           kickerJa="プロジェクト"
-          title="Built from real problems, not tutorials"
-          lead="Each project starts with an operational problem I personally experienced, and ends with a measurable business outcome. Every card is an interview conversation I'm ready to have."
+          title={projectsSection.title}
+          lead={projectsSection.lead}
         />
 
         <div className="grid gap-6 lg:grid-cols-3">
-          {PROJECTS.map((p, i) => {
-            const links = site.projects[p.id]
+          {projects.map((p, i) => {
+            const tone = TONES[p.tone]
             return (
               <motion.div
                 key={p.id}
@@ -135,12 +85,12 @@ export default function Projects() {
                 transition={{ duration: 0.7, delay: i * 0.12, ease: [0.22, 1, 0.36, 1] }}
               >
                 <TiltCard
-                  className={`rounded-2xl glass ${p.tone.border} transition-colors duration-300 flex flex-col overflow-hidden`}
+                  className={`rounded-2xl glass ${tone.border} transition-colors duration-300 flex flex-col overflow-hidden`}
                 >
                   {/* header band */}
-                  <div className={`bg-gradient-to-b ${p.tone.bg} to-transparent px-6 pt-6 pb-4`}>
+                  <div className={`bg-gradient-to-b ${tone.bg} to-transparent px-6 pt-6 pb-4`}>
                     <div className="flex items-center justify-between gap-2">
-                      <span className={`rounded-full px-2.5 py-1 text-[10.5px] font-semibold tracking-wide ${p.tone.chip}`}>
+                      <span className={`rounded-full px-2.5 py-1 text-[10.5px] font-semibold tracking-wide ${tone.chip}`}>
                         {p.tag}
                       </span>
                       <span className={`inline-flex items-center gap-1.5 font-mono text-[10px] ${p.status.live ? 'text-cyan-glow' : 'text-mist-400'}`}>
@@ -174,7 +124,7 @@ export default function Projects() {
                     {/* metrics */}
                     <div className="grid grid-cols-2 gap-2.5" style={{ transform: 'translateZ(18px)' }}>
                       {p.metrics.map((m) => (
-                        <Metric key={m.label} {...m} toneText={p.tone.text} />
+                        <Metric key={m.label} {...m} toneText={tone.text} />
                       ))}
                     </div>
 
@@ -184,19 +134,19 @@ export default function Projects() {
                     </blockquote>
 
                     <p className="font-mono text-[10.5px] leading-relaxed text-mist-500">
-                      <span className={p.tone.text}>Hiring signal —</span> {p.signal}
+                      <span className={tone.text}>Hiring signal —</span> {p.signal}
                     </p>
 
                     {/* links */}
                     <div className="mt-auto flex gap-2.5 pt-1">
                       <a
-                        href={links.demo}
+                        href={p.demo}
                         className="flex-1 rounded-lg bg-white/8 hover:bg-white/14 border border-white/10 px-3 py-2 text-center text-[12.5px] font-semibold text-white transition-colors"
                       >
                         Demo / Walkthrough
                       </a>
                       <a
-                        href={links.github}
+                        href={p.github}
                         className="flex-1 rounded-lg glass hover:border-white/25 px-3 py-2 text-center text-[12.5px] font-semibold text-mist-300 hover:text-white transition-colors"
                       >
                         GitHub
@@ -210,7 +160,7 @@ export default function Projects() {
         </div>
 
         <p className="mt-6 text-center font-mono text-[11px] text-mist-500">
-          Metrics marked “target / pilot est.” are measured goals, updated as each project ships.
+          {projectsSection.footnote}
         </p>
       </div>
     </section>
