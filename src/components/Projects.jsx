@@ -1,5 +1,5 @@
-import { useRef } from 'react'
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
+import { useRef, useState } from 'react'
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion'
 import { projects, projectsSection, isPlaceholderLink } from '../config/content'
 import SectionHeading from './SectionHeading'
 import { useCountUp, viewportOnce } from '../lib/anim'
@@ -80,6 +80,50 @@ function CardLink({ href, label, soonLabel, primary = false }) {
   )
 }
 
+/* Collapsible deep-dive: business value, time saved, lessons, hiring
+   signal. Keeps the card scannable; depth is one tap away. */
+function CardDetails({ p, tone }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between rounded-xl border border-white/8 bg-white/[0.03] px-3.5 py-2.5 text-left font-mono text-[11px] font-semibold text-mist-300 hover:text-white hover:border-white/20 transition-colors"
+      >
+        <span>Full case study <span lang="ja" className="text-[10px] text-mist-500">詳細</span></span>
+        <span className={`transition-transform duration-300 ${open ? 'rotate-180' : ''}`}>▾</span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="flex flex-col gap-4 pt-4">
+              <Row label="Business value">{p.value}</Row>
+              <div className="flex items-center justify-between rounded-xl border border-white/6 bg-ink-950/50 px-3.5 py-2.5">
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-mist-500">Time saved</span>
+                <span className={`font-mono text-[12px] font-semibold ${tone.text}`}>{p.timeSaved}</span>
+              </div>
+              <div className="rounded-xl border-l-2 border-white/15 bg-white/[0.03] px-4 py-3">
+                <p className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-mist-500">What I learned</p>
+                <p className="mt-1 text-[12.5px] leading-relaxed text-mist-300">{p.learned}</p>
+              </div>
+              <p className="font-mono text-[10.5px] leading-relaxed text-mist-500">
+                <span className={tone.text}>Hiring signal —</span> {p.signal}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 function Row({ label, children }) {
   return (
     <div>
@@ -133,7 +177,6 @@ export default function Projects() {
                     <Row label="Problem">{p.problem}</Row>
                     <Row label="Solution">{p.solution}</Row>
                     <Row label="Result">{p.result}</Row>
-                    <Row label="Business value">{p.value}</Row>
 
                     {/* floating tech tags */}
                     <div className="flex flex-wrap gap-1.5" style={{ transform: 'translateZ(24px)' }}>
@@ -156,21 +199,8 @@ export default function Projects() {
                       ))}
                     </div>
 
-                    {/* time saved */}
-                    <div className="flex items-center justify-between rounded-xl border border-white/6 bg-ink-950/50 px-3.5 py-2.5">
-                      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-mist-500">Time saved</span>
-                      <span className={`font-mono text-[12px] font-semibold ${tone.text}`}>{p.timeSaved}</span>
-                    </div>
-
-                    {/* what I learned */}
-                    <div className="rounded-xl border-l-2 border-white/15 bg-white/[0.03] px-4 py-3">
-                      <p className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-mist-500">What I learned</p>
-                      <p className="mt-1 text-[12.5px] leading-relaxed text-mist-300">{p.learned}</p>
-                    </div>
-
-                    <p className="font-mono text-[10.5px] leading-relaxed text-mist-500">
-                      <span className={tone.text}>Hiring signal —</span> {p.signal}
-                    </p>
+                    {/* progressive disclosure: depth on demand, cards stay scannable */}
+                    <CardDetails p={p} tone={tone} />
 
                     {/* links — placeholder URLs render as "coming soon" */}
                     <div className="mt-auto flex gap-2.5 pt-1">

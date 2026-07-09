@@ -62,10 +62,10 @@ const TOEIC = `TOEIC ${profile.certs.toeic}`
 /* ============ 2. NAVIGATION (navbar + footer share this) ============ */
 
 export const nav = [
-  { href: '#video', label: 'Video' },
   { href: '#projects', label: 'Projects' },
   { href: '#case-study', label: 'Case Study' },
   { href: '#proof', label: 'Proof' },
+  { href: '#video', label: 'Video' },
   { href: '#skills', label: 'Skills' },
   { href: '#about', label: 'About' },
   { href: '#roadmap', label: 'Roadmap' },
@@ -634,6 +634,21 @@ export const proof = {
     { src: '', caption: 'Sheets — auditable action log' },
   ],
   stack: ['Python', 'n8n', 'OpenAI API', 'Claude API', 'Gmail API', 'Google Sheets', 'Google Calendar', 'Vector DB', 'React', 'Tailwind CSS'],
+}
+
+/* ============ 12.7 MID-PAGE RECRUITER CTA ============ */
+
+export const ctaBanner = {
+  text: 'If this is how you want your team to think about AI — let’s talk.',
+  ja: 'このような考え方でAI活用を進めたいと思われた方、ぜひお話ししましょう。',
+}
+
+/* ============ 12.8 PROMPT SYSTEMS TEASER (links to #/vault) ============ */
+
+export const promptTeaser = {
+  title: 'I design prompt systems, not just prompts',
+  lead: 'A tested, bilingual prompt library for study, operations, and job hunting — built with the same workflow thinking as my automation projects.',
+  cta: 'Browse the Prompt Vault',
 }
 
 /* ============ HELPERS ============ */

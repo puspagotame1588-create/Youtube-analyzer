@@ -46,29 +46,43 @@ export default function Hero() {
             )}
           </motion.p>
 
-          <motion.div variants={fadeUp} custom={3} className="mt-8 flex flex-wrap gap-3">
-            <a
-              href="#video"
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-pulse-500 to-pulse-600 px-6 py-3 text-[14px] font-semibold text-white shadow-[0_8px_28px_-8px_rgba(61,118,232,0.7)] transition-transform hover:scale-[1.03] active:scale-[0.98]"
-            >
-              <PlayIcon /> Watch Portfolio Video
-            </a>
-            <a
-              href="#projects"
-              className="inline-flex items-center gap-2 rounded-full glass px-6 py-3 text-[14px] font-semibold text-white transition-colors hover:border-pulse-400/40"
-            >
-              View Projects
-            </a>
+          {/* CTA row. While the intro video is unrecorded, "View Projects"
+              is the primary action — no dead-end primary button. The video
+              CTA appears automatically once profile.videoEmbedUrl is set. */}
+          <motion.div variants={fadeUp} custom={3} className="mt-8 grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:gap-3">
+            {profile.videoEmbedUrl ? (
+              <>
+                <a
+                  href="#video"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-pulse-500 to-pulse-600 px-5 sm:px-6 py-3 text-[13.5px] sm:text-[14px] font-semibold text-white shadow-[0_8px_28px_-8px_rgba(61,118,232,0.7)] transition-transform hover:scale-[1.03] active:scale-[0.98]"
+                >
+                  <PlayIcon /> Watch Video
+                </a>
+                <a
+                  href="#projects"
+                  className="inline-flex items-center justify-center gap-2 rounded-full glass px-5 sm:px-6 py-3 text-[13.5px] sm:text-[14px] font-semibold text-white transition-colors hover:border-pulse-400/40"
+                >
+                  View Projects
+                </a>
+              </>
+            ) : (
+              <a
+                href="#projects"
+                className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-pulse-500 to-pulse-600 px-5 sm:px-6 py-3 text-[13.5px] sm:text-[14px] font-semibold text-white shadow-[0_8px_28px_-8px_rgba(61,118,232,0.7)] transition-transform hover:scale-[1.03] active:scale-[0.98]"
+              >
+                View Projects →
+              </a>
+            )}
             <a
               href={profile.resumeUrl}
               download
-              className="inline-flex items-center gap-2 rounded-full glass px-6 py-3 text-[14px] font-semibold text-white transition-colors hover:border-pulse-400/40"
+              className="inline-flex items-center justify-center gap-2 rounded-full glass px-5 sm:px-6 py-3 text-[13.5px] sm:text-[14px] font-semibold text-white transition-colors hover:border-pulse-400/40"
             >
               Download Resume
             </a>
             <a
               href="#contact"
-              className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-[14px] font-semibold text-mist-300 hover:text-white transition-colors"
+              className="inline-flex items-center justify-center gap-2 rounded-full glass px-5 sm:px-6 py-3 text-[13.5px] sm:text-[14px] font-semibold text-mist-300 hover:text-white transition-colors"
             >
               Contact Me →
             </a>

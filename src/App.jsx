@@ -12,6 +12,8 @@ import TryMyAI from './components/TryMyAI'
 import Skills from './components/Skills'
 import About from './components/About'
 import RecruiterProof from './components/RecruiterProof'
+import CtaBanner from './components/CtaBanner'
+import PromptTeaser from './components/PromptTeaser'
 import Roadmap from './components/Roadmap'
 import JapanFit from './components/JapanFit'
 import Footer from './components/Footer'
@@ -51,15 +53,19 @@ export default function App() {
       ) : (
         <>
           <Navbar />
+          {/* order: strongest proof first (projects), video after it
+              earns its slot; a conversion banner mid-page */}
           <main>
             <Hero />
-            <VideoSection />
             <Impact />
             <Projects />
             <CaseStudy />
             <TryMyAI />
+            <CtaBanner />
             <BeforeAfter />
+            <VideoSection />
             <Proof />
+            <PromptTeaser />
             <Skills />
             <About />
             <Roadmap />
