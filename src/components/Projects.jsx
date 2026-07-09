@@ -144,7 +144,7 @@ export default function Projects() {
           lead={projectsSection.lead}
         />
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2">
           {projects.map((p, i) => {
             const tone = TONES[p.tone]
             return (

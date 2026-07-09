@@ -159,7 +159,7 @@ export const video = {
     ja: '自己紹介動画・近日公開',
     sub: 'A 3-minute walkthrough of my background and projects is being recorded now.',
   },
-  lead: 'A short introduction covering my background, my three AI/DX projects, and why I fit AI consulting roles in Japan.',
+  lead: 'A short introduction covering my background, my AI/DX products, and why I fit AI consulting roles in Japan.',
   summary: [
     {
       q: 'Who I am',
@@ -167,7 +167,7 @@ export const video = {
     },
     {
       q: 'What I build',
-      a: 'Practical AI automation — an email-to-action agent, a bilingual customer-service training coach, and a RAG knowledge assistant — all born from problems I saw at work.',
+      a: 'Practical AI products — an email-to-action agent, a bilingual training coach, a RAG knowledge assistant, and a media intelligence studio — all born from problems I saw at work.',
     },
     {
       q: 'Why AI/DX consulting',
@@ -278,11 +278,35 @@ export const projects = [
     demo: '#',
     github: '#',
   },
+  {
+    id: 'mediaIntelligence',
+    tone: 'pulse',
+    tag: 'AI Product · Media Analytics',
+    title: 'AI Media Intelligence Studio',
+    titleJa: 'メディア分析AIスタジオ',
+    shortLabel: 'Media Intelligence',
+    shortSub: 'Video → Insight',
+    problem: 'Hour-long videos, lectures, and meeting recordings hold decisions and insights that nobody has time to watch — so teams skim, forget, or skip them entirely.',
+    solution: 'An analytics product that ingests a transcript and runs it through selectable analysis lenses — executive summary, critical review, action extraction, study notes — each a purpose-built prompt framework returning structured, comparable output. A deliberate product decision: curated lenses instead of a blank prompt box, so output quality is designed in, not left to the user.',
+    tools: ['React', 'Claude API', 'Prompt frameworks', 'Transcript ingestion', 'Structured outputs'],
+    value: 'Turns an hour of media into minutes of structured, decision-ready insight — the same information, none of the watching.',
+    status: { label: 'Working prototype', live: true },
+    metrics: [
+      { value: 6, suffix: '', label: 'analysis lenses (frameworks)' },
+      { value: 90, suffix: '%+', label: 'time saved vs. watching (est.)' },
+    ],
+    timeSaved: '~40 min per video (est.)',
+    learned: 'Products beat prompts: six curated lenses produced better results than a free-form prompt box ever did. Constraining user input is a design decision, not a limitation — and it was this build that taught me product thinking.',
+    talkingPoint: '“This was my first build — I can walk through every product decision, from why lenses replaced a prompt box to how the output schema keeps results comparable.”',
+    signal: 'AI product design · prompt frameworks · structured outputs · API engineering',
+    demo: '#',
+    github: 'https://github.com/puspagotame1588-create/Youtube-analyzer',
+  },
 ]
 
 export const projectsSection = {
   title: 'Built from real problems, not tutorials',
-  lead: "Each project starts with an operational problem I personally experienced, and ends with a measurable business outcome. Every card is an interview conversation I'm ready to have.",
+  lead: "Four working products, each starting from an operational problem I personally experienced and ending with a measurable outcome. Every card is an interview conversation I'm ready to have.",
   footnote: 'Metrics marked “target / pilot est.” are measured goals, updated as each project ships.',
 }
 
