@@ -67,6 +67,22 @@ Quick placeholder checklist:
 | Ops ticker messages | `ops` | The cycling activity messages in the navbar |
 | Case-study fields | `problem` / `solution` / `result` / `learned` per project | Keep them honest — recruiters ask about these in interviews |
 
+## 3.5 Prompt Vault (the prompt library page)
+
+The vault lives at **`/#/vault`** (linked subtly from the portfolio footer).
+Everything about it is edited in **`src/config/prompts.js`**:
+
+- **Add a prompt** — copy any object in the `prompts` array, paste it at the
+  end, change the fields. The card, filters, and search update automatically.
+- **Payment link** — set `vaultConfig.paymentUrl` to your Gumroad/Stripe/Ko-fi
+  URL. Until then, unlock buttons show "coming soon".
+- **Newsletter** — set `vaultConfig.newsletterUrl` to a Buttondown/Mailchimp/
+  Formspree form URL. Until then, the signup box shows "launching soon".
+- **Featured prompt** — set `vaultConfig.featuredId` to any prompt's `id`.
+- ⚠ **Premium prompts**: keep the full secret text OUT of `promptText`
+  (ship only `previewText`). The site is a public JS bundle — deliver the
+  full prompt through your payment platform until real access control exists.
+
 ## 4. Deploy to Vercel (free)
 
 1. Push this repository to GitHub.

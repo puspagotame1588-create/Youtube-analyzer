@@ -55,6 +55,12 @@ export default function Footer() {
                   </a>
                 </li>
               )}
+              <li>
+                {/* subtle link to the Prompt Vault side project */}
+                <a href="#/vault" className="text-mist-300 hover:text-white transition-colors">
+                  Prompt Vault <span lang="ja" className="text-[11px] text-mist-500">プロンプト集</span>
+                </a>
+              </li>
             </ul>
           </div>
         </div>
