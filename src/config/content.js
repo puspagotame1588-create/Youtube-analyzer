@@ -89,8 +89,8 @@ export const ops = [
 
 export const hero = {
   availability: {
-    en: 'Open to 2026 new-grad & internship roles',
-    ja: '26卒・インターン',
+    en: 'Open to 2028 new-grad & internship roles',
+    ja: '28卒・インターン',
   },
   // headline = plain part + gradient part, with a Japanese line below it
   headline: { pre: 'I build AI/DX systems that turn messy information into ', gradient: 'clear actions.' },
