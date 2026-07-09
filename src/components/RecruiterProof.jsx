@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { recruiter, profile } from '../config/content'
+import { recruiter, profile, isPlaceholderLink } from '../config/content'
 import SectionHeading from './SectionHeading'
 import { fadeUp, stagger, viewportOnce } from '../lib/anim'
 
@@ -64,19 +64,29 @@ export default function RecruiterProof() {
               </div>
               <Arrow />
             </a>
-            <a
-              href={profile.linkedin}
-              target="_blank"
-              rel="noreferrer"
-              className="group flex items-center gap-4 rounded-2xl glass px-6 py-5 hover:border-white/25 transition-colors"
-            >
-              <IconWrap><LinkedInIcon /></IconWrap>
-              <div>
-                <p className="text-[15px] font-bold text-white">LinkedIn</p>
-                <p className="text-[12px] text-mist-400">{recruiter.linkedinNote}</p>
+            {isPlaceholderLink(profile.linkedin) ? (
+              <div className="flex items-center gap-4 rounded-2xl border border-dashed border-white/12 bg-white/[0.02] px-6 py-5">
+                <IconWrap><LinkedInIcon /></IconWrap>
+                <div>
+                  <p className="text-[15px] font-bold text-mist-300">LinkedIn</p>
+                  <p lang="ja" className="text-[12px] text-mist-500">プロフィール準備中 · profile coming soon</p>
+                </div>
               </div>
-              <Arrow />
-            </a>
+            ) : (
+              <a
+                href={profile.linkedin}
+                target="_blank"
+                rel="noreferrer"
+                className="group flex items-center gap-4 rounded-2xl glass px-6 py-5 hover:border-white/25 transition-colors"
+              >
+                <IconWrap><LinkedInIcon /></IconWrap>
+                <div>
+                  <p className="text-[15px] font-bold text-white">LinkedIn</p>
+                  <p className="text-[12px] text-mist-400">{recruiter.linkedinNote}</p>
+                </div>
+                <Arrow />
+              </a>
+            )}
             <a
               href={`mailto:${profile.email}`}
               className="group flex items-center gap-4 rounded-2xl glass px-6 py-5 hover:border-white/25 transition-colors"

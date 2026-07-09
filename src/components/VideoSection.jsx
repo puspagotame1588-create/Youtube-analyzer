@@ -40,11 +40,9 @@ export default function VideoSection() {
                         <path d="M8 5.14v13.72L19 12 8 5.14z" />
                       </svg>
                     </div>
-                    <p className="mt-4 text-[15px] font-semibold text-white">Portfolio video</p>
-                    <p className="mt-1 text-[13px] text-mist-400">
-                      Set <code className="font-mono text-pulse-300">profile.videoEmbedUrl</code> in{' '}
-                      <code className="font-mono text-pulse-300">src/config/content.js</code>
-                    </p>
+                    <p className="mt-4 text-[15px] font-semibold text-white">{video.placeholder.title}</p>
+                    <p lang="ja" className="mt-1 font-mono text-[11px] text-pulse-300">{video.placeholder.ja}</p>
+                    <p className="mt-2 text-[13px] text-mist-400 max-w-xs mx-auto">{video.placeholder.sub}</p>
                   </div>
                 </div>
               )}

@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
-import { projects, projectsSection } from '../config/content'
+import { projects, projectsSection, isPlaceholderLink } from '../config/content'
 import SectionHeading from './SectionHeading'
 import { useCountUp, viewportOnce } from '../lib/anim'
 
@@ -50,6 +50,33 @@ function Metric({ value, suffix, label, toneText }) {
       </p>
       <p className="mt-0.5 text-[10.5px] leading-snug text-mist-500">{label}</p>
     </div>
+  )
+}
+
+function CardLink({ href, label, soonLabel, primary = false }) {
+  if (isPlaceholderLink(href)) {
+    return (
+      <span
+        lang="ja"
+        className="flex-1 cursor-default rounded-lg border border-dashed border-white/12 px-3 py-2 text-center font-mono text-[10.5px] text-mist-500"
+      >
+        {soonLabel}
+      </span>
+    )
+  }
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className={
+        primary
+          ? 'flex-1 rounded-lg bg-white/8 hover:bg-white/14 border border-white/10 px-3 py-2 text-center text-[12.5px] font-semibold text-white transition-colors'
+          : 'flex-1 rounded-lg glass hover:border-white/25 px-3 py-2 text-center text-[12.5px] font-semibold text-mist-300 hover:text-white transition-colors'
+      }
+    >
+      {label}
+    </a>
   )
 }
 
@@ -145,20 +172,10 @@ export default function Projects() {
                       <span className={tone.text}>Hiring signal —</span> {p.signal}
                     </p>
 
-                    {/* links */}
+                    {/* links — placeholder URLs render as "coming soon" */}
                     <div className="mt-auto flex gap-2.5 pt-1">
-                      <a
-                        href={p.demo}
-                        className="flex-1 rounded-lg bg-white/8 hover:bg-white/14 border border-white/10 px-3 py-2 text-center text-[12.5px] font-semibold text-white transition-colors"
-                      >
-                        Demo / Walkthrough
-                      </a>
-                      <a
-                        href={p.github}
-                        className="flex-1 rounded-lg glass hover:border-white/25 px-3 py-2 text-center text-[12.5px] font-semibold text-mist-300 hover:text-white transition-colors"
-                      >
-                        GitHub
-                      </a>
+                      <CardLink href={p.demo} primary label="Demo / Walkthrough" soonLabel="Demo — 近日公開" />
+                      <CardLink href={p.github} label="GitHub" soonLabel="Code — 近日公開" />
                     </div>
                   </div>
                 </TiltCard>

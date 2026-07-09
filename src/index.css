@@ -54,6 +54,13 @@ body {
   background: rgba(61, 118, 232, 0.35);
 }
 
+/* visible keyboard focus everywhere, consistent with the accent */
+:focus-visible {
+  outline: 2px solid rgba(94, 150, 245, 0.8);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 :lang(ja) {
   font-family: var(--font-jp);
 }

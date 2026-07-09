@@ -1,4 +1,4 @@
-import { nav as NAV, profile, footer } from '../config/content'
+import { nav as NAV, profile, footer, isPlaceholderLink } from '../config/content'
 
 export default function Footer() {
   return (
@@ -48,11 +48,13 @@ export default function Footer() {
                   GitHub
                 </a>
               </li>
-              <li>
-                <a href={profile.linkedin} target="_blank" rel="noreferrer" className="text-mist-300 hover:text-white transition-colors">
-                  LinkedIn
-                </a>
-              </li>
+              {!isPlaceholderLink(profile.linkedin) && (
+                <li>
+                  <a href={profile.linkedin} target="_blank" rel="noreferrer" className="text-mist-300 hover:text-white transition-colors">
+                    LinkedIn
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
         </div>

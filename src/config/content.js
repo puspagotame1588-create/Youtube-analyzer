@@ -153,6 +153,12 @@ export const hero = {
 
 export const video = {
   title: 'Three minutes: who I am and what I build',
+  // shown while videoEmbedUrl is empty — recruiter-facing, no code talk
+  placeholder: {
+    title: 'Video introduction — coming soon',
+    ja: '自己紹介動画・近日公開',
+    sub: 'A 3-minute walkthrough of my background and projects is being recorded now.',
+  },
   lead: 'A short introduction covering my background, my three AI/DX projects, and why I fit AI consulting roles in Japan.',
   summary: [
     {
@@ -629,6 +635,14 @@ export const proof = {
   ],
   stack: ['Python', 'n8n', 'OpenAI API', 'Claude API', 'Gmail API', 'Google Sheets', 'Google Calendar', 'Vector DB', 'React', 'Tailwind CSS'],
 }
+
+/* ============ HELPERS ============ */
+
+// True while a link is still a placeholder — components render a polished
+// "coming soon" state instead of a dead link. Becomes false automatically
+// once you set the real URL.
+export const isPlaceholderLink = (url) =>
+  !url || url === '#' || url.includes('your-linkedin-id')
 
 /* ============ 13. FOOTER ============ */
 
