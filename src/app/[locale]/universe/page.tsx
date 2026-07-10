@@ -21,6 +21,7 @@ import { ROUTE_LABEL_TEXT, LEVEL_TEXT } from '@/components/universe/labels';
 import { Badge } from '@/components/ui/Badge';
 import { pick, yen, months } from '@/lib/i18n/bi';
 import type { JlptLevel, SimRoute } from '@/lib/simulation/types';
+import { PageSkeleton } from '@/components/ui/PageSkeleton';
 
 const UniverseScene = dynamic(
   () => import('@/components/three/UniverseScene').then((m) => m.UniverseScene),
@@ -73,7 +74,7 @@ export default function UniversePage(): React.JSX.Element {
   const displayName = (r: SimRoute): string => routeNames[r.id] ?? (ja ? r.nameJa : r.nameEn);
 
   if (!hydrated) {
-    return <div className="mx-auto max-w-7xl px-4 py-20 text-center text-ink-soft">{ja ? '読み込み中…' : 'Loading…'}</div>;
+    return <PageSkeleton />;
   }
 
   if (!result) {

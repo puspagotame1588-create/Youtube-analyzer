@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { dataset } from '@/lib/data/seed';
+import { realSchools } from '@/lib/data/real';
 import { useAppStore } from '@/lib/store/app';
 import { useHydrated } from '@/components/ui/useHydrated';
 import { SceneCanvas } from '@/components/three/SceneCanvas';
@@ -164,6 +165,59 @@ export default function SchoolsPage(): React.JSX.Element {
           <SchoolCard key={s.id} s={s} />
         ))}
       </div>
+
+      {/* Real institutions — names and official links verified; details pending */}
+      <section className="mt-10 rounded-panel border border-emerald2/25 bg-emerald2/5 p-5" aria-labelledby="real-schools-title">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="real-schools-title" className="text-lg font-bold text-ink">
+            {ja ? '実在の関東の学校（検証中リスト）' : 'Real Kanto institutions (verification in progress)'}
+          </h2>
+          <Badge tone="verified">{ja ? '公式リンク確認済み' : 'Official links checked'}</Badge>
+        </div>
+        <p className="mt-1 text-xs text-ink-soft">
+          {ja
+            ? '名称と公式サイトは確認済みです。学費・出願要件などの数値は各公式サイトでご確認ください（検証完了後にシミュレーションへ追加されます）。'
+            : 'Names and official sites are checked. Tuition and admission figures must be confirmed on each official site — records join the simulation only after full verification.'}
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {realSchools
+            .filter((s) => typeFilter === 'all' || s.institutionType === typeFilter)
+            .map((s) => (
+              <article key={s.id} className="rounded-xl border border-ink/5 bg-white/80 p-4 text-sm">
+                <h3 className="font-bold text-ink">{ja ? s.nameJa : s.nameEn}</h3>
+                <p className="mt-0.5 text-xs text-ink-soft">
+                  {s.institutionType === 'university' ? (ja ? '大学' : 'University') : ja ? '専門学校' : 'Vocational'} · {ja ? s.noteJa : s.noteEn}
+                </p>
+                <p className="mt-1 text-[11px] text-ink-soft">
+                  {ja ? '確認日' : 'Checked'} {s.meta.retrievedAt} · {ja ? '次回確認' : 'next review'} {s.meta.nextReviewAt}
+                  {s.urlStatus !== 'official' && (
+                    <span className="ml-1 text-amber2">· {ja ? 'URLはグループサイト' : 'URL is group site'}</span>
+                  )}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <a
+                    href={s.officialUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-full border border-emerald2/40 px-3 py-1.5 text-xs font-semibold text-emerald2 hover:bg-emerald2/10"
+                  >
+                    {ja ? '公式サイト ↗' : 'Official site ↗'}
+                  </a>
+                  {s.admissionsUrl && (
+                    <a
+                      href={s.admissionsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-full border border-cyan2/40 px-3 py-1.5 text-xs font-semibold text-cyan2 hover:bg-cyan2/10"
+                    >
+                      {ja ? '留学生入試 ↗' : 'Intl admissions ↗'}
+                    </a>
+                  )}
+                </div>
+              </article>
+            ))}
+        </div>
+      </section>
 
       {hydrated && shortlist.length >= 2 && (
         <div className="mt-8 rounded-panel border border-emerald2/30 bg-emerald2/5 p-5 text-center">

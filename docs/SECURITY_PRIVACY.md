@@ -10,6 +10,18 @@
 - Admin area is unlinked from public navigation, sits behind its own credential
   (env `ADMIN_ACCESS_CODE`), and every admin action writes an audit event.
 
+## Private-beta invite gate
+
+- Personalized areas (create/universe/route/compare/plan/tracker/profile/
+  documents/notifications/auth) sit behind an app-level invite gate enforced in
+  middleware. Public information pages stay open.
+- Only SHA-256 hashes of invite codes are stored (`INVITE_CODE_HASHES`,
+  `hash[:expiresISO[:maxUses]]`). Codes are generated in the admin area and
+  shown exactly once. Expiry and revocation (removing the hash) are enforced
+  server-side; failure messages are generic and attempts are rate-limited.
+- Known limitation: per-code use-count enforcement is best-effort in-memory per
+  server instance until a shared store (Supabase/KV) is configured.
+
 ## Secrets
 
 - `ANTHROPIC_API_KEY` and admin credentials are server-side env vars only; the

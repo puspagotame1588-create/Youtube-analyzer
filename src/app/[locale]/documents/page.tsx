@@ -12,6 +12,7 @@ import { Link } from '@/i18n/routing';
 import { useAppStore } from '@/lib/store/app';
 import { useHydrated } from '@/components/ui/useHydrated';
 import type { JlptLevel } from '@/lib/simulation/types';
+import { PageSkeleton } from '@/components/ui/PageSkeleton';
 
 const ACCEPTED_KINDS = [
   { id: 'resume', en: 'Resume', ja: '履歴書' },
@@ -41,7 +42,7 @@ export default function DocumentsPage(): React.JSX.Element {
   const [jlptField, setJlptField] = useState<JlptLevel>('n3');
   const [confirmed, setConfirmed] = useState(false);
 
-  if (!hydrated) return <div className="p-20 text-center text-ink-soft">…</div>;
+  if (!hydrated) return <PageSkeleton />;
 
   if (!account) {
     return (

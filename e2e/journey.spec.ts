@@ -13,6 +13,13 @@ test('complete beta journey (EN)', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toContainText('possible futures');
   await page.getByRole('link', { name: 'Create Your First Future' }).first().click();
 
+  // 1b. Invitation-only gate (app-level, hash-checked server-side)
+  await page.waitForURL('**/invite**');
+  await expect(page.getByRole('heading', { name: 'Invitation-only private beta' })).toBeVisible();
+  await page.getByLabel('Invite code').fill('KANTO-BETA');
+  await page.getByRole('button', { name: 'Enter the beta' }).click();
+  await page.waitForURL('**/create');
+
   // 2. Future Creation Portal
   await expect(page.getByRole('heading', { name: /What future do you want to build/ })).toBeVisible();
   await page.getByLabel(/What future do you want to build/).fill('I want to work in IT in Tokyo');
@@ -81,14 +88,33 @@ test('complete beta journey (EN)', async ({ page }) => {
   await page.goto('/en/support');
   await page.getByLabel('Message').fill('How do I compare schools?');
   await page.getByRole('button', { name: 'Send', exact: true }).click();
-  await expect(page.getByText('Your ticket has been recorded.')).toBeVisible();
+  await expect(page.getByText(/Reference number: CV-/)).toBeVisible();
 });
 
 test('Japanese journey renders localized layout', async ({ page }) => {
   await page.goto('/ja');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('日本での、あなたの未来');
   await page.getByRole('link', { name: 'はじめての未来をつくる' }).first().click();
-  await expect(page.getByRole('heading', { name: /日本で、どんな未来をつくりたいですか/ })).toBeVisible();
+  await page.waitForURL('**/invite**');
+  await expect(page.getByRole('heading', { name: '招待制プライベートベータ' })).toBeVisible();
+});
+
+test('gate blocks personalized routes but leaves public pages open', async ({ page }) => {
+  await page.goto('/en/universe');
+  await page.waitForURL('**/invite**');
+  await page.goto('/en/schools');
+  await expect(page.getByRole('heading', { name: 'School Galaxy' })).toBeVisible();
+  await page.goto('/en/roadmap');
+  await expect(page.getByRole('heading', { name: 'Japan Settlement Roadmap' })).toBeVisible();
+  await page.goto('/en/sources');
+  await expect(page.getByRole('heading', { name: 'Data Sources' })).toBeVisible();
+});
+
+test('wrong invite codes fail with a generic message', async ({ page }) => {
+  await page.goto('/en/invite');
+  await page.getByLabel('Invite code').fill('WRONG-CODE');
+  await page.getByRole('button', { name: 'Enter the beta' }).click();
+  await expect(page.getByText(/That code can.t be used/)).toBeVisible();
 });
 
 test('admin can sign in and manage data', async ({ page }) => {

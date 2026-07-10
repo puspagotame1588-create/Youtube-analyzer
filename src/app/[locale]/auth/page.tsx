@@ -7,6 +7,7 @@ import { useLocale } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { useAppStore } from '@/lib/store/app';
 import { useHydrated } from '@/components/ui/useHydrated';
+import { PageSkeleton } from '@/components/ui/PageSkeleton';
 
 export default function AuthPage(): React.JSX.Element {
   const locale = useLocale();
@@ -23,7 +24,7 @@ export default function AuthPage(): React.JSX.Element {
   const [age, setAge] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!hydrated) return <div className="p-20 text-center text-ink-soft">…</div>;
+  if (!hydrated) return <PageSkeleton />;
 
   if (account) {
     return (

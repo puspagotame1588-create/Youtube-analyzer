@@ -18,8 +18,8 @@ export function SiteFooter(): React.JSX.Element {
           <Link className="hover:text-ink" href="/settings">{nav('settings')}</Link>
         </div>
         <p className="mt-4 max-w-3xl text-xs leading-relaxed">{t('disclaimer')}</p>
-        <p className="mt-2 text-xs text-ink-soft/70">{t('localMode')}</p>
-        <p className="mt-4 text-xs text-ink-soft/60">© 2026 CareerVerse — Private beta</p>
+        <p className="mt-2 text-xs text-ink-soft">{t('localMode')}</p>
+        <p className="mt-4 text-xs text-ink-soft">© 2026 CareerVerse — Private beta</p>
       </div>
     </footer>
   );

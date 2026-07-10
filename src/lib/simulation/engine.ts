@@ -165,8 +165,10 @@ function buildMilestones(
       kind: 'internship',
       titleEn: 'Internship / part-time in your field',
       titleJa: '専攻分野でのインターン・アルバイト',
-      detailEn: 'Within the 28h/week permission. Field experience strongly improves first-job outcomes.',
-      detailJa: '週28時間の資格外活動の範囲内で。分野での経験は初職の結果を大きく改善します。',
+      detailEn:
+        'Requires the 資格外活動許可 (permission for activity outside the status); the standard comprehensive permission is normally up to 28 hours/week, and up to 8 hours/day during institution-defined long holidays. Confirm your individual permission. Field experience strongly improves first-job outcomes.',
+      detailJa:
+        '資格外活動許可が必要です（包括許可は原則週28時間以内、学校の定める長期休業中は1日8時間以内までの場合あり）。必ずご自身の許可内容を確認してください。分野での経験は初職の結果を大きく改善します。',
       monthOffset: t + 12 * (years - 1),
       sourceIds: src,
     });
@@ -327,7 +329,7 @@ function buildAssumptions(profile: SimProfile, kind: RouteKind): Assumption[] {
       id: 'as-parttime',
       labelEn: 'Part-time income covers living costs',
       labelJa: 'アルバイト収入で生活費を賄う',
-      value: 'within the 28h/week permission',
+      value: 'within the conditions of the 資格外活動許可 (typically ≤28h/week)',
       origin: 'default',
     },
   ];

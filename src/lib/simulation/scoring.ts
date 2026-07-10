@@ -32,7 +32,7 @@ export const effectiveJlpt = (profile: SimProfile, c: CaseName): JlptLevel => {
 /**
  * Affordability: budget vs. total route cost.
  * 100 when budget covers the full cost; scales down linearly; part-time income
- * (within the 28h/week student cap) is assumed to cover living costs only, so
+ * (within the conditions of the student work permission, typically up to 28h/week) is assumed to cover living costs only, so
  * the education budget is compared against education cost alone.
  */
 export function scoreAffordability(budget: number, totalEducationCost: number): number {

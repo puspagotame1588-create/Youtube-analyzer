@@ -7,6 +7,11 @@ const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromi
 
 async function driveSimulation(page) {
   await page.goto(`${base}/en/create`);
+  if (page.url().includes('/invite')) {
+    await page.getByLabel('Invite code').fill('KANTO-BETA');
+    await page.getByRole('button', { name: 'Enter the beta' }).click();
+    await page.waitForURL('**/create');
+  }
   await page.getByLabel(/What future do you want to build/).fill('I want to work in IT in Tokyo');
   await page.getByRole('button', { name: 'Begin' }).click();
   await page.getByText('Question 1 of 5', { exact: true }).waitFor();

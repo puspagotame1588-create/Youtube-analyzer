@@ -36,7 +36,7 @@ export const sources: SourceRecord[] = [
     id: 'src-demo-manual',
     nameEn: 'CareerVerse demonstration dataset (manually authored)',
     nameJa: 'CareerVerse デモ用データセット（手動作成）',
-    url: 'https://careerverse.example/methodology',
+    url: 'internal:methodology',
     type: 'manual',
     retrievedAt: REVIEWED,
     reviewer: 'founder',
@@ -649,7 +649,7 @@ export const jobListings: JobListing[] = [
     titleEn: 'Junior web developer (training program)', titleJa: 'ジュニアWebエンジニア（研修あり）',
     company: 'Demo Tech KK', city: 'tokyo',
     salaryJpy: { min: 3_300_000, max: 4_000_000 }, jlpt: 'n3',
-    applyUrl: 'https://careerverse.example/demo-listing',
+    applyUrl: '',  // demonstration record — no external application
     provenance: demoProvenance(['src-demo-manual']),
   },
   {
@@ -657,7 +657,7 @@ export const jobListings: JobListing[] = [
     titleEn: 'Hotel front desk (multilingual)', titleJa: 'ホテルフロント（多言語対応）',
     company: 'Demo Hotels Yokohama', city: 'yokohama',
     salaryJpy: { min: 2_900_000, max: 3_300_000 }, jlpt: 'n2',
-    applyUrl: 'https://careerverse.example/demo-listing',
+    applyUrl: '',  // demonstration record — no external application
     provenance: demoProvenance(['src-demo-manual']),
   },
   {
@@ -665,7 +665,7 @@ export const jobListings: JobListing[] = [
     titleEn: 'International sales assistant', titleJa: '海外営業アシスタント',
     company: 'Demo Trading Co.', city: 'tokyo',
     salaryJpy: { min: 3_100_000, max: 3_700_000 }, jlpt: 'n2',
-    applyUrl: 'https://careerverse.example/demo-listing',
+    applyUrl: '',  // demonstration record — no external application
     provenance: demoProvenance(['src-demo-manual']),
   },
   {
@@ -673,7 +673,7 @@ export const jobListings: JobListing[] = [
     titleEn: 'Store manager candidate (national chain)', titleJa: '店長候補（全国チェーン）',
     company: 'Demo Foods Inc.', city: 'saitama',
     salaryJpy: { min: 3_200_000, max: 3_800_000 }, jlpt: 'n3',
-    applyUrl: 'https://careerverse.example/demo-listing',
+    applyUrl: '',  // demonstration record — no external application
     provenance: demoProvenance(['src-demo-manual']),
   },
   {
@@ -681,7 +681,7 @@ export const jobListings: JobListing[] = [
     titleEn: 'Leasing agent for international residents', titleJa: '外国人向け賃貸営業',
     company: 'Demo Estate Tokyo', city: 'tokyo',
     salaryJpy: { min: 3_200_000, max: 4_200_000 }, jlpt: 'n2',
-    applyUrl: 'https://careerverse.example/demo-listing',
+    applyUrl: '',  // demonstration record — no external application
     provenance: demoProvenance(['src-demo-manual']),
   },
 ];

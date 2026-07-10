@@ -12,7 +12,7 @@
   --cv-cyan: 0 156 190;        /* active opportunity (AA on white) */
   --cv-violet: 124 77 246;     /* future possibility */
   --cv-emerald: 13 148 106;    /* verified / safe */
-  --cv-amber: 180 116 6;       /* uncertainty */
+  --cv-amber: 146 84 6;       /* uncertainty */
   --cv-coral: 216 62 51;       /* material risk */
 }
 

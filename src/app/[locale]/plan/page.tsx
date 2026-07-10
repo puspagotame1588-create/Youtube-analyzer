@@ -15,6 +15,7 @@ import { dataset } from '@/lib/data/seed';
 import { yen, months } from '@/lib/i18n/bi';
 import { FACTOR_LABELS } from '@/components/universe/labels';
 import { pick } from '@/lib/i18n/bi';
+import { PageSkeleton } from '@/components/ui/PageSkeleton';
 
 type PlanLang = 'both' | 'en' | 'ja';
 
@@ -35,7 +36,7 @@ export default function PlanPage(): React.JSX.Element {
     return result.routes.find((r) => r.id === routeId) ?? result.routes[0] ?? null;
   }, [result, routeId]);
 
-  if (!hydrated) return <div className="p-20 text-center text-ink-soft">…</div>;
+  if (!hydrated) return <PageSkeleton />;
 
   if (!result || !route) {
     return (

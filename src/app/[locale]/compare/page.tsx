@@ -10,6 +10,7 @@ import { useHydrated } from '@/components/ui/useHydrated';
 import { FACTOR_LABELS, ROUTE_LABEL_TEXT, LEVEL_TEXT } from '@/components/universe/labels';
 import { Badge } from '@/components/ui/Badge';
 import { pick, yen, months } from '@/lib/i18n/bi';
+import { PageSkeleton } from '@/components/ui/PageSkeleton';
 
 export default function ComparePage(): React.JSX.Element {
   const locale = useLocale();
@@ -19,7 +20,7 @@ export default function ComparePage(): React.JSX.Element {
   const routeNames = useAppStore((s) => s.currentRouteNames);
   const [picked, setPicked] = useState<string[]>([]);
 
-  if (!hydrated) return <div className="p-20 text-center text-ink-soft">…</div>;
+  if (!hydrated) return <PageSkeleton />;
 
   if (!result || result.routes.length < 2) {
     return (

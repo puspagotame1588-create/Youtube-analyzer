@@ -6,6 +6,7 @@ import { locales, type Locale } from '@/i18n/routing';
 import { SiteHeader } from '@/components/ui/SiteHeader';
 import { SiteFooter } from '@/components/ui/SiteFooter';
 import { QualityBoot } from '@/components/ui/QualityBoot';
+import { PrototypeBanner } from '@/components/ui/PrototypeBanner';
 import '../globals.css';
 
 export const metadata: Metadata = {
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
     template: '%s | CareerVerse',
   },
   description:
-    'A bilingual career-simulation universe for foreign students in Japan. Compare university, vocational school, and employment routes with verified, explainable data.',
+    'A bilingual career-simulation universe for foreign students in Japan. Compare university, vocational school, and employment routes with clearly labeled data and a transparent methodology.',
 };
 
 export const viewport: Viewport = {
@@ -50,6 +51,7 @@ export default async function LocaleLayout({
             {locale === 'ja' ? '本文へスキップ' : 'Skip to content'}
           </a>
           <SiteHeader />
+          <PrototypeBanner />
           <main id="main">{children}</main>
           <SiteFooter />
         </NextIntlClientProvider>

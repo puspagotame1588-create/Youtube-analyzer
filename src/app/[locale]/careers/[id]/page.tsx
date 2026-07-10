@@ -12,6 +12,7 @@ import { useParams } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Link } from '@/i18n/routing';
 import { dataset } from '@/lib/data/seed';
+import { realJobLinks } from '@/lib/data/real';
 import { Badge } from '@/components/ui/Badge';
 import { yen } from '@/lib/i18n/bi';
 
@@ -130,34 +131,67 @@ export default function CareerDetailPage(): React.JSX.Element {
       </div>
 
       <section className="cv-glass mt-4 rounded-panel p-5">
-        <h2 className="font-bold text-ink">{ja ? '求人例（デモ）' : 'Example vacancies (demo)'}</h2>
-        {jobs.length === 0 ? (
-          <p className="mt-2 text-sm text-ink-soft">{ja ? '現在、掲載中の求人例はありません。' : 'No example vacancies at the moment.'}</p>
-        ) : (
-          <ul className="mt-3 space-y-3">
-            {jobs.map((j) => (
-              <li key={j.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-ink/5 bg-white/70 p-3 text-sm">
-                <div>
-                  <strong className="text-ink">{ja ? j.titleJa : j.titleEn}</strong>
+        <h2 className="font-bold text-ink">{ja ? '公式の採用・就職支援リンク' : 'Official recruitment & job-support links'}</h2>
+        <p className="mt-1 text-xs text-ink-soft">
+          {ja
+            ? 'この分野に関連する、実在の公式採用ページと公的支援機関です。募集内容は変わるため、必ず公式ページでご確認ください。'
+            : 'Real official recruitment pages and public services related to this field. Openings change — always confirm on the official page.'}
+        </p>
+        <ul className="mt-3 space-y-3">
+          {realJobLinks
+            .filter((r) => r.field === career.field || r.field === 'all')
+            .map((r) => (
+              <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald2/20 bg-emerald2/5 p-3 text-sm">
+                <div className="min-w-0">
+                  <strong className="text-ink">{ja ? r.orgJa : r.orgEn}</strong>
                   <p className="text-xs text-ink-soft">
-                    {j.company} · {j.city} · {yen(j.salaryJpy.min)}–{yen(j.salaryJpy.max)} · JLPT {j.jlpt.toUpperCase()}
+                    {ja ? r.noteJa : r.noteEn}
+                    <span className="ml-1 text-emerald2">
+                      · {r.kind === 'government' ? (ja ? '公的機関' : 'government') : ja ? '企業公式' : 'company official'} · {ja ? '確認日' : 'checked'} {r.meta.retrievedAt}
+                    </span>
                   </p>
                 </div>
                 <a
-                  href={j.applyUrl}
+                  href={r.officialUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-full border border-cyan2/40 px-4 py-2 text-xs font-semibold text-cyan2 hover:bg-cyan2/5"
+                  className="rounded-full border border-emerald2/40 px-4 py-2 text-xs font-semibold text-emerald2 hover:bg-emerald2/10"
                 >
-                  {ja ? '応募元で見る ↗' : 'View at source ↗'}
+                  {ja ? '公式ページ ↗' : 'Official page ↗'}
                 </a>
               </li>
             ))}
-          </ul>
+        </ul>
+
+        {jobs.length > 0 && (
+          <>
+            <h3 className="mt-6 text-sm font-bold text-ink">{ja ? '求人イメージ（架空のデモ）' : 'Vacancy examples (fictional demo)'}</h3>
+            <p className="mt-1 text-xs text-ink-soft">
+              {ja
+                ? '以下は求人票の見え方を示す架空の例で、応募はできません。'
+                : 'The listings below are fictional examples of how vacancies will look. They cannot be applied to.'}
+            </p>
+            <ul className="mt-2 space-y-3">
+              {jobs.map((j) => (
+                <li key={j.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber2/20 bg-amber2/5 p-3 text-sm">
+                  <div>
+                    <strong className="text-ink">{ja ? j.titleJa : j.titleEn}</strong>
+                    <p className="text-xs text-ink-soft">
+                      {j.company} · {j.city} · {yen(j.salaryJpy.min)}–{yen(j.salaryJpy.max)} · JLPT {j.jlpt.toUpperCase()} ·{' '}
+                      <span className="font-semibold text-amber2">{ja ? 'デモ' : 'demo'}</span>
+                    </p>
+                  </div>
+                  <span
+                    aria-disabled="true"
+                    className="cursor-not-allowed rounded-full border border-ink/10 bg-white/60 px-4 py-2 text-xs font-semibold text-ink-soft"
+                  >
+                    {ja ? 'デモ — 応募先はありません' : 'Demonstration — no external application'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
-        <p className="mt-3 text-xs text-ink-soft">
-          {ja ? 'ベータ版では、応募は必ず元の掲載元・公式サイトで行ってください。' : 'During the beta, always apply at the original or official source.'}
-        </p>
       </section>
     </div>
   );

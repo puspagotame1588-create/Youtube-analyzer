@@ -6,6 +6,7 @@
  */
 
 import { AdminGate } from '@/components/admin/AdminGate';
+import { InviteManager } from '@/components/admin/InviteManager';
 import { Link } from '@/i18n/routing';
 import { dataset } from '@/lib/data/seed';
 import { useAdminStore } from '@/lib/store/admin';
@@ -114,6 +115,8 @@ export default function AdminDashboardPage(): React.JSX.Element {
           <h2 className="mb-3 font-bold text-ink">Data records</h2>
           {hydrated && <Records />}
         </section>
+
+        {hydrated && <InviteManager />}
 
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           <section className="cv-glass rounded-panel p-5">

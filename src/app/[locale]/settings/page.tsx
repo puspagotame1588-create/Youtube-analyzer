@@ -8,6 +8,7 @@ import { useAppStore } from '@/lib/store/app';
 import { useQuality, type QualityPreference } from '@/lib/store/quality';
 import { useHydrated } from '@/components/ui/useHydrated';
 import { useState } from 'react';
+import { PageSkeleton } from '@/components/ui/PageSkeleton';
 
 export default function SettingsPage(): React.JSX.Element {
   const locale = useLocale();
@@ -21,7 +22,7 @@ export default function SettingsPage(): React.JSX.Element {
   const deleteAccount = useAppStore((s) => s.deleteAccount);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  if (!hydrated) return <div className="p-20 text-center text-ink-soft">…</div>;
+  if (!hydrated) return <PageSkeleton />;
 
   const prefs: Array<{ id: QualityPreference; en: string; ja: string; desc: { en: string; ja: string } }> = [
     { id: 'auto', en: 'Auto (recommended)', ja: '自動（推奨）', desc: { en: 'Detects your device capability.', ja: '端末性能を自動判定します。' } },

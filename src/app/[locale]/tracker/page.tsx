@@ -7,6 +7,7 @@ import { Link } from '@/i18n/routing';
 import { useAppStore, type TrackerItem } from '@/lib/store/app';
 import { useHydrated } from '@/components/ui/useHydrated';
 import { dataset } from '@/lib/data/seed';
+import { PageSkeleton } from '@/components/ui/PageSkeleton';
 
 const STATUSES: Array<{ id: TrackerItem['status']; en: string; ja: string }> = [
   { id: 'interested', en: 'Interested', ja: '検討中' },
@@ -24,7 +25,7 @@ export default function TrackerPage(): React.JSX.Element {
   const updateTracker = useAppStore((s) => s.updateTracker);
   const removeFromTracker = useAppStore((s) => s.removeFromTracker);
 
-  if (!hydrated) return <div className="p-20 text-center text-ink-soft">…</div>;
+  if (!hydrated) return <PageSkeleton />;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">

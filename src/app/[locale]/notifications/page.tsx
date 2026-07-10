@@ -6,6 +6,7 @@ import { useLocale } from 'next-intl';
 import { useAppStore } from '@/lib/store/app';
 import { useHydrated } from '@/components/ui/useHydrated';
 import { dataset } from '@/lib/data/seed';
+import { PageSkeleton } from '@/components/ui/PageSkeleton';
 
 export default function NotificationsPage(): React.JSX.Element {
   const locale = useLocale();
@@ -15,7 +16,7 @@ export default function NotificationsPage(): React.JSX.Element {
   const markRead = useAppStore((s) => s.markRead);
   const tracker = useAppStore((s) => s.tracker);
 
-  if (!hydrated) return <div className="p-20 text-center text-ink-soft">…</div>;
+  if (!hydrated) return <PageSkeleton />;
 
   const deadlines = tracker
     .filter((t) => t.deadline)

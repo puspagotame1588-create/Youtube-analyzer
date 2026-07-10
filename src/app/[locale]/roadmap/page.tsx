@@ -9,8 +9,9 @@ import { useLocale } from 'next-intl';
 import { useAppStore } from '@/lib/store/app';
 import { useHydrated } from '@/components/ui/useHydrated';
 import { Link } from '@/i18n/routing';
+import { officialLegalSources, PARTTIME_RULE } from '@/lib/data/real';
 
-const CHECKED = '2026-06-15';
+const CHECKED = officialLegalSources.checkedAt;
 
 interface StatusNode {
   id: string;
@@ -22,6 +23,7 @@ interface StatusNode {
   requirementsJa: string[];
   riskEn?: string;
   riskJa?: string;
+  sources: Array<{ labelEn: string; labelJa: string; url: string }>;
 }
 
 const NODES: StatusNode[] = [
@@ -29,12 +31,15 @@ const NODES: StatusNode[] = [
     id: 'student',
     nameEn: 'Student（留学）',
     nameJa: '留学',
-    descEn: 'Your likely current status while at language school. Attendance and part-time-work limits (28h/week) directly affect every later step.',
-    descJa: '日本語学校在籍中の一般的な在留資格。出席率と資格外活動（週28時間）の順守が、その後のすべてのステップに影響します。',
+    descEn:
+      'Your likely current status while at language school. Attendance and part-time rules directly affect every later step. ' + PARTTIME_RULE.en,
+    descJa:
+      '日本語学校在籍中の一般的な在留資格。出席率とアルバイトのルールの順守が、その後のすべてのステップに影響します。' + PARTTIME_RULE.ja,
     requirementsEn: ['Enrollment at a recognized institution', 'Sufficient attendance', 'Financial support evidence'],
     requirementsJa: ['認定された教育機関への在籍', '十分な出席率', '経費支弁能力の証明'],
-    riskEn: 'Low attendance or overstaying part-time limits can block future status changes.',
-    riskJa: '出席率の低下や資格外活動の超過は、将来の在留資格変更の障害になり得ます。',
+    riskEn: 'Low attendance or exceeding the conditions of your work permission can block future status changes.',
+    riskJa: '出席率の低下や資格外活動許可の条件超過は、将来の在留資格変更の障害になり得ます。',
+    sources: [officialLegalSources.studentParttime, officialLegalSources.shikakugai].map((x) => ({ labelEn: x.labelEn, labelJa: x.labelJa, url: x.url })),
   },
   {
     id: 'gijinkoku',
@@ -44,6 +49,7 @@ const NODES: StatusNode[] = [
     descJa: '大学・専門学校（専門士）卒業後の最も一般的な就労資格。職務内容が専攻と関連している必要があります。',
     requirementsEn: ['Degree or 専門士 related to the job', 'Full-time offer with appropriate duties', 'Stable employer'],
     requirementsJa: ['職務と関連する学位または専門士', '適切な職務内容のフルタイム内定', '安定した雇用先'],
+    sources: [{ labelEn: officialLegalSources.statusList.labelEn, labelJa: officialLegalSources.statusList.labelJa, url: officialLegalSources.statusList.url }],
   },
   {
     id: 'ssw',
@@ -55,6 +61,7 @@ const NODES: StatusNode[] = [
     requirementsJa: ['分野別技能試験', '日本語試験', '受入れ機関の支援体制'],
     riskEn: 'Category 1 has stay limits and different family/settlement implications than work statuses.',
     riskJa: '1号は在留期間の上限があり、家族帯同や定住への影響が就労資格と異なります。',
+    sources: [{ labelEn: officialLegalSources.statusList.labelEn, labelJa: officialLegalSources.statusList.labelJa, url: officialLegalSources.statusList.url }],
   },
   {
     id: 'hsp',
@@ -64,15 +71,22 @@ const NODES: StatusNode[] = [
     descJa: '学歴・年収・年齢・日本語能力などのポイント制。長期在留までの期間が短くなる場合があります。IT等の高年収キャリアで現実的です。',
     requirementsEn: ['70+ points on the official chart', 'Qualifying employment'],
     requirementsJa: ['ポイント計算表で70点以上', '対象となる就労'],
+    sources: [{ labelEn: officialLegalSources.statusList.labelEn, labelJa: officialLegalSources.statusList.labelJa, url: officialLegalSources.statusList.url }],
   },
   {
     id: 'pr',
     nameEn: 'Permanent Residence（永住）',
     nameJa: '永住',
-    descEn: 'Long-term goal for many. Generally requires years of stable residence, income, tax and pension contributions, and good conduct. Always an individual official decision.',
-    descJa: '多くの人の長期目標。一般に、安定した在留年数・収入・納税・年金の納付・素行善良が求められます。常に個別の公的審査です。',
-    requirementsEn: ['Continuous residence history (commonly 10 years; shorter for HSP)', 'Stable independent income', 'Tax & pension compliance'],
-    requirementsJa: ['継続した在留歴（一般に10年、高度専門職は短縮あり）', '安定した独立生計', '納税・年金の適正な納付'],
+    descEn:
+      'Long-term goal for many. Under the official ISA guideline (revised 2026-02-24), the general rule is 10+ years of continuous residence including 5+ years under a work or residence status, plus good conduct, independent livelihood, and proper payment of taxes, pension, and health insurance. Shorter paths exist (e.g. Highly-Skilled Professional points). Exceptions and details change — read the current guideline and always treat this as an individual official decision.',
+    descJa:
+      '多くの人の長期目標。出入国在留管理庁のガイドライン（令和8年2月24日改訂）では、原則として引き続き10年以上の在留（うち就労資格等で5年以上）に加え、素行善良・独立生計・税金や年金・健康保険の適正な納付が求められます。高度専門職ポイントによる短縮などの例外もあります。要件は改訂されるため、必ず最新のガイドラインを確認し、常に個別審査であることを前提にしてください。',
+    requirementsEn: ['Continuous residence (generally 10+ years, incl. 5+ on work/residence status)', 'Good conduct & independent livelihood', 'Taxes, pension, and health-insurance payments in order'],
+    requirementsJa: ['継続した在留（原則10年以上・うち就労資格等5年以上）', '素行善良・独立生計', '税金・年金・健康保険の適正な納付'],
+    sources: [
+      { labelEn: officialLegalSources.prGuideline.labelEn, labelJa: officialLegalSources.prGuideline.labelJa, url: officialLegalSources.prGuideline.url },
+      { labelEn: officialLegalSources.prProcedure.labelEn, labelJa: officialLegalSources.prProcedure.labelJa, url: officialLegalSources.prProcedure.url },
+    ],
   },
 ];
 
@@ -143,6 +157,23 @@ export default function RoadmapPage(): React.JSX.Element {
                     <strong className="text-coral">{ja ? '注意：' : 'Caution:'}</strong> {ja ? n.riskJa : n.riskEn}
                   </p>
                 )}
+                <div className="mt-3 border-t border-indigo2/10 pt-2 text-xs text-ink-soft">
+                  <span className="font-semibold">{ja ? '公式情報源' : 'Official sources'}</span>{' '}
+                  ({ja ? `確認日 ${CHECKED}` : `checked ${CHECKED}`}):{' '}
+                  {n.sources.map((src, k) => (
+                    <span key={src.url}>
+                      {k > 0 && ' · '}
+                      <a href={src.url} target="_blank" rel="noopener noreferrer" className="text-indigo2 hover:underline">
+                        {ja ? src.labelJa : src.labelEn} ↗
+                      </a>
+                    </span>
+                  ))}
+                  <span className="mt-1 block">
+                    {ja
+                      ? '※ 一般的な情報であり、例外があります。ご自身の許可・条件を必ず確認してください。'
+                      : '※ General information with exceptions — always confirm your own individual permission and conditions.'}
+                  </span>
+                </div>
               </div>
             </li>
           ))}

@@ -10,6 +10,7 @@ import { Link } from '@/i18n/routing';
 import { useAppStore } from '@/lib/store/app';
 import { useHydrated } from '@/components/ui/useHydrated';
 import type { EducationLevel, JlptLevel, LocationId } from '@/lib/simulation/types';
+import { PageSkeleton } from '@/components/ui/PageSkeleton';
 
 export default function ProfilePage(): React.JSX.Element {
   const locale = useLocale();
@@ -21,7 +22,7 @@ export default function ProfilePage(): React.JSX.Element {
   const scenarios = useAppStore((s) => s.scenarios);
   const deleteScenario = useAppStore((s) => s.deleteScenario);
 
-  if (!hydrated) return <div className="p-20 text-center text-ink-soft">…</div>;
+  if (!hydrated) return <PageSkeleton />;
 
   if (!account) {
     return (

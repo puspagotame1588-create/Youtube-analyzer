@@ -14,6 +14,7 @@ import { WhyPanel } from '@/components/universe/WhyPanel';
 import { Badge } from '@/components/ui/Badge';
 import { dataset } from '@/lib/data/seed';
 import { yen, months } from '@/lib/i18n/bi';
+import { PageSkeleton } from '@/components/ui/PageSkeleton';
 
 export default function RouteDetailPage(): React.JSX.Element {
   const locale = useLocale();
@@ -23,7 +24,7 @@ export default function RouteDetailPage(): React.JSX.Element {
   const result = useAppStore((s) => s.currentResult);
   const routeNames = useAppStore((s) => s.currentRouteNames);
 
-  if (!hydrated) return <div className="p-20 text-center text-ink-soft">…</div>;
+  if (!hydrated) return <PageSkeleton />;
 
   const route = result?.routes.find((r) => r.id === params.id);
   if (!route || !result) {

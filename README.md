@@ -2,7 +2,7 @@
 
 A mobile-first, bilingual (EN/日本語) career-simulation universe for foreign students in
 Japan. Compare university, vocational-school, and direct-employment futures as
-explorable 3D routes with verified, explainable data — built with Next.js, React Three
+explorable 3D routes with clearly labeled data and a transparent methodology — built with Next.js, React Three
 Fiber, and a deterministic simulation engine.
 
 > **Status:** private beta (Kanto region, demonstration dataset, 18+, invitation only).
@@ -37,7 +37,10 @@ optional keys.
 | --- | --- |
 | `ANTHROPIC_API_KEY` | Enables live Claude explanations via `/api/ai`. Without it a **labeled** rule-based mock answers — never presented as live AI. |
 | `ADMIN_ACCESS_CODE` | Admin area code (default `careerverse-admin`). |
-| `NEXT_PUBLIC_BETA_CODE` | Beta signup code (default `KANTO-BETA`). |
+| `NEXT_PUBLIC_BETA_CODE` | Beta signup code (default `KANTO-BETA`); its hash is also the default invite code when `INVITE_CODE_HASHES` is unset. |
+| `INVITE_CODE_HASHES` | Comma-separated SHA-256 hashes (`hash[:expiresISO[:maxUses]]`) of valid invite codes for the app-level private-beta gate. Generate in Admin → Invite codes. Removing an entry revokes the code. |
+| `SUPPORT_WEBHOOK_URL` | Webhook that receives support tickets (JSON). Without it the UI says clearly that no team inbox is configured. |
+| `NEXT_PUBLIC_SUPPORT_EMAIL` | Public support email. If unset, no email is shown (never a fake address). |
 | `NEXT_PUBLIC_SUPABASE_URL` etc. | Production persistence (see below). |
 
 ## Admin area

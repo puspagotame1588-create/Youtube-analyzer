@@ -10,6 +10,7 @@ import { useAppStore } from '@/lib/store/app';
 import { useHydrated } from '@/components/ui/useHydrated';
 import { Badge } from '@/components/ui/Badge';
 import { yen } from '@/lib/i18n/bi';
+import { PageSkeleton } from '@/components/ui/PageSkeleton';
 
 export default function SchoolComparePage(): React.JSX.Element {
   const locale = useLocale();
@@ -19,7 +20,7 @@ export default function SchoolComparePage(): React.JSX.Element {
   const [pickA, setPickA] = useState<string | null>(null);
   const [pickB, setPickB] = useState<string | null>(null);
 
-  if (!hydrated) return <div className="p-20 text-center text-ink-soft">…</div>;
+  if (!hydrated) return <PageSkeleton />;
 
   const pool = dataset.schools.filter((s) =>
     shortlist.length >= 2 ? shortlist.includes(s.id) : true,
