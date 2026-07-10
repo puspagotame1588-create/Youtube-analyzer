@@ -1,105 +1,85 @@
-# Puspa Gotame — AI/DX Portfolio
+# CareerVerse — private beta
 
-A premium one-page job-hunting portfolio for AI/DX consulting, AI solutions, and AI product roles in Japan.
+A mobile-first, bilingual (EN/日本語) career-simulation universe for foreign students in
+Japan. Compare university, vocational-school, and direct-employment futures as
+explorable 3D routes with verified, explainable data — built with Next.js, React Three
+Fiber, and a deterministic simulation engine.
 
-**Stack:** React 19 · Vite · Tailwind CSS v4 · Framer Motion (CSS 3D — no WebGL, fast on mobile)
+> **Status:** private beta (Kanto region, demonstration dataset, 18+, invitation only).
+> All seed records are clearly labeled demonstration data. Nothing here is legal or
+> immigration advice.
 
----
-
-## 1. Run it locally
+## Quick start
 
 ```bash
 npm install
-npm run dev        #開発サーバー → http://localhost:5173
-npm run build      # production build → dist/
-npm run preview    # preview the production build
+npm run dev          # http://localhost:3000 → redirects to /en
 ```
 
-## 2. Folder structure
+No environment variables are required — the beta runs fully in **local mode**
+(browser-persisted data, labeled rule-based AI responses). See `.env.example` for the
+optional keys.
 
-```
-public/
-  favicon.svg                  # browser tab icon (PG mark)
-  resume/
-    Puspa_Gotame_Resume.pdf    # ← REPLACE with your real resume (keep the same filename)
-src/
-  config/
-    content.js                 # ★ ALL text, links, projects, metrics — the ONLY file you edit
-  lib/anim.js                  # shared animation variants + count-up hook
-  components/
-    Background.jsx             # Tokyo grid + data-stream ambient layer
-    Navbar.jsx / Footer.jsx
-    Hero.jsx / CommandCenter.jsx   # headline, CTAs, 3D operations visual
-    VideoSection.jsx           # portfolio video + summary
-    Projects.jsx               # 3 case-study cards (tilt, counters)
-    CaseStudy.jsx / WorkflowDemo.jsx  # flagship deep-dive + "Run AI Workflow" demo
-    BeforeAfter.jsx            # manual vs AI-assisted comparison
-    Skills.jsx / About.jsx / Roadmap.jsx / JapanFit.jsx / RecruiterProof.jsx
-  App.jsx                      # section order
-  index.css                    # design tokens (colors, fonts, effects)
-```
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | dev server |
+| `npm run build` / `npm start` | production build / serve |
+| `npm run typecheck` | strict TypeScript |
+| `npm test` | Vitest unit tests (engine, scoring, AI mock) |
+| `npm run test:e2e` | Playwright journey tests (desktop / mobile / reduced-motion) |
+| `npm run seed` | validates the demo dataset and writes `.seed-out/dataset.json` |
+| `npm run lint` | ESLint |
+| `node scripts/screenshots.mjs` | captures desktop+mobile screenshots of key screens (server must be running on :3100) |
 
-## 3. Edit content (one file controls the whole site)
+## Environment variables (all optional in beta)
 
-**Every word, link, and number on the site lives in `src/config/content.js`.**
-Components contain no text — they only render what's in that file.
+| Variable | Purpose |
+| --- | --- |
+| `ANTHROPIC_API_KEY` | Enables live Claude explanations via `/api/ai`. Without it a **labeled** rule-based mock answers — never presented as live AI. |
+| `ADMIN_ACCESS_CODE` | Admin area code (default `careerverse-admin`). |
+| `NEXT_PUBLIC_BETA_CODE` | Beta signup code (default `KANTO-BETA`). |
+| `NEXT_PUBLIC_SUPABASE_URL` etc. | Production persistence (see below). |
 
-Shared facts are defined once in the `profile` object at the top and ripple everywhere:
+## Admin area
 
-- Change `profile.certs.toeic` → hero badge, subheadline, skills list, fact sheet, and Japan-fit section all update.
-- Edit a project in `projects` → its card, the hero command-center module, and (for the first project) the case-study title all update.
-- Edit `nav` → navbar and footer navigation both update.
+Not linked from public navigation. Open `/{en|ja}/admin`, enter the access code
+(server-checked, httpOnly cookie, rate-limited). Dashboard: record inventory with
+verification states (draft → reviewed → published → outdated → archived), feature
+flags, beta users, audit log. Review queue: user correction reports, staged draft
+records (nothing publishes without approval — AI-collected data can never
+auto-publish).
 
-Quick placeholder checklist:
+## Database
 
-| What | Where in `content.js` | How |
-| --- | --- | --- |
-| Portfolio video | `profile.videoEmbedUrl` | Upload to YouTube (unlisted is fine) → use `https://www.youtube.com/embed/VIDEO_ID` |
-| Resume PDF | `public/resume/Puspa_Gotame_Resume.pdf` (file, not config) | Overwrite the placeholder PDF (same filename) |
-| GitHub / LinkedIn / Email | `profile.github` / `profile.linkedin` / `profile.email` | Your real URLs |
-| Project demo/GitHub links | `demo` / `github` inside each entry of `projects` | Replace each `'#'` |
-| Metrics | `metrics` inside each project + `caseStudy.metrics` | Replace targets with measured results as projects mature |
-| Roadmap progress | `roadmap.months[].status` | Move `'now'` forward: `'done'` / `'now'` / `'next'` |
-| Screenshots | `proof.screens` + files in `public/screenshots/` | Drop PNG/JPGs in the folder, set `src: '/screenshots/your-file.png'` |
-| 3D workflow nodes | `hero.nodes` | Edit each node's `label`, `ja`, and `desc` (shown on hover/tap) |
-| Live run animation | `hero.run` | Steps, captions, and timings of the tap-Gmail workflow run |
-| Impact counters | `impact.stats` | ★ Keep these numbers honest — update as your work grows |
-| Ops ticker messages | `ops` | The cycling activity messages in the navbar |
-| Case-study fields | `problem` / `solution` / `result` / `learned` per project | Keep them honest — recruiters ask about these in interviews |
+The beta persists to the browser (labeled "local beta mode"). The production path is
+Supabase: apply `supabase/migrations/0001_init.sql` (30+ normalized tables, indexes,
+RLS policies for every personal table), set the env vars, and swap the storage
+adapter. `npm run seed` validates the dataset; real records enter through the admin
+review pipeline, not bulk inserts.
 
-## 3.5 Prompt Vault (the prompt library page)
+## Deployment
 
-The vault lives at **`/#/vault`** (linked subtly from the portfolio footer).
-Everything about it is edited in **`src/config/prompts.js`**:
+Any Node host works. Vercel:
 
-- **Add a prompt** — copy any object in the `prompts` array, paste it at the
-  end, change the fields. The card, filters, and search update automatically.
-- **Payment link** — set `vaultConfig.paymentUrl` to your Gumroad/Stripe/Ko-fi
-  URL. Until then, unlock buttons show "coming soon".
-- **Newsletter** — set `vaultConfig.newsletterUrl` to a Buttondown/Mailchimp/
-  Formspree form URL. Until then, the signup box shows "launching soon".
-- **Featured prompt** — set `vaultConfig.featuredId` to any prompt's `id`.
-- ⚠ **Premium prompts**: keep the full secret text OUT of `promptText`
-  (ship only `previewText`). The site is a public JS bundle — deliver the
-  full prompt through your payment platform until real access control exists.
+1. Import the repo, framework preset **Next.js** — no special build settings.
+2. Add the env vars you want (none are required).
+3. Deploy. `next build` + `next start` is the self-hosted equivalent.
 
-## 4. Deploy to Vercel (free)
+Checklist before deploying: `npm run typecheck && npm test && npm run build`.
 
-1. Push this repository to GitHub.
-2. Go to [vercel.com](https://vercel.com) → **Add New → Project** → import the repo.
-3. Vercel auto-detects Vite. Keep defaults (`npm run build`, output `dist`). Click **Deploy**.
-4. Optional: add a custom domain (e.g. `puspagotame.com`) under **Settings → Domains**.
+## Architecture, method, and governance
 
-Every `git push` redeploys automatically.
+Full documentation in `docs/`:
+`PRODUCT_SPEC` · `ARCHITECTURE` · `VISUAL_BIBLE` · `SIMULATION_METHOD` ·
+`DATA_GOVERNANCE` · `SECURITY_PRIVACY` · `ACCESSIBILITY` · `BETA_PLAN` ·
+`DECISIONS` · `PROGRESS`.
 
-## 5. Checklist before sending to recruiters
+Key rules baked into the code:
 
-- [ ] Real resume PDF in `public/resume/` (open the deployed link and check it downloads)
-- [ ] Portfolio video recorded (2–3 min, JP+EN) and `videoEmbedUrl` set
-- [ ] LinkedIn URL replaced and profile up to date (photo, education, JLPT/TOEIC)
-- [ ] GitHub profile link correct; email-agent repo public with a good README
-- [ ] All 6 project demo/GitHub `'#'` links replaced (or the buttons will go nowhere)
-- [ ] Metric placeholders replaced with your honest measured numbers
-- [ ] Click every nav link and button on the deployed site — desktop **and** phone
-- [ ] Ask one Japanese friend to read the 日本語 sections aloud — fix anything unnatural
-- [ ] Add the site URL to your resume, LinkedIn, and 履歴書/エントリーシート
+- **The AI never invents scores.** `src/lib/simulation` is pure, deterministic,
+  unit-tested TypeScript; the LLM only explains/translates, with zod-validated output.
+- **Trust is visible.** Every record carries sources, dates, verification state, and a
+  demo label where applicable; close results are reported as close.
+- **Visa language is bounded.** General guidance + official sources + individual-review
+  caveat, with referral triggers to qualified professionals.
+- **Every 3D view has a 2D equivalent** (device tiers A/B/C, reduced motion, no-WebGL).

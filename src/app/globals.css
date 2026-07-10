@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---- Semantic design tokens: Luminous Japanese Futurism (light-first) ---- */
+:root {
+  /* RGB triplets so Tailwind can apply alpha */
+  --cv-base: 247 248 252;      /* pearl */
+  --cv-ink: 27 35 64;          /* soft indigo-black */
+  --cv-ink-soft: 90 99 132;
+  --cv-indigo: 61 74 140;      /* serious information */
+  --cv-cyan: 0 156 190;        /* active opportunity (AA on white) */
+  --cv-violet: 124 77 246;     /* future possibility */
+  --cv-emerald: 13 148 106;    /* verified / safe */
+  --cv-amber: 180 116 6;       /* uncertainty */
+  --cv-coral: 216 62 51;       /* material risk */
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  color: rgb(var(--cv-ink));
+  background-color: rgb(var(--cv-base));
+}
+
+:lang(ja) {
+  line-height: 1.75;
+}
+
+/* Visible focus for keyboard users */
+:focus-visible {
+  outline: 2px solid rgb(var(--cv-cyan));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Animated hero gradient — pauses under reduced motion via the block above */
+.cv-hero-gradient {
+  background: linear-gradient(
+    130deg,
+    #f7f8fc 0%,
+    #e8f4ff 25%,
+    #f1ebff 50%,
+    #e6faf3 75%,
+    #f7f8fc 100%
+  );
+  background-size: 300% 300%;
+  animation: cv-gradient-drift 18s ease-in-out infinite;
+}
+
+@keyframes cv-gradient-drift {
+  0%, 100% { background-position: 0% 40%; }
+  50% { background-position: 100% 60%; }
+}
+
+.cv-glass {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+}
+
+.cv-glass-strong {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+}
+
+/* Screen-reader only helper (Tailwind sr-only exists; kept for clarity) */
+
+/* Route ribbon fallback (Tier C SVG) */
+.cv-depth-card {
+  box-shadow:
+    0 1px 2px rgba(27, 35, 64, 0.06),
+    0 8px 24px rgba(27, 35, 64, 0.09);
+}
+
+::selection {
+  background: rgba(0, 184, 217, 0.25);
+}
