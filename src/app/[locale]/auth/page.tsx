@@ -20,7 +20,6 @@ export default function AuthPage(): React.JSX.Element {
 
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
-  const [code, setCode] = useState('');
   const [age, setAge] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +48,6 @@ export default function AuthPage(): React.JSX.Element {
 
   const errText: Record<string, { en: string; ja: string }> = {
     age: { en: 'CareerVerse is an 18+ service. Please confirm your age.', ja: 'CareerVerseは18歳以上のサービスです。年齢の確認をお願いします。' },
-    'beta-code': { en: 'Invalid beta access code. Ask the CareerVerse team for an invitation.', ja: 'ベータコードが正しくありません。運営チームに招待をお問い合わせください。' },
     email: { en: 'Please enter a valid email address.', ja: '正しいメールアドレスを入力してください。' },
   };
 
@@ -60,8 +58,8 @@ export default function AuthPage(): React.JSX.Element {
           <h1 className="text-xl font-bold text-ink">{ja ? 'ベータアカウント作成' : 'Create your beta account'}</h1>
           <p className="mt-2 text-sm text-ink-soft">
             {ja
-              ? '保存・比較・アラート・書類には、アカウントが必要です（18歳以上・招待制）。'
-              : 'Saving, comparing, alerts, and documents need an account (18+, invitation only).'}
+              ? '保存・比較・アラート・書類には、アカウントが必要です（18歳以上）。招待コードは確認済みです。'
+              : 'Saving, comparing, alerts, and documents need an account (18+). Your invitation is already verified.'}
           </p>
           <p className="mt-3 rounded-xl bg-cyan2/10 px-3 py-2 text-xs text-cyan2">
             {ja
@@ -73,7 +71,7 @@ export default function AuthPage(): React.JSX.Element {
             className="mt-6 space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
-              const out = signUp(email.trim(), name.trim(), code, age);
+              const out = signUp(email.trim(), name.trim(), age);
               if (!out.ok) {
                 setError(out.error ?? 'unknown');
                 return;
@@ -99,16 +97,6 @@ export default function AuthPage(): React.JSX.Element {
                 onChange={(e) => setName(e.target.value)}
                 className="min-h-[44px] w-full rounded-xl border border-ink/10 bg-white px-3 text-ink"
                 autoComplete="nickname"
-              />
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block text-xs font-semibold text-ink-soft">{ja ? 'ベータアクセスコード' : 'Beta access code'}</span>
-              <input
-                required
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                className="min-h-[44px] w-full rounded-xl border border-ink/10 bg-white px-3 text-ink"
-                placeholder="KANTO-BETA"
               />
             </label>
             <label className="flex min-h-[44px] cursor-pointer items-start gap-3 text-sm text-ink">

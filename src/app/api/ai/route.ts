@@ -7,23 +7,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { aiTaskSchema, type AIProvider } from '@/lib/ai/provider';
 import { MockAIProvider } from '@/lib/ai/mock';
+import { safeRateLimit } from '@/lib/storage/kv';
 
 export const runtime = 'nodejs';
-
-const RATE_LIMIT = 30; // requests per window
-const WINDOW_MS = 5 * 60 * 1000;
-const hits = new Map<string, { count: number; windowStart: number }>();
-
-function rateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = hits.get(ip);
-  if (!entry || now - entry.windowStart > WINDOW_MS) {
-    hits.set(ip, { count: 1, windowStart: now });
-    return false;
-  }
-  entry.count += 1;
-  return entry.count > RATE_LIMIT;
-}
 
 async function getProvider(): Promise<{ provider: AIProvider; live: boolean }> {
   const key = process.env.ANTHROPIC_API_KEY;
@@ -36,7 +22,8 @@ async function getProvider(): Promise<{ provider: AIProvider; live: boolean }> {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
-  if (rateLimited(ip)) {
+  const rl = await safeRateLimit('ai', ip, 30, 300);
+  if (!rl.allowed) {
     return NextResponse.json({ error: 'rate-limited' }, { status: 429 });
   }
 

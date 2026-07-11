@@ -13,10 +13,10 @@ test('complete beta journey (EN)', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toContainText('possible futures');
   await page.getByRole('link', { name: 'Create Your First Future' }).first().click();
 
-  // 1b. Invitation-only gate (app-level, hash-checked server-side)
+  // 1b. Invitation-only gate (app-level, hash-checked server-side, fail-closed)
   await page.waitForURL('**/invite**');
   await expect(page.getByRole('heading', { name: 'Invitation-only private beta' })).toBeVisible();
-  await page.getByLabel('Invite code').fill('KANTO-BETA');
+  await page.getByLabel('Invite code').fill('CV-E2E-TESTCODE');
   await page.getByRole('button', { name: 'Enter the beta' }).click();
   await page.waitForURL('**/create');
 
@@ -56,7 +56,6 @@ test('complete beta journey (EN)', async ({ page }) => {
   await page.waitForURL('**/auth');
   await page.getByLabel('Email').fill('tester@example.com');
   await page.getByLabel('Display name').fill('Tester');
-  await page.getByLabel('Beta access code').fill('KANTO-BETA');
   await page.getByText('I confirm that I am 18 or older.').click();
   await page.getByRole('button', { name: 'Create account' }).click();
 
@@ -99,6 +98,13 @@ test('Japanese journey renders localized layout', async ({ page }) => {
   await expect(page.getByRole('heading', { name: '招待制プライベートベータ' })).toBeVisible();
 });
 
+test('support shows a reference number and honest delivery status', async ({ page }) => {
+  await page.goto('/en/support');
+  await page.getByLabel('Message').fill('Test message from e2e');
+  await page.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(page.getByText(/Reference number: CV-/)).toBeVisible();
+});
+
 test('gate blocks personalized routes but leaves public pages open', async ({ page }) => {
   await page.goto('/en/universe');
   await page.waitForURL('**/invite**');
@@ -119,7 +125,7 @@ test('wrong invite codes fail with a generic message', async ({ page }) => {
 
 test('admin can sign in and manage data', async ({ page }) => {
   await page.goto('/en/admin');
-  await page.getByLabel('Access code').fill('careerverse-admin');
+  await page.getByLabel('Access code').fill('cv-e2e-Admin-Secret-2026');
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByText('You are signed in')).toBeVisible();
   await page.goto('/en/admin/dashboard');

@@ -15,10 +15,43 @@
 
 export type FieldDataStatus = 'official' | 'derived' | 'unverified';
 
+/**
+ * Data lifecycle states (mission P0.5 §4). A URL-confirmed record is NOT a
+ * verified simulation record — only `record_verified` + non-expired records
+ * may ever influence simulation scores, and none of the records in this file
+ * have reached that state yet.
+ */
+export type DataState =
+  | 'source_discovered'
+  | 'official_url_confirmed'
+  | 'field_extracted'
+  | 'field_verified'
+  | 'record_verified'
+  | 'simulation_eligible'
+  | 'outdated'
+  | 'archived';
+
+/** Entity-specific review cycles (days). Never one uniform date for everything. */
+export const REVIEW_CYCLES = {
+  vacancy: 7,            // active vacancies: automated removal checks
+  scholarship: 14,       // scholarships with open deadlines
+  admissions: 90,        // school admissions/tuition during recruitment
+  legal: 30,             // government/legal guidance: monthly + on official updates
+  recruitPortal: 30,     // company recruitment portals (not vacancies)
+  description: 180,      // general institution descriptions
+} as const;
+
+export function nextReview(retrievedAt: string, cycleDays: number): string {
+  const d = new Date(retrievedAt);
+  d.setDate(d.getDate() + cycleDays);
+  return d.toISOString().slice(0, 10);
+}
+
 export interface RealRecordMeta {
+  state: DataState;
   retrievedAt: string;
   reviewer: string;
-  verification: 'reviewed';
+  reviewCycleDays: number;
   nextReviewAt: string;
   /** what we do NOT yet have verified — shown in the UI */
   missingInfo: string[];
@@ -26,13 +59,16 @@ export interface RealRecordMeta {
   method: string;
 }
 
-const META_DEFAULT: Omit<RealRecordMeta, 'missingInfo'> = {
-  retrievedAt: '2026-07-10',
+const RETRIEVED = '2026-07-10';
+
+const metaFor = (cycleDays: number): Omit<RealRecordMeta, 'missingInfo'> => ({
+  state: 'official_url_confirmed',
+  retrievedAt: RETRIEVED,
   reviewer: 'founder',
-  verification: 'reviewed',
-  nextReviewAt: '2027-01-10',
+  reviewCycleDays: cycleDays,
+  nextReviewAt: nextReview(RETRIEVED, cycleDays),
   method: 'Official site identified and confirmed via web search on the retrieval date.',
-};
+});
 
 export interface RealSchool {
   id: string;
@@ -69,7 +105,7 @@ export const realSchools: RealSchool[] = [
     admissionsUrl: 'https://www.waseda.jp/inst/admission/undergraduate/system/international/',
     noteEn: 'Large private university with dedicated international admissions and English-based programs.',
     noteJa: '外国学生入試と英語学位プログラムを持つ大規模私立大学。',
-    meta: { ...META_DEFAULT, missingInfo: SCHOOL_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.description), missingInfo: SCHOOL_MISSING },
   },
   {
     id: 'real-meiji',
@@ -82,7 +118,7 @@ export const realSchools: RealSchool[] = [
     urlStatus: 'official',
     noteEn: 'Major private university in central Tokyo with international student admissions.',
     noteJa: '都心にある大手私立大学。外国人留学生入試があります。',
-    meta: { ...META_DEFAULT, missingInfo: SCHOOL_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.description), missingInfo: SCHOOL_MISSING },
   },
   {
     id: 'real-toyo',
@@ -95,7 +131,7 @@ export const realSchools: RealSchool[] = [
     urlStatus: 'official',
     noteEn: 'Private university known for its international tourism management faculty.',
     noteJa: '国際観光学部で知られる私立大学。',
-    meta: { ...META_DEFAULT, missingInfo: SCHOOL_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.description), missingInfo: SCHOOL_MISSING },
   },
   {
     id: 'real-nihon',
@@ -109,7 +145,7 @@ export const realSchools: RealSchool[] = [
     admissionsUrl: 'https://www.nihon-u.ac.jp/admission_info/',
     noteEn: 'One of Japan’s largest universities, with international student selection across many faculties.',
     noteJa: '日本最大級の総合大学。多くの学部で外国人留学生選抜があります。',
-    meta: { ...META_DEFAULT, missingInfo: SCHOOL_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.description), missingInfo: SCHOOL_MISSING },
   },
   {
     id: 'real-hosei',
@@ -122,7 +158,7 @@ export const realSchools: RealSchool[] = [
     urlStatus: 'official',
     noteEn: 'Major private university in Tokyo with programs relevant to business and information fields.',
     noteJa: '経営・情報系の学部を持つ東京の大手私立大学。',
-    meta: { ...META_DEFAULT, missingInfo: SCHOOL_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.description), missingInfo: SCHOOL_MISSING },
   },
   {
     id: 'real-hal-tokyo',
@@ -135,7 +171,7 @@ export const realSchools: RealSchool[] = [
     urlStatus: 'official',
     noteEn: 'IT / game / CG vocational school at Shinjuku station (専門士 programs).',
     noteJa: '新宿駅前のIT・ゲーム・CG専門学校（専門士課程）。',
-    meta: { ...META_DEFAULT, missingInfo: SCHOOL_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.description), missingInfo: SCHOOL_MISSING },
   },
   {
     id: 'real-jec',
@@ -148,7 +184,7 @@ export const realSchools: RealSchool[] = [
     urlStatus: 'official',
     noteEn: 'Shinjuku vocational school with 20+ departments across IT, CG, game, and electronics; long history of accepting international students.',
     noteJa: '新宿のIT・CG・ゲーム・電子系の専門学校。留学生の受け入れ実績が長い学校です。',
-    meta: { ...META_DEFAULT, missingInfo: SCHOOL_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.description), missingInfo: SCHOOL_MISSING },
   },
   {
     id: 'real-neec',
@@ -161,7 +197,7 @@ export const realSchools: RealSchool[] = [
     urlStatus: 'official',
     noteEn: 'Large vocational college group (Kamata/Hachioji) covering IT, technology, and hospitality fields.',
     noteJa: '蒲田・八王子の大規模専門学校。IT・テクノロジー・ホテル観光系の学科があります。',
-    meta: { ...META_DEFAULT, missingInfo: SCHOOL_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.description), missingInfo: SCHOOL_MISSING },
   },
   {
     id: 'real-ohara-hotel',
@@ -174,7 +210,7 @@ export const realSchools: RealSchool[] = [
     urlStatus: 'official',
     noteEn: 'O-hara group vocational school for hotel and travel careers (Suidobashi, Tokyo).',
     noteJa: '大原学園グループのホテル・トラベル系専門学校（東京・水道橋）。',
-    meta: { ...META_DEFAULT, missingInfo: SCHOOL_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.description), missingInfo: SCHOOL_MISSING },
   },
   {
     id: 'real-ohara-boki',
@@ -188,7 +224,7 @@ export const realSchools: RealSchool[] = [
     noteEn: 'Business/bookkeeping vocational school within the O-hara group. Group site verified; the school-specific page should be confirmed from the group school list.',
     noteJa: '大原学園グループのビジネス・簿記系専門学校。グループ公式サイトは確認済み。学校別ページはグループの学校一覧から要確認。',
     meta: {
-      ...META_DEFAULT,
+      ...metaFor(REVIEW_CYCLES.description),
       missingInfo: [...SCHOOL_MISSING, 'School-specific official page (currently linking to the verified group site)'],
     },
   },
@@ -222,7 +258,7 @@ export const realScholarships: RealScholarship[] = [
     urlStatus: 'official',
     noteEn: 'The main public support program for privately financed international students; applications go through your school.',
     noteJa: '私費外国人留学生向けの代表的な公的支援制度。申請は在籍校を通じて行います。',
-    meta: { ...META_DEFAULT, missingInfo: [...SCHOLARSHIP_MISSING, 'Direct program page (site root verified; program page to be pinned)'] },
+    meta: { ...metaFor(REVIEW_CYCLES.scholarship), missingInfo: [...SCHOLARSHIP_MISSING, 'Direct program page (site root verified; program page to be pinned)'] },
   },
   {
     id: 'real-yoneyama',
@@ -231,9 +267,9 @@ export const realScholarships: RealScholarship[] = [
     provider: '公益財団法人ロータリー米山記念奨学会',
     officialUrl: 'https://www.rotary-yoneyama.or.jp/',
     urlStatus: 'official',
-    noteEn: 'Japan’s largest private scholarship foundation for international students.',
-    noteJa: '外国人留学生を支援する民間最大の奨学団体。',
-    meta: { ...META_DEFAULT, missingInfo: SCHOLARSHIP_MISSING },
+    noteEn: 'Private scholarship foundation for international students (describes itself as Japan’s largest private scholarship organization).',
+    noteJa: '外国人留学生を支援する奨学財団（同会は自らを民間最大の奨学団体としています）。',
+    meta: { ...metaFor(REVIEW_CYCLES.scholarship), missingInfo: SCHOLARSHIP_MISSING },
   },
   {
     id: 'real-sisf',
@@ -244,7 +280,7 @@ export const realScholarships: RealScholarship[] = [
     urlStatus: 'official',
     noteEn: 'Scholarships for privately financed students from designated Asian countries; spring and autumn intakes via your school.',
     noteJa: '対象アジア諸国からの私費留学生向け。春・秋の年2回、在籍校経由で募集。',
-    meta: { ...META_DEFAULT, missingInfo: SCHOLARSHIP_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.scholarship), missingInfo: SCHOLARSHIP_MISSING },
   },
   {
     id: 'real-kif',
@@ -255,7 +291,7 @@ export const realScholarships: RealScholarship[] = [
     urlStatus: 'official',
     noteEn: 'Scholarships for students from Asian countries at universities, junior colleges, and vocational schools.',
     noteJa: 'アジア諸国からの留学生対象。大学・短大・専門学校の学生に支給。',
-    meta: { ...META_DEFAULT, missingInfo: SCHOLARSHIP_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.scholarship), missingInfo: SCHOLARSHIP_MISSING },
   },
   {
     id: 'real-mext',
@@ -266,10 +302,15 @@ export const realScholarships: RealScholarship[] = [
     urlStatus: 'official',
     noteEn: 'Government scholarship programs (embassy or university recommendation). Site root verified; program pages vary by year.',
     noteJa: '国費外国人留学生制度（大使館推薦・大学推薦）。公式サイトは確認済み。年度ごとの募集ページは要確認。',
-    meta: { ...META_DEFAULT, missingInfo: [...SCHOLARSHIP_MISSING, 'Year-specific application page'] },
+    meta: { ...metaFor(REVIEW_CYCLES.scholarship), missingInfo: [...SCHOLARSHIP_MISSING, 'Year-specific application page'] },
   },
 ];
 
+/**
+ * Recruitment portals and public employment services — explicitly NOT live
+ * vacancies. Individual current vacancies live in verified.ts and follow the
+ * 7-day vacancy review cycle.
+ */
 export interface RealJobLink {
   id: string;
   field: 'business' | 'it' | 'hospitality' | 'foodservice' | 'realestate' | 'all';
@@ -296,7 +337,7 @@ export const realJobLinks: RealJobLink[] = [
     urlStatus: 'official',
     noteEn: 'Free public employment service for international students: job-hunting guidance, interview events, and placement.',
     noteJa: '留学生向けの公的無料職業紹介機関。就職ガイダンス・面接会・職業紹介を行っています。',
-    meta: { ...META_DEFAULT, missingInfo: JOB_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.recruitPortal), missingInfo: JOB_MISSING },
   },
   {
     id: 'real-job-mhlw-list',
@@ -308,7 +349,7 @@ export const realJobLinks: RealJobLink[] = [
     urlStatus: 'official',
     noteEn: 'Official list of all employment service centers for foreign residents across Japan.',
     noteJa: '全国の外国人雇用サービスセンターの公式一覧。',
-    meta: { ...META_DEFAULT, missingInfo: JOB_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.recruitPortal), missingInfo: JOB_MISSING },
   },
   {
     id: 'real-job-rakuten',
@@ -320,7 +361,7 @@ export const realJobLinks: RealJobLink[] = [
     urlStatus: 'official',
     noteEn: 'Large IT company with English-language working environment and new-graduate engineering hiring.',
     noteJa: '社内公用語が英語の大手IT企業。エンジニア新卒採用があります。',
-    meta: { ...META_DEFAULT, missingInfo: JOB_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.recruitPortal), missingInfo: JOB_MISSING },
   },
   {
     id: 'real-job-mercari',
@@ -332,7 +373,7 @@ export const realJobLinks: RealJobLink[] = [
     urlStatus: 'official',
     noteEn: 'Tech company known for hiring international engineers with language support.',
     noteJa: '外国籍エンジニアの採用と言語サポートで知られるテック企業。',
-    meta: { ...META_DEFAULT, missingInfo: JOB_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.recruitPortal), missingInfo: JOB_MISSING },
   },
   {
     id: 'real-job-seibuprince',
@@ -344,7 +385,7 @@ export const realJobLinks: RealJobLink[] = [
     urlStatus: 'official',
     noteEn: 'Major hotel group operating nationwide, including many Kanto properties.',
     noteJa: '関東を含む全国でホテルを運営する大手ホテルグループ。',
-    meta: { ...META_DEFAULT, missingInfo: JOB_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.recruitPortal), missingInfo: JOB_MISSING },
   },
   {
     id: 'real-job-hoshino',
@@ -356,7 +397,7 @@ export const realJobLinks: RealJobLink[] = [
     urlStatus: 'official',
     noteEn: 'Hospitality operator with structured career courses and year-round hiring.',
     noteJa: 'キャリアコース制と通年採用を行うホスピタリティ運営会社。',
-    meta: { ...META_DEFAULT, missingInfo: JOB_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.recruitPortal), missingInfo: JOB_MISSING },
   },
   {
     id: 'real-job-zensho',
@@ -366,9 +407,9 @@ export const realJobLinks: RealJobLink[] = [
     kind: 'company-official',
     officialUrl: 'https://recruit.zensho.co.jp/',
     urlStatus: 'official',
-    noteEn: 'Japan’s largest food-service group (Sukiya, Hama-sushi, Coco’s, Nakau) with store-manager career tracks.',
-    noteJa: 'すき家・はま寿司・ココス・なか卯を運営する国内最大の外食グループ。店長候補のキャリアトラックがあります。',
-    meta: { ...META_DEFAULT, missingInfo: JOB_MISSING },
+    noteEn: 'Major food-service group (Sukiya, Hama-sushi, Coco’s, Nakau) with store-manager career tracks.',
+    noteJa: 'すき家・はま寿司・ココス・なか卯を運営する大手外食グループ。店長候補のキャリアトラックがあります。',
+    meta: { ...metaFor(REVIEW_CYCLES.recruitPortal), missingInfo: JOB_MISSING },
   },
   {
     id: 'real-job-skylark',
@@ -380,7 +421,7 @@ export const realJobLinks: RealJobLink[] = [
     urlStatus: 'official',
     noteEn: 'Major restaurant chain group; recruitment portal includes non-Japanese applicant information.',
     noteJa: '大手レストランチェーングループ。採用ポータルに外国籍者向け情報があります。',
-    meta: { ...META_DEFAULT, missingInfo: JOB_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.recruitPortal), missingInfo: JOB_MISSING },
   },
   {
     id: 'real-job-openhouse',
@@ -392,7 +433,7 @@ export const realJobLinks: RealJobLink[] = [
     urlStatus: 'official',
     noteEn: 'Fast-growing Tokyo real-estate group with new-graduate and mid-career hiring.',
     noteJa: '新卒・中途採用を行う成長中の東京の不動産グループ。',
-    meta: { ...META_DEFAULT, missingInfo: JOB_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.recruitPortal), missingInfo: JOB_MISSING },
   },
   {
     id: 'real-job-able',
@@ -404,13 +445,15 @@ export const realJobLinks: RealJobLink[] = [
     urlStatus: 'official',
     noteEn: 'Nationwide rental brokerage; multilingual staff serve international residents.',
     noteJa: '全国展開の賃貸仲介会社。外国人入居者対応の多言語スタッフが活躍しています。',
-    meta: { ...META_DEFAULT, missingInfo: JOB_MISSING },
+    meta: { ...metaFor(REVIEW_CYCLES.recruitPortal), missingInfo: JOB_MISSING },
   },
 ];
 
 /** Official legal-information sources used across the app (immigration safety). */
 export const officialLegalSources = {
   checkedAt: '2026-07-10',
+  reviewCycleDays: 30, // monitored monthly and whenever an official update is detected
+  nextReviewAt: nextReview('2026-07-10', 30),
   studentParttime: {
     labelJa: '「留学」の在留資格に係る資格外活動許可について（出入国在留管理庁）',
     labelEn: 'Permission for activity other than that permitted — Student status (Immigration Services Agency)',

@@ -13,6 +13,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Link } from '@/i18n/routing';
 import { dataset } from '@/lib/data/seed';
 import { realJobLinks } from '@/lib/data/real';
+import { verifiedVacancies } from '@/lib/data/verified';
 import { Badge } from '@/components/ui/Badge';
 import { yen } from '@/lib/i18n/bi';
 
@@ -131,7 +132,55 @@ export default function CareerDetailPage(): React.JSX.Element {
       </div>
 
       <section className="cv-glass mt-4 rounded-panel p-5">
-        <h2 className="font-bold text-ink">{ja ? '公式の採用・就職支援リンク' : 'Official recruitment & job-support links'}</h2>
+        <h2 className="font-bold text-ink">{ja ? '現在の求人（個別に確認済み）' : 'Current vacancies (individually checked)'}</h2>
+        {verifiedVacancies.filter((v) => v.field === career.field && v.state === 'record_verified').length === 0 ? (
+          <p className="mt-2 rounded-xl bg-amber2/10 px-3 py-2 text-xs text-ink">
+            {ja
+              ? 'この分野で個別に確認済みの求人はまだありません（下の公式採用ページをご覧ください）。'
+              : 'No individually checked vacancies in this field yet — see the official recruitment pages below.'}
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-3">
+            {verifiedVacancies
+              .filter((v) => v.field === career.field && v.state === 'record_verified')
+              .map((v) => (
+                <li key={v.id} className="rounded-xl border border-cyan2/20 bg-cyan2/5 p-3 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <strong className="text-ink">{v.title}</strong>
+                      <p className="text-xs text-ink-soft">
+                        {v.employer} · {v.location} · {v.employmentType}
+                      </p>
+                      <p className="text-[11px] text-ink-soft">
+                        {ja ? '要件' : 'Requirements'}: {v.requirements} · {ja ? '日本語' : 'Japanese'}: {v.japanese} · {ja ? '給与' : 'Salary'}: {v.salary}
+                      </p>
+                      <p className="text-[11px] text-emerald2">
+                        {ja ? '確認日' : 'Checked'} {v.checkedAt} · {ja ? '次回確認' : 'next check'} {v.nextReviewAt}
+                        {v.postedAt ? ` · ${ja ? '掲載日' : 'posted'} ${v.postedAt}` : ''}
+                      </p>
+                    </div>
+                    <a
+                      href={v.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 rounded-full border border-cyan2/40 px-4 py-2 text-xs font-semibold text-cyan2 hover:bg-cyan2/10"
+                    >
+                      {ja ? '掲載元で見る ↗' : 'View listing ↗'}
+                    </a>
+                  </div>
+                </li>
+              ))}
+          </ul>
+        )}
+        <p className="mt-2 text-[11px] text-ink-soft">
+          {ja
+            ? '※ 求人は7日ごとに再確認します。応募は必ず掲載元で最新情報を確認してください。'
+            : '※ Vacancies are re-checked on a 7-day cycle. Always confirm the latest details at the source before applying.'}
+        </p>
+      </section>
+
+      <section className="cv-glass mt-4 rounded-panel p-5">
+        <h2 className="font-bold text-ink">{ja ? '公式の採用・就職支援リンク（求人一覧ではありません）' : 'Official recruitment & job-support links (not live vacancies)'}</h2>
         <p className="mt-1 text-xs text-ink-soft">
           {ja
             ? 'この分野に関連する、実在の公式採用ページと公的支援機関です。募集内容は変わるため、必ず公式ページでご確認ください。'

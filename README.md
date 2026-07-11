@@ -36,12 +36,17 @@ optional keys.
 | Variable | Purpose |
 | --- | --- |
 | `ANTHROPIC_API_KEY` | Enables live Claude explanations via `/api/ai`. Without it a **labeled** rule-based mock answers — never presented as live AI. |
-| `ADMIN_ACCESS_CODE` | Admin area code (default `careerverse-admin`). |
-| `NEXT_PUBLIC_BETA_CODE` | Beta signup code (default `KANTO-BETA`); its hash is also the default invite code when `INVITE_CODE_HASHES` is unset. |
-| `INVITE_CODE_HASHES` | Comma-separated SHA-256 hashes (`hash[:expiresISO[:maxUses]]`) of valid invite codes for the app-level private-beta gate. Generate in Admin → Invite codes. Removing an entry revokes the code. |
-| `SUPPORT_WEBHOOK_URL` | Webhook that receives support tickets (JSON). Without it the UI says clearly that no team inbox is configured. |
-| `NEXT_PUBLIC_SUPPORT_EMAIL` | Public support email. If unset, no email is shown (never a fake address). |
-| `NEXT_PUBLIC_SUPABASE_URL` etc. | Production persistence (see below). |
+| `ADMIN_ACCESS_CODE` | **Required for admin login (fail-closed).** No default. Rejected if missing, shorter than 16 chars, a known default, or low-entropy. Generate with `node scripts/setup-credentials.mjs`. |
+| `INVITE_CODE_HASHES` | **Required for the invite gate to open (fail-closed).** Comma-separated `hash[:expiresISO[:maxUses]]`. No fallback code — if unset, no code is accepted. Generate in Admin → Invite codes or with the setup script. Removing an entry revokes it. |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Durable KV for rate limits, atomic invite use-counts, and the support queue. Without a durable KV (or Supabase), the deployment runs in **developer mode** and strict limits are best-effort only. |
+| `SUPPORT_WEBHOOK_URL` | Support delivery via webhook (JSON). See also `RESEND_API_KEY`+`SUPPORT_EMAIL_TO` or `POSTMARK_SERVER_TOKEN`+`SUPPORT_EMAIL_TO`. Without any provider, tickets are queued (durable KV) or the UI states delivery is unconfigured. |
+| `RESEND_API_KEY` / `POSTMARK_SERVER_TOKEN` + `SUPPORT_EMAIL_TO` | Email support delivery providers (`SUPPORT_EMAIL_FROM` optional). |
+| `NEXT_PUBLIC_SUPPORT_EMAIL` | Public support email shown in the UI. If unset, no email is shown (never a fake address). |
+| `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Production persistence + durable KV alternative to Upstash (apply `supabase/migrations`). |
+
+Check live configuration at `/api/health` (reports developer-mode and which capabilities are configured; never leaks secrets).
+
+**First-time setup:** `node scripts/setup-credentials.mjs 5` prints a strong admin secret and 5 invite codes + their env line. Paste `ADMIN_ACCESS_CODE` and `INVITE_CODE_HASHES` into your deployment and redeploy.
 
 ## Admin area
 

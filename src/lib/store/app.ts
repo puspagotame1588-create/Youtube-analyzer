@@ -72,7 +72,7 @@ export interface AppNotification {
 interface AppState {
   // auth (local beta mode)
   account: LocalAccount | null;
-  signUp: (email: string, displayName: string, betaCode: string, ageConfirmed: boolean) => { ok: boolean; error?: string };
+  signUp: (email: string, displayName: string, ageConfirmed: boolean) => { ok: boolean; error?: string };
   signOut: () => void;
   deleteAccount: () => void;
 
@@ -122,10 +122,10 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       account: null,
-      signUp: (email, displayName, betaCode, ageConfirmed) => {
-        const expected = process.env.NEXT_PUBLIC_BETA_CODE ?? 'KANTO-BETA';
+      signUp: (email, displayName, ageConfirmed) => {
+        // Access control is the app-level invite gate (middleware) — reaching
+        // this page already required a valid invite. No secondary code.
         if (!ageConfirmed) return { ok: false, error: 'age' };
-        if (betaCode.trim().toUpperCase() !== expected.toUpperCase()) return { ok: false, error: 'beta-code' };
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: 'email' };
         set({
           account: {

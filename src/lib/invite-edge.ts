@@ -1,18 +1,13 @@
 /**
  * Edge-safe invite helpers for middleware (no node:crypto).
- * The middleware only needs to check whether the cookie's hash is currently
- * valid (present in config and not expired) — hashing happens in /api/invite.
+ * FAIL-CLOSED: if INVITE_CODE_HASHES is unset there are no valid hashes and
+ * every gated route redirects to the invite page, which explains that the
+ * beta gate is not configured. There is no fallback code.
  */
-
-/** sha256("KANTO-BETA") — the documented development fallback code. */
-const DEFAULT_HASH = 'd2f0435152ab4c36391cd6069f945d457f03e41b4550da5c24decaf2278ddf1a';
 
 export function edgeValidHashes(raw: string | undefined): Map<string, string | undefined> {
   const map = new Map<string, string | undefined>();
-  if (!raw || raw.trim() === '') {
-    map.set(DEFAULT_HASH, undefined);
-    return map;
-  }
+  if (!raw || raw.trim() === '') return map; // fail closed
   for (const part of raw.split(',')) {
     const [hash, expiresAt] = part.trim().split(':');
     if (hash && /^[0-9a-f]{64}$/i.test(hash)) map.set(hash.toLowerCase(), expiresAt);

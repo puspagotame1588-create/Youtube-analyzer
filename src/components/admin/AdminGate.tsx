@@ -43,6 +43,8 @@ export function AdminGate({ children }: { children: ReactNode }): React.JSX.Elem
               })
                 .then((r) => {
                   if (r.ok) setState('ok');
+                  else if (r.status === 503)
+                    setError('Admin login is disabled: no strong ADMIN_ACCESS_CODE is configured (fail-closed). Run scripts/setup-credentials.mjs and set the env var.');
                   else setError(r.status === 429 ? 'Too many attempts — wait 10 minutes.' : 'Invalid access code.');
                 })
                 .catch(() => setError('Network error.'))

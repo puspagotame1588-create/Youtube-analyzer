@@ -1,20 +1,21 @@
 /**
- * Support intake. Every submission gets a reference number. Delivery:
- * - If SUPPORT_WEBHOOK_URL is set, the ticket is forwarded there (e.g. a
- *   Slack/Discord webhook or a form-to-email service the founder controls).
- * - The response reports whether server-side delivery is configured so the
- *   UI never implies an inbox exists when it does not.
- * Spam protection: per-IP rate limit + honeypot field.
+ * Support intake with confirmed delivery.
+ * Order of truth:
+ * 1. provider delivery (webhook/resend/postmark) → status 'delivered' only on
+ *    confirmed provider acceptance, with proof (provider, http status,
+ *    timestamp, redacted message id)
+ * 2. durable KV queue (Upstash/Supabase) → status 'queued'
+ * 3. otherwise → status 'failed'/'unconfigured'; the UI keeps the draft and
+ *    shows an honest error — never "Message sent".
+ * Spam protection: durable per-IP rate limit + honeypot field.
  */
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
+import { deliverSupportTicket } from '@/lib/support/delivery';
+import { getKV, safeRateLimit } from '@/lib/storage/kv';
 
 export const runtime = 'nodejs';
-
-const WINDOW_MS = 10 * 60 * 1000;
-const MAX_PER_WINDOW = 5;
-const hits = new Map<string, { count: number; windowStart: number }>();
 
 const ticketSchema = z.object({
   category: z.string().max(40),
@@ -33,13 +34,10 @@ function referenceNumber(): string {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
-  const now = Date.now();
-  const entry = hits.get(ip);
-  if (entry && now - entry.windowStart < WINDOW_MS && entry.count >= MAX_PER_WINDOW) {
+  const rl = await safeRateLimit('support', ip, 5, 600);
+  if (!rl.allowed) {
     return NextResponse.json({ error: 'rate-limited' }, { status: 429 });
   }
-  if (!entry || now - entry.windowStart > WINDOW_MS) hits.set(ip, { count: 1, windowStart: now });
-  else entry.count += 1;
 
   let body: unknown;
   try {
@@ -50,34 +48,52 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const parsed = ticketSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: 'invalid' }, { status: 400 });
   if (parsed.data.website && parsed.data.website.length > 0) {
-    // Honeypot triggered — accept silently without delivery.
-    return NextResponse.json({ ok: true, reference: referenceNumber(), delivered: false });
+    // Honeypot triggered — pretend success without delivery.
+    return NextResponse.json({ ok: true, reference: referenceNumber(), status: 'received' });
   }
 
   const reference = referenceNumber();
-  const webhook = process.env.SUPPORT_WEBHOOK_URL;
-  let delivered = false;
-  if (webhook) {
-    try {
-      const res = await fetch(webhook, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: `[CareerVerse support] ${reference} · ${parsed.data.category}\nfrom: ${parsed.data.email ?? 'no email'} (${parsed.data.locale})\n\n${parsed.data.message}`,
-          reference,
-          ...parsed.data,
-        }),
-      });
-      delivered = res.ok;
-    } catch {
-      delivered = false;
-    }
+  const delivery = await deliverSupportTicket({
+    reference,
+    category: parsed.data.category,
+    message: parsed.data.message,
+    ...(parsed.data.email ? { email: parsed.data.email } : {}),
+    locale: parsed.data.locale,
+  });
+
+  let status: 'delivered' | 'queued' | 'failed' | 'unconfigured' = delivery.status;
+
+  // Fall back to the durable queue when a provider is missing or failed.
+  const kv = getKV();
+  if ((status === 'unconfigured' || status === 'failed') && kv.mode !== 'memory') {
+    const queued = await kv
+      .pushDoc('support:queue', {
+        reference,
+        category: parsed.data.category,
+        message: parsed.data.message,
+        email: parsed.data.email ?? null,
+        locale: parsed.data.locale,
+        receivedAt: new Date().toISOString(),
+        deliveryError: delivery.error ?? null,
+        status: 'queued',
+      })
+      .catch(() => false);
+    if (queued) status = 'queued';
   }
 
+  console.info(
+    `[support] ref=${reference} status=${status} provider=${delivery.provider} http=${delivery.httpStatus ?? '-'} id=${delivery.messageIdRedacted ?? '-'}`,
+  );
+
   return NextResponse.json({
-    ok: true,
+    ok: status === 'delivered' || status === 'queued',
     reference,
-    delivered,
-    deliveryConfigured: Boolean(webhook),
+    status,
+    proof: {
+      provider: delivery.provider,
+      httpStatus: delivery.httpStatus ?? null,
+      messageIdRedacted: delivery.messageIdRedacted ?? null,
+      timestamp: delivery.timestamp,
+    },
   });
 }

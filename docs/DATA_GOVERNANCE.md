@@ -45,3 +45,23 @@ Every school/scholarship/career page has "Report a correction"; reports create
 - AI job logs: 90 days, no hidden reasoning stored.
 - Audit events: 1 year.
 - Account deletion removes all personal rows (cascade defined in the schema).
+
+## P0.5 data-state model
+
+`source_discovered → official_url_confirmed → field_extracted → field_verified →
+record_verified → simulation_eligible` (plus `outdated` / `archived`). A
+URL-confirmed record is NOT a verified simulation record. Only
+`record_verified` + non-expired records may ever feed simulation scores; none
+are wired into the engine yet (the deterministic engine still uses the labeled
+demonstration dataset). Verified records live in `src/lib/data/verified.ts`.
+
+## Entity-specific freshness cycles
+
+- Active vacancies: 7 days (`scripts/check-vacancies.mjs` removal check)
+- Scholarships with open deadlines: 14 days
+- School admissions/tuition: 90 days during recruitment
+- Government/legal guidance: 30 days (monthly + on official updates)
+- Company recruitment portals: 30 days
+- General institution descriptions: 180 days
+
+No uniform review date is assigned across entities.

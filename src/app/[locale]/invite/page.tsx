@@ -1,52 +1,21 @@
-'use client';
+import { setRequestLocale } from 'next-intl/server';
+import { InviteForm } from '@/components/invite/InviteForm';
 
 /**
- * Private-beta invite gate. Codes are validated server-side against stored
- * hashes only; failures are generic; attempts are rate-limited.
+ * Private-beta invite gate — server-rendered shell so the title, instructions,
+ * input label, and error region exist in the HTML without JavaScript. The
+ * client island only adds submission behavior.
  */
-
-import { Suspense, useState } from 'react';
-import { useLocale } from 'next-intl';
-import { useSearchParams } from 'next/navigation';
-import { Link } from '@/i18n/routing';
-
-function InviteForm(): React.JSX.Element {
-  const locale = useLocale();
+export default function InvitePage({
+  params: { locale },
+  searchParams,
+}: {
+  params: { locale: string };
+  searchParams: { next?: string };
+}): React.JSX.Element {
+  setRequestLocale(locale);
   const ja = locale === 'ja';
-  const params = useSearchParams();
-  const [code, setCode] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const submit = async (): Promise<void> => {
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
-      });
-      if (res.ok) {
-        const next = params.get('next');
-        window.location.href = next && next.startsWith('/') ? next : `/${locale}/create`;
-        return;
-      }
-      setError(
-        res.status === 429
-          ? ja
-            ? '試行回数が多すぎます。しばらくしてからお試しください。'
-            : 'Too many attempts. Please wait a little while and try again.'
-          : ja
-            ? 'そのコードは使用できません。招待メールのコードをご確認ください。'
-            : 'That code can’t be used. Please check the code from your invitation.',
-      );
-    } catch {
-      setError(ja ? '接続エラーが発生しました。もう一度お試しください。' : 'Connection error. Please try again.');
-    } finally {
-      setBusy(false);
-    }
-  };
+  const next = typeof searchParams.next === 'string' && searchParams.next.startsWith('/') ? searchParams.next : undefined;
 
   return (
     <div className="cv-hero-gradient flex min-h-[80svh] items-center justify-center px-4 py-16">
@@ -61,55 +30,24 @@ function InviteForm(): React.JSX.Element {
             : 'The simulation features need an invite code. The school, career, scholarship, and settlement-roadmap browsing pages are open without one.'}
         </p>
 
-        <form
-          className="mt-6 space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void submit();
-          }}
-        >
-          <label htmlFor="invite-code" className="sr-only">
-            {ja ? '招待コード' : 'Invite code'}
-          </label>
-          <input
-            id="invite-code"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder={ja ? '招待コード' : 'Invite code'}
-            autoComplete="off"
-            autoCapitalize="characters"
-            className="min-h-[48px] w-full rounded-full border border-ink/10 bg-white px-5 text-center text-sm font-semibold tracking-widest text-ink"
-          />
-          {error && (
-            <p role="alert" className="rounded-xl border border-coral/40 bg-coral/5 px-3 py-2 text-sm text-coral">
-              {error}
-            </p>
-          )}
-          <button
-            type="submit"
-            disabled={busy || code.trim().length === 0}
-            className="min-h-[48px] w-full rounded-full bg-gradient-to-r from-cyan2 to-violet2 text-sm font-semibold text-white shadow-glow hover:brightness-110 disabled:opacity-50"
-          >
-            {busy ? (ja ? '確認中…' : 'Checking…') : ja ? 'ベータに入る' : 'Enter the beta'}
-          </button>
-        </form>
+        <noscript>
+          <p className="mt-4 rounded-xl border border-amber2/40 bg-amber2/10 px-3 py-2 text-xs text-ink">
+            {ja
+              ? '招待コードの確認にはJavaScriptが必要です。有効にしてから再読み込みしてください。閲覧ページはJavaScriptなしでもご利用いただけます。'
+              : 'Checking an invite code requires JavaScript. Please enable it and reload. The browsing pages work without JavaScript.'}
+          </p>
+        </noscript>
+
+        <InviteForm locale={locale} nextPath={next} />
 
         <p className="mt-5 text-xs text-ink-soft">
           {ja ? '招待をご希望の方は、サポートからお問い合わせください。' : 'Want an invitation? Contact us via the Support page.'}
         </p>
         <div className="mt-2 flex justify-center gap-4 text-xs">
-          <Link href="/support" className="text-indigo2 hover:underline">{ja ? 'サポート' : 'Support'}</Link>
-          <Link href="/" className="text-indigo2 hover:underline">{ja ? 'ホームへ' : 'Back to home'}</Link>
+          <a href={`/${locale}/support`} className="text-indigo2 hover:underline">{ja ? 'サポート' : 'Support'}</a>
+          <a href={`/${locale}`} className="text-indigo2 hover:underline">{ja ? 'ホームへ' : 'Back to home'}</a>
         </div>
       </div>
     </div>
-  );
-}
-
-export default function InvitePage(): React.JSX.Element {
-  return (
-    <Suspense fallback={<div className="min-h-[60svh]" />}>
-      <InviteForm />
-    </Suspense>
   );
 }

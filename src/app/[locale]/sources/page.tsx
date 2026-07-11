@@ -1,6 +1,7 @@
 import { setRequestLocale } from 'next-intl/server';
 import { dataset } from '@/lib/data/seed';
 import { realSchools, realScholarships, realJobLinks, officialLegalSources } from '@/lib/data/real';
+import { verifiedPrograms, verifiedScholarships, verifiedVacancies, verifiedCounts } from '@/lib/data/verified';
 
 export default function SourcesPage({ params: { locale } }: { params: { locale: string } }): React.JSX.Element {
   setRequestLocale(locale);
@@ -49,7 +50,86 @@ export default function SourcesPage({ params: { locale } }: { params: { locale: 
         </table>
       </div>
 
-      <h2 className="mt-8 text-lg font-bold">{ja ? '実データ登録簿（検証中）' : 'Real-data register (verification in progress)'}</h2>
+      <h2 className="mt-8 text-lg font-bold">{ja ? '検証済みレコード（record_verified）' : 'Verified records (record_verified)'}</h2>
+      <p className="mt-2 text-ink-soft">
+        {ja
+          ? `データ状態モデル: source_discovered → official_url_confirmed → field_extracted → field_verified → record_verified → simulation_eligible（→ outdated / archived）。URLのみ確認したレコードは検証済みレコードではありません。現在の完全検証数 — 大学プログラム: ${verifiedCounts.universitiesFullyVerified} / 奨学金: ${verifiedCounts.scholarshipsFullyVerified} / 求人: ${verifiedCounts.vacanciesFullyVerified}。simulation_eligible のレコードはまだ0件で、シミュレーションは引き続きデモデータのみを使用します。`
+          : `Data-state model: source_discovered → official_url_confirmed → field_extracted → field_verified → record_verified → simulation_eligible (→ outdated / archived). A URL-confirmed record is NOT a verified record. Fully verified today — university programs: ${verifiedCounts.universitiesFullyVerified} / scholarships: ${verifiedCounts.scholarshipsFullyVerified} / vacancies: ${verifiedCounts.vacanciesFullyVerified}. No record is simulation_eligible yet — simulations still use only the demonstration dataset.`}
+      </p>
+
+      <h3 className="mt-4 font-bold">{ja ? '奨学金（検証済み）' : 'Scholarships (verified)'}</h3>
+      <div className="mt-2 overflow-x-auto">
+        <table className="w-full min-w-[680px] text-left text-xs">
+          <caption className="sr-only">Verified scholarships</caption>
+          <thead>
+            <tr className="border-b border-ink/10 uppercase tracking-wide text-ink-soft">
+              <th scope="col" className="py-2 pr-3">{ja ? '制度' : 'Program'}</th>
+              <th scope="col" className="py-2 pr-3">{ja ? '年度' : 'Year'}</th>
+              <th scope="col" className="py-2 pr-3">{ja ? '金額' : 'Amount'}</th>
+              <th scope="col" className="py-2 pr-3">{ja ? '申請経路' : 'Route'}</th>
+              <th scope="col" className="py-2 pr-3">{ja ? '締切/状況' : 'Deadline/status'}</th>
+              <th scope="col" className="py-2">{ja ? '確認日→次回' : 'Checked→next'}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {verifiedScholarships.map((v) => (
+              <tr key={v.id} className="border-b border-ink/5 align-top">
+                <td className="py-2 pr-3 font-medium">{ja ? v.nameJa : v.nameEn}<span className="block text-ink-soft">{v.provider}</span></td>
+                <td className="py-2 pr-3">{v.academicYear}</td>
+                <td className="py-2 pr-3"><a className="text-indigo2 hover:underline" href={v.amount.sourceUrl} target="_blank" rel="noopener noreferrer">{v.amount.value}</a></td>
+                <td className="py-2 pr-3">{v.applicationRoute}</td>
+                <td className="py-2 pr-3"><a className="text-indigo2 hover:underline" href={v.deadlineStatus.sourceUrl} target="_blank" rel="noopener noreferrer">{v.deadlineStatus.value}</a></td>
+                <td className="py-2 tabular-nums">{v.checkedAt} → {v.nextReviewAt}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h3 className="mt-4 font-bold">{ja ? '大学・課程（部分検証）' : 'University programs (partially verified)'}</h3>
+      <ul className="mt-2 space-y-2 text-xs text-ink-soft">
+        {verifiedPrograms.map((p) => (
+          <li key={p.id} className="rounded-xl border border-ink/10 bg-white p-3">
+            <strong className="text-ink">{ja ? p.institutionJa : p.institutionEn}</strong> — {p.intakeYear} · state: <code>{p.state}</code>
+            {Object.entries(p.fields).map(([k, fld]) => (
+              <span key={k} className="block">✓ {k}: <a className="text-indigo2 hover:underline" href={fld.sourceUrl} target="_blank" rel="noopener noreferrer">{fld.value}</a></span>
+            ))}
+            <span className="block text-amber2">{ja ? '未検証' : 'Missing'}: {p.missing.join(' / ')}</span>
+            <span className="block">{ja ? '確認' : 'Checked'} {p.checkedAt} → {p.nextReviewAt}（{ja ? '募集期は90日周期' : '90-day admissions cycle'}）</span>
+          </li>
+        ))}
+      </ul>
+
+      <h3 className="mt-4 font-bold">{ja ? '現在の求人（7日周期で再確認）' : 'Current vacancies (7-day re-check cycle)'}</h3>
+      <div className="mt-2 overflow-x-auto">
+        <table className="w-full min-w-[720px] text-left text-xs">
+          <caption className="sr-only">Verified vacancies</caption>
+          <thead>
+            <tr className="border-b border-ink/10 uppercase tracking-wide text-ink-soft">
+              <th scope="col" className="py-2 pr-3">{ja ? '職種' : 'Title'}</th>
+              <th scope="col" className="py-2 pr-3">{ja ? '企業' : 'Employer'}</th>
+              <th scope="col" className="py-2 pr-3">{ja ? '勤務地' : 'Location'}</th>
+              <th scope="col" className="py-2 pr-3">{ja ? '形態' : 'Type'}</th>
+              <th scope="col" className="py-2 pr-3">{ja ? '給与' : 'Salary'}</th>
+              <th scope="col" className="py-2">{ja ? '確認日' : 'Checked'}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {verifiedVacancies.map((v) => (
+              <tr key={v.id} className="border-b border-ink/5 align-top">
+                <td className="py-2 pr-3 font-medium"><a className="text-indigo2 hover:underline" href={v.sourceUrl} target="_blank" rel="noopener noreferrer">{v.title}</a></td>
+                <td className="py-2 pr-3">{v.employer}</td>
+                <td className="py-2 pr-3">{v.location}</td>
+                <td className="py-2 pr-3">{v.employmentType}</td>
+                <td className="py-2 pr-3">{v.salary}</td>
+                <td className="py-2 tabular-nums">{v.checkedAt}{v.postedAt ? ` (posted ${v.postedAt})` : ''}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 className="mt-8 text-lg font-bold">{ja ? '実データ登録簿（URL確認済み・未検証）' : 'Real-data register (URL-confirmed, not yet verified)'}</h2>
       <p className="mt-2 text-ink-soft">
         {ja
           ? '以下の実在レコードは、名称と公式URLをウェブ検索で確認したものです（取得日・確認者・次回確認日つき）。数値情報は各公式サイトでの確認が完了するまで保存していません。AIが収集した情報が自動公開されることはありません。'
