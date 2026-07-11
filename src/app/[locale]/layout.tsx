@@ -24,9 +24,16 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export function generateStaticParams(): Array<{ locale: string }> {
-  return locales.map((locale) => ({ locale }));
-}
+/**
+ * Render every localized route dynamically (SSR per request) rather than as
+ * build-time static HTML. `generateStaticParams` is intentionally omitted:
+ * with it present, Next prerenders each locale and page-level `force-dynamic`
+ * is ignored, which let a stale prerender survive on the alias across
+ * deployments. Fully dynamic rendering guarantees the live alias always
+ * reflects the deployed commit and keeps every SSR fallback fresh. Verified by
+ * scripts/verify-live-production.mjs.
+ */
+export const dynamic = 'force-dynamic';
 
 export default async function LocaleLayout({
   children,
