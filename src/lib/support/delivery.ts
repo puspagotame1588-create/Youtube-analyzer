@@ -58,6 +58,9 @@ export async function deliverSupportTicket(t: SupportTicketInput): Promise<Deliv
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          // `content` renders on Discord, `text` on Slack — both carry only the
+          // sanitized alert, so one payload works for either without leaking PII.
+          content: alertText,
           text: alertText,
           reference: t.reference,
           category: t.category,
