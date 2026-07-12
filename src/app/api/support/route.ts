@@ -61,12 +61,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     locale: parsed.data.locale,
   });
 
-  let status: 'delivered' | 'queued' | 'failed' | 'unconfigured' = delivery.status;
-
-  // Fall back to the durable queue when a provider is missing or failed.
+  // Always retain the FULL ticket in the durable queue so the team can read
+  // and action it. The chat webhook only receives a sanitized alert (no message
+  // body), so this queue is the system of record until an email provider is
+  // added. Memory mode cannot durably retain, so it is skipped (dev only).
   const kv = getKV();
-  if ((status === 'unconfigured' || status === 'failed') && kv.mode !== 'memory') {
-    const queued = await kv
+  let retained = false;
+  if (kv.mode !== 'memory') {
+    retained = await kv
       .pushDoc('support:queue', {
         reference,
         category: parsed.data.category,
@@ -74,12 +76,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         email: parsed.data.email ?? null,
         locale: parsed.data.locale,
         receivedAt: new Date().toISOString(),
+        deliveryProvider: delivery.provider,
+        deliveryStatus: delivery.status,
         deliveryError: delivery.error ?? null,
-        status: 'queued',
       })
       .catch(() => false);
-    if (queued) status = 'queued';
   }
+
+  let status: 'delivered' | 'queued' | 'failed' | 'unconfigured' = delivery.status;
+  // If the alert wasn't confirmed delivered but the ticket is durably retained,
+  // it is safely queued rather than failed/unconfigured.
+  if (status !== 'delivered' && retained) status = 'queued';
 
   console.info(
     `[support] ref=${reference} status=${status} provider=${delivery.provider} http=${delivery.httpStatus ?? '-'} id=${delivery.messageIdRedacted ?? '-'}`,

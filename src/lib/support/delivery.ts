@@ -1,9 +1,13 @@
 /**
  * Provider-neutral support delivery adapter.
  * Providers (checked in order):
- * - webhook:  SUPPORT_WEBHOOK_URL (any JSON-accepting endpoint)
+ * - webhook:  SUPPORT_WEBHOOK_URL (any JSON-accepting endpoint, e.g. Discord/Slack).
+ *             SENDS A SANITIZED ALERT ONLY — reference, category, and reply
+ *             email. The message body and other PII are NEVER sent to a chat
+ *             webhook; the full ticket is retained server-side (durable queue).
  * - resend:   RESEND_API_KEY + SUPPORT_EMAIL_TO (+ optional SUPPORT_EMAIL_FROM)
  * - postmark: POSTMARK_SERVER_TOKEN + SUPPORT_EMAIL_TO (+ optional SUPPORT_EMAIL_FROM)
+ *   (email providers deliver the full ticket — a private, secure channel.)
  *
  * "Delivered" is only reported after the provider CONFIRMS acceptance
  * (2xx + parseable response). The result carries provider proof: provider
@@ -46,10 +50,19 @@ export async function deliverSupportTicket(t: SupportTicketInput): Promise<Deliv
 
   try {
     if (provider === 'webhook') {
+      // Sanitized alert ONLY. Never send the message body or any PII beyond the
+      // reply email to a chat webhook (Discord/Slack). `subject` is composed of
+      // reference + category only. The full ticket lives in the durable queue.
+      const alertText = `${subject}\nReply to: ${t.email ?? 'no email provided'}`;
       const res = await fetch(process.env.SUPPORT_WEBHOOK_URL as string, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: `${subject}\n\n${body}`, ...t }),
+        body: JSON.stringify({
+          text: alertText,
+          reference: t.reference,
+          category: t.category,
+          replyEmail: t.email ?? null,
+        }),
         signal: AbortSignal.timeout(10_000),
       });
       const text = await res.text().catch(() => '');

@@ -32,6 +32,34 @@ describe('support delivery adapter', () => {
     expect(r.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
+  it('webhook payload is sanitized — reference/category/replyEmail only, never the message', async () => {
+    vi.stubEnv('SUPPORT_WEBHOOK_URL', 'https://hook.example/x');
+    let sentBody = '';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: RequestInit) => {
+        sentBody = String(init.body);
+        return new Response(JSON.stringify({ id: 'x1234567' }), { status: 200 });
+      }),
+    );
+    const secret = 'SENSITIVE-DO-NOT-LEAK-BODY';
+    const r = await deliverSupportTicket({
+      reference: 'CV-XYZ99',
+      category: 'legal-referral',
+      message: secret,
+      email: 'user@example.com',
+      locale: 'ja',
+    });
+    expect(r.status).toBe('delivered');
+    expect(sentBody).not.toContain(secret); // message body never leaves
+    const payload = JSON.parse(sentBody) as Record<string, unknown>;
+    expect(payload.message).toBeUndefined();
+    expect(payload.locale).toBeUndefined();
+    expect(payload.reference).toBe('CV-XYZ99');
+    expect(payload.category).toBe('legal-referral');
+    expect(payload.replyEmail).toBe('user@example.com');
+  });
+
   it('marks failed (never delivered) on a webhook non-2xx', async () => {
     vi.stubEnv('SUPPORT_WEBHOOK_URL', 'https://hook.example/x');
     vi.stubGlobal('fetch', vi.fn(async () => new Response('nope', { status: 500 })));
