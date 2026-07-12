@@ -47,3 +47,24 @@ screenshot inspection loop ran 4 rounds (desktop + mobile).
 ## Phase 8 — Deployment readiness
 - [x] `next build` green, `tsc --noEmit` green, tests green
 - [x] .env.example, deployment guide, seed command
+
+## Phase 9 — Production operations (live)
+Live alias: https://careerverse-one.vercel.app · GitHub↔Vercel integration connected
+(production branch `claude/careerverse-production-build-lb3d7z`; every push auto-deploys,
+`VERCEL_GIT_COMMIT_SHA` populated). Identity is verifiable at runtime:
+`/api/version` (build-derived SHA) and `/api/health` (config state, no secrets).
+
+- [x] **Anthropic production integration — VERIFIED** (2026-07-12)
+      Build SHA `17819221e38b3ea47e7e9f5ae8849d36bde99c8f`. Protected
+      `POST /api/ai/smoke-test` (bearer = `AI_SMOKE_TEST_TOKEN` or `ADMIN_ACCESS_CODE`)
+      returned: `configured: true`, `providerReachable: true`, `model: claude-sonnet-5`,
+      `latencyMs: 1199`, `errorCategory: null`. `/api/health` reports
+      `aiProvider: anthropic-configured`. Key value never exposed by any endpoint.
+
+### Remaining private-beta operational blockers (config only — no code changes)
+Each is surfaced live in `/api/health.issues`; deployment stays `developerMode: true`
+until all four are set. Env-var contracts are enforced by `src/lib/config-guard.ts`.
+- [ ] `INVITE_CODE_HASHES` — invite gate fails closed until set (see `src/lib/invite.ts`)
+- [ ] `ADMIN_ACCESS_CODE` — admin login disabled until a strong secret is set
+- [ ] Durable KV — `UPSTASH_REDIS_REST_URL`+`_TOKEN` or Supabase; `memory` until then
+- [ ] Support delivery — `SUPPORT_WEBHOOK_URL` (or Resend/Postmark); `none` until then
