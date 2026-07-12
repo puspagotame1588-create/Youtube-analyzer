@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { expectedToken } from '@/lib/admin/auth';
 import { checkSecretStrength } from '@/lib/config-guard';
 import { safeRateLimit } from '@/lib/storage/kv';
+import { clientIp } from '@/lib/net/ip';
 
 export const runtime = 'nodejs';
 
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'admin-not-configured' }, { status: 503 });
   }
 
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
+  const ip = clientIp(request);
   const rl = await safeRateLimit('admin-login', ip, 10, 600);
   if (!rl.allowed) {
     return NextResponse.json({ error: 'rate-limited' }, { status: 429 });

@@ -5,6 +5,8 @@
  *             SENDS A SANITIZED ALERT ONLY — reference, category, and reply
  *             email. The message body and other PII are NEVER sent to a chat
  *             webhook; the full ticket is retained server-side (durable queue).
+ *             User-controlled fields are sanitized against mention/markdown
+ *             injection and pings are disabled (allowed_mentions).
  * - resend:   RESEND_API_KEY + SUPPORT_EMAIL_TO (+ optional SUPPORT_EMAIL_FROM)
  * - postmark: POSTMARK_SERVER_TOKEN + SUPPORT_EMAIL_TO (+ optional SUPPORT_EMAIL_FROM)
  *   (email providers deliver the full ticket — a private, secure channel.)
@@ -35,6 +37,31 @@ export interface DeliveryResult {
 const redactId = (id: string | undefined): string | undefined =>
   id ? `${id.slice(0, 8)}…(${id.length})` : undefined;
 
+/**
+ * Neutralize chat-webhook injection in user-controlled fields before they are
+ * placed in a Discord/Slack message: defuse `@everyone`/`@here` and role/user
+ * mentions, strip formatting/link characters (backticks, angle brackets), and
+ * flatten control chars/newlines so a value cannot smuggle extra lines or
+ * hidden content. Pairs with `allowed_mentions:{parse:[]}`, which also stops
+ * pings from ever notifying.
+ */
+export function sanitizeForChat(input: string, max = 200): string {
+  // Drop C0 control chars, tab, newline, and DEL (code-point based, so no
+  // literal control chars live in this source file).
+  const noControls = Array.from(input)
+    .filter((ch) => {
+      const c = ch.charCodeAt(0);
+      return c > 0x1f && c !== 0x7f;
+    })
+    .join('');
+  return noControls
+    .replace(/@(everyone|here)/gi, '@​$1') // zero-width space defuses the token
+    .replace(/[`<>]/g, '') // no code blocks, no <@id> mentions, no <url> link-hiding
+    .replace(/\s+/g, ' ') // collapse whitespace runs
+    .trim()
+    .slice(0, max);
+}
+
 export function configuredProvider(): DeliveryResult['provider'] {
   if (process.env.SUPPORT_WEBHOOK_URL) return 'webhook';
   if (process.env.RESEND_API_KEY && process.env.SUPPORT_EMAIL_TO) return 'resend';
@@ -51,20 +78,25 @@ export async function deliverSupportTicket(t: SupportTicketInput): Promise<Deliv
   try {
     if (provider === 'webhook') {
       // Sanitized alert ONLY. Never send the message body or any PII beyond the
-      // reply email to a chat webhook (Discord/Slack). `subject` is composed of
-      // reference + category only. The full ticket lives in the durable queue.
-      const alertText = `${subject}\nReply to: ${t.email ?? 'no email provided'}`;
+      // reply email to a chat webhook. Every interpolated field is user-derived,
+      // so each is sanitized against mention/markdown injection; the full ticket
+      // lives only in the durable queue.
+      const safeRef = sanitizeForChat(t.reference, 48);
+      const safeCat = sanitizeForChat(t.category, 48);
+      const safeEmail = t.email ? sanitizeForChat(t.email, 120) : 'no email provided';
+      const alertText = `[CareerVerse support] ${safeRef} · ${safeCat}\nReply to: ${safeEmail}`;
       const res = await fetch(process.env.SUPPORT_WEBHOOK_URL as string, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           // `content` renders on Discord, `text` on Slack — both carry only the
-          // sanitized alert, so one payload works for either without leaking PII.
+          // sanitized alert. allowed_mentions blocks any ping on Discord.
           content: alertText,
           text: alertText,
-          reference: t.reference,
-          category: t.category,
-          replyEmail: t.email ?? null,
+          allowed_mentions: { parse: [] },
+          reference: safeRef,
+          category: safeCat,
+          replyEmail: t.email ? safeEmail : null,
         }),
         signal: AbortSignal.timeout(10_000),
       });

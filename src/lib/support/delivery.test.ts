@@ -60,6 +60,32 @@ describe('support delivery adapter', () => {
     expect(payload.replyEmail).toBe('user@example.com');
   });
 
+  it('webhook defuses @everyone / mentions / markdown and disables pings', async () => {
+    vi.stubEnv('SUPPORT_WEBHOOK_URL', 'https://hook.example/x');
+    let sentBody = '';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: RequestInit) => {
+        sentBody = String(init.body);
+        return new Response(JSON.stringify({ id: 'x1234567' }), { status: 200 });
+      }),
+    );
+    await deliverSupportTicket({
+      reference: 'CV-AB1',
+      category: '@everyone `code` <@123456789>',
+      message: 'irrelevant',
+      email: 'a@b.com',
+      locale: 'en',
+    });
+    const payload = JSON.parse(sentBody) as Record<string, unknown>;
+    expect(payload.allowed_mentions).toEqual({ parse: [] }); // pings disabled on Discord
+    const content = String(payload.content);
+    expect(content).not.toMatch(/@everyone/); // token defused (zero-width break)
+    expect(content).not.toContain('`'); // no markdown code injection
+    expect(content).not.toContain('<@'); // no raw mention syntax
+    expect(payload.text).toBe(payload.content); // Slack + Discord carry the same sanitized alert
+  });
+
   it('marks failed (never delivered) on a webhook non-2xx', async () => {
     vi.stubEnv('SUPPORT_WEBHOOK_URL', 'https://hook.example/x');
     vi.stubGlobal('fetch', vi.fn(async () => new Response('nope', { status: 500 })));

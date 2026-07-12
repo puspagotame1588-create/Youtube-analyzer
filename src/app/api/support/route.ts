@@ -14,6 +14,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { deliverSupportTicket } from '@/lib/support/delivery';
 import { getKV, safeRateLimit } from '@/lib/storage/kv';
+import { clientIp } from '@/lib/net/ip';
 
 export const runtime = 'nodejs';
 
@@ -33,7 +34,7 @@ function referenceNumber(): string {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
+  const ip = clientIp(request);
   const rl = await safeRateLimit('support', ip, 5, 600);
   if (!rl.allowed) {
     return NextResponse.json({ error: 'rate-limited' }, { status: 429 });

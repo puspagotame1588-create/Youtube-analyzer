@@ -8,6 +8,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { aiTaskSchema, type AIProvider } from '@/lib/ai/provider';
 import { MockAIProvider } from '@/lib/ai/mock';
 import { safeRateLimit } from '@/lib/storage/kv';
+import { clientIp } from '@/lib/net/ip';
 
 export const runtime = 'nodejs';
 
@@ -21,7 +22,7 @@ async function getProvider(): Promise<{ provider: AIProvider; live: boolean }> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
+  const ip = clientIp(request);
   const rl = await safeRateLimit('ai', ip, 30, 300);
   if (!rl.allowed) {
     return NextResponse.json({ error: 'rate-limited' }, { status: 429 });

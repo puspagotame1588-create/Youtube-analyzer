@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { safeInternalPath } from '@/lib/net/safe-path';
 
 /** Client island of the invite gate; the page shell is server-rendered. */
 export function InviteForm({ locale, nextPath }: { locale: string; nextPath?: string }): React.JSX.Element {
@@ -19,7 +20,9 @@ export function InviteForm({ locale, nextPath }: { locale: string; nextPath?: st
         body: JSON.stringify({ code }),
       });
       if (res.ok) {
-        window.location.href = nextPath ?? `/${locale}/create`;
+        // Only ever navigate to a validated same-origin path — never an
+        // attacker-supplied external/scheme URL from the ?next= param.
+        window.location.href = safeInternalPath(nextPath, `/${locale}/create`);
         return;
       }
       if (res.status === 503) {
