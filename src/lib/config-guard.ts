@@ -53,6 +53,8 @@ export interface ConfigStatus {
   adminReason?: SecretCheck['reason'];
   kvMode: 'upstash' | 'supabase' | 'memory';
   supportDelivery: 'webhook' | 'resend' | 'postmark' | 'none';
+  /** whether a live AI key is present — never reveals the key itself */
+  aiProvider: 'anthropic-configured' | 'not-configured';
   /** true when any production requirement is unmet (deployment is developer mode) */
   developerMode: boolean;
   issues: string[];
@@ -96,6 +98,14 @@ export function getConfigStatus(): ConfigStatus {
     issues.push('No support delivery provider configured — tickets cannot be delivered to a team inbox.');
   }
 
+  // Presence check only — the key's value is never read here or exposed anywhere.
+  const aiProvider = process.env.ANTHROPIC_API_KEY?.trim()
+    ? 'anthropic-configured'
+    : 'not-configured';
+  if (aiProvider === 'not-configured') {
+    issues.push('No ANTHROPIC_API_KEY configured — AI features use the labeled mock provider, not a live model.');
+  }
+
   return {
     production,
     inviteConfigured,
@@ -103,6 +113,7 @@ export function getConfigStatus(): ConfigStatus {
     ...(adminCheck.reason ? { adminReason: adminCheck.reason } : {}),
     kvMode,
     supportDelivery,
+    aiProvider,
     developerMode: !inviteConfigured || !adminCheck.ok || kvMode === 'memory' || supportDelivery === 'none',
     issues,
   };

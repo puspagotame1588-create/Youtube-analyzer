@@ -44,6 +44,18 @@ async function get(path, opts = {}) {
   try { json = JSON.parse(body); } catch {}
   record('/api/health reachable', res.status === 200, `status ${res.status}`);
   record('/api/health reports developerMode boolean', typeof json.developerMode === 'boolean', `developerMode=${json.developerMode}, kv=${json.kv}, invite=${json.invite}, admin=${json.admin}, support=${json.supportDelivery}`);
+  record('/api/health reports aiProvider (no secret)', json.aiProvider === 'anthropic-configured' || json.aiProvider === 'not-configured', `aiProvider=${json.aiProvider}`);
+}
+
+// 2b. /api/ai/smoke-test is protected (never publicly runnable) and leaks no secret
+{
+  const { res, body } = await get('/api/ai/smoke-test', { method: 'POST' });
+  let json = {};
+  try { json = JSON.parse(body); } catch {}
+  const gated = res.status === 401 || res.status === 503;
+  record('/api/ai/smoke-test is access-gated', gated, `status ${res.status} (expects 401 unauthorized or 503 not-configured without a token)`);
+  const noSecretLeak = !/sk-ant|ANTHROPIC_API_KEY=/i.test(body);
+  record('/api/ai/smoke-test leaks no key material', noSecretLeak);
 }
 
 // 3. /en/settings is not a bare Loading-only shell

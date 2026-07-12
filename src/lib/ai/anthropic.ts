@@ -14,7 +14,8 @@ import {
   type AiTask,
 } from './provider';
 
-const MODEL = 'claude-sonnet-5';
+export const ANTHROPIC_MODEL = 'claude-sonnet-5';
+const MODEL = ANTHROPIC_MODEL;
 const PROMPT_VERSION = 'v1';
 
 const SYSTEM = `You are the explanation layer of CareerVerse, a career-information product for foreign students in Japan.

@@ -20,6 +20,7 @@ export async function GET(): Promise<NextResponse> {
     admin: s.adminConfigured ? 'configured' : `disabled (${s.adminReason ?? 'not configured'})`,
     kv: s.kvMode,
     supportDelivery: s.supportDelivery,
+    aiProvider: s.aiProvider,
     issues: s.issues,
   });
 }
