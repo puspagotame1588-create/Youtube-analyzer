@@ -61,10 +61,17 @@ Live alias: https://careerverse-one.vercel.app · GitHub↔Vercel integration co
       `latencyMs: 1199`, `errorCategory: null`. `/api/health` reports
       `aiProvider: anthropic-configured`. Key value never exposed by any endpoint.
 
-### Remaining private-beta operational blockers (config only — no code changes)
-Each is surfaced live in `/api/health.issues`; deployment stays `developerMode: true`
-until all four are set. Env-var contracts are enforced by `src/lib/config-guard.ts`.
-- [ ] `INVITE_CODE_HASHES` — invite gate fails closed until set (see `src/lib/invite.ts`)
-- [ ] `ADMIN_ACCESS_CODE` — admin login disabled until a strong secret is set
-- [ ] Durable KV — `UPSTASH_REDIS_REST_URL`+`_TOKEN` or Supabase; `memory` until then
-- [ ] Support delivery — `SUPPORT_WEBHOOK_URL` (or Resend/Postmark); `none` until then
+### Private-beta operational blockers — ALL CLOSED (2026-07-12)
+Verified live at `/api/health`: `developerMode: false`, `issues: []`
+(build SHA `946e1aaddd54518431ef3507f7ce9c321c7a4705`).
+- [x] Durable KV — Upstash Redis (`kv: upstash`)
+- [x] `ADMIN_ACCESS_CODE` — strong secret set (`admin: configured`)
+- [x] `INVITE_CODE_HASHES` — 5 codes, 3 uses each, no expiry (`invite: configured`)
+- [x] Support delivery — sanitized webhook (`supportDelivery: webhook`). The chat
+      webhook receives only reference/category/reply-email; the full ticket is
+      retained in the durable Upstash queue (`support:queue`). Full email provider
+      (Resend/Postmark, verified domain) to be added later.
+
+Deployment is out of developer mode and fail-closed on every gate. Remaining
+follow-ups are enhancements, not blockers: admin UI to read `support:queue`,
+and the email support provider.
