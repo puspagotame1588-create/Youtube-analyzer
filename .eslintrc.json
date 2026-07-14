@@ -1,5 +1,6 @@
 {
   "extends": ["next/core-web-vitals"],
+  "ignorePatterns": ["**/*.d.ts", "**/*.d.mts"],
   "rules": {
     "react/no-unknown-property": ["error", { "ignore": ["args", "attach", "intensity", "position", "rotation", "emissive", "emissiveIntensity", "roughness", "metalness", "transparent", "sizeAttenuation", "frustumCulled", "dispose", "side"] }]
   }

@@ -19,7 +19,10 @@ export function SettingsControls(): React.JSX.Element {
   const account = useAppStore((s) => s.account);
   const exportData = useAppStore((s) => s.exportData);
   const deleteAccount = useAppStore((s) => s.deleteAccount);
+  const clearAllData = useAppStore((s) => s.clearAllData);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [cleared, setCleared] = useState(false);
 
 
   const prefs: Array<{ id: QualityPreference; en: string; ja: string; desc: { en: string; ja: string } }> = [
@@ -93,14 +96,49 @@ export function SettingsControls(): React.JSX.Element {
         <h2 className="font-bold text-ink">{ja ? 'データ' : 'Your data'}</h2>
         <p className="mt-1 text-xs text-ink-soft">
           {ja
-            ? 'ローカルベータモード：すべてのデータはこの端末に保存されています。'
-            : 'Local beta mode: all data lives on this device.'}
+            ? 'ローカルベータモード：すべてのデータはこの端末に保存されています。連絡先・予算・希望年収・日本語レベルなどの機微な入力はタブを閉じると消去されます（sessionStorage）。'
+            : 'Local beta mode: all data lives on this device. Sensitive entries (contact, budget, salary goal, JLPT/education) are kept only for the current tab session and are cleared when you close the tab.'}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button onClick={download} className="min-h-[44px] rounded-full border border-ink/10 bg-white/70 px-6 text-sm font-semibold text-ink">
             {ja ? 'データをエクスポート（JSON）' : 'Export data (JSON)'}
           </button>
+          {!confirmClear ? (
+            <button
+              onClick={() => {
+                setConfirmClear(true);
+                setCleared(false);
+              }}
+              className="min-h-[44px] rounded-full border border-coral/40 bg-white/70 px-6 text-sm font-semibold text-coral hover:bg-coral/10"
+            >
+              {ja ? 'この端末のデータをすべて消去' : 'Clear all local CareerVerse data'}
+            </button>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => {
+                  clearAllData();
+                  setConfirmClear(false);
+                  setCleared(true);
+                }}
+                className="min-h-[44px] rounded-full bg-coral px-6 text-sm font-semibold text-white"
+              >
+                {ja ? '本当に消去する' : 'Yes, erase everything'}
+              </button>
+              <button
+                onClick={() => setConfirmClear(false)}
+                className="min-h-[44px] rounded-full px-5 text-sm text-ink-soft"
+              >
+                {ja ? 'キャンセル' : 'Cancel'}
+              </button>
+            </div>
+          )}
         </div>
+        {cleared && (
+          <p role="status" className="mt-2 text-xs font-semibold text-emerald2">
+            {ja ? 'この端末のCareerVerseデータを消去しました。' : 'All CareerVerse data on this device was cleared.'}
+          </p>
+        )}
       </section>
 
       {hydrated && account && (

@@ -33,6 +33,10 @@ export interface KVStore {
   pushDoc(listKey: string, doc: unknown): Promise<boolean>;
   /** Read up to `limit` recent docs from a list. */
   readDocs(listKey: string, limit: number): Promise<unknown[]>;
+  /** Store a single JSON value under `key` with a hard TTL (auto-deletion). */
+  setJson(key: string, value: unknown, ttlSeconds: number): Promise<boolean>;
+  /** Read a single JSON value (null if absent/expired). */
+  getJson(key: string): Promise<unknown | null>;
 }
 
 /* ---------------- Upstash Redis (REST) ---------------- */
@@ -81,6 +85,22 @@ class UpstashStore implements KVStore {
   async readDocs(listKey: string, limit: number): Promise<unknown[]> {
     const raw = (await this.cmd(['LRANGE', listKey, 0, limit - 1])) as string[];
     return raw.map((r) => JSON.parse(r) as unknown);
+  }
+
+  async setJson(key: string, value: unknown, ttlSeconds: number): Promise<boolean> {
+    // SET key <json> EX ttl — Redis auto-deletes at expiry (retention enforced).
+    await this.cmd(['SET', key, JSON.stringify(value), 'EX', ttlSeconds]);
+    return true;
+  }
+
+  async getJson(key: string): Promise<unknown | null> {
+    const raw = await this.cmd(['GET', key]);
+    if (raw == null) return null;
+    try {
+      return JSON.parse(String(raw)) as unknown;
+    } catch {
+      return null;
+    }
   }
 }
 
@@ -144,6 +164,32 @@ class SupabaseStore implements KVStore {
     const rows = (await res.json()) as Array<{ doc: unknown }>;
     return rows.map((r) => r.doc);
   }
+
+  async setJson(key: string, value: unknown, ttlSeconds: number): Promise<boolean> {
+    // No native TTL on kv_docs — store expiry in the doc and filter on read.
+    // (A scheduled purge of expired rows is a documented follow-up.)
+    const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
+    const res = await fetch(`${this.url}/rest/v1/kv_docs`, {
+      method: 'POST',
+      headers: this.headers(),
+      body: JSON.stringify({ list_key: `json:${key}`, doc: { __v: value, __exp: expiresAt } }),
+      cache: 'no-store',
+    });
+    return res.ok;
+  }
+
+  async getJson(key: string): Promise<unknown | null> {
+    const res = await fetch(
+      `${this.url}/rest/v1/kv_docs?list_key=eq.${encodeURIComponent(`json:${key}`)}&order=created_at.desc&limit=1&select=doc`,
+      { headers: this.headers(), cache: 'no-store' },
+    );
+    if (!res.ok) return null;
+    const rows = (await res.json()) as Array<{ doc: { __v: unknown; __exp?: string } }>;
+    const doc = rows[0]?.doc;
+    if (!doc) return null;
+    if (doc.__exp && new Date(doc.__exp).getTime() < Date.now()) return null;
+    return doc.__v;
+  }
 }
 
 /* ---------------- Memory (development ONLY) ---------------- */
@@ -183,6 +229,22 @@ class MemoryStore implements KVStore {
 
   async readDocs(listKey: string, limit: number): Promise<unknown[]> {
     return (this.lists.get(listKey) ?? []).slice(0, limit);
+  }
+
+  private json = new Map<string, { value: unknown; expiresAt: number }>();
+  async setJson(key: string, value: unknown, ttlSeconds: number): Promise<boolean> {
+    this.json.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
+    return true;
+  }
+
+  async getJson(key: string): Promise<unknown | null> {
+    const entry = this.json.get(key);
+    if (!entry) return null;
+    if (entry.expiresAt < Date.now()) {
+      this.json.delete(key);
+      return null;
+    }
+    return entry.value;
   }
 }
 

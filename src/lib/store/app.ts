@@ -13,6 +13,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { DEFAULT_WEIGHTS, type FactorWeights, type SimProfile, type SimulationResult } from '@/lib/simulation/types';
 import { simulate } from '@/lib/simulation/engine';
 import { dataset } from '@/lib/data/seed';
+import { partitionedStorage, clearAllLocalData } from './secure-storage';
 
 export interface LocalAccount {
   id: string;
@@ -75,6 +76,8 @@ interface AppState {
   signUp: (email: string, displayName: string, ageConfirmed: boolean) => { ok: boolean; error?: string };
   signOut: () => void;
   deleteAccount: () => void;
+  /** Wipe every piece of CareerVerse data from this device (both storages). */
+  clearAllData: () => void;
 
   // current simulation (anonymous allowed)
   profileDraft: Partial<SimProfile>;
@@ -145,8 +148,20 @@ export const useAppStore = create<AppState>()(
         });
         return { ok: true };
       },
-      signOut: () => set({ account: null }),
-      deleteAccount: () =>
+      // Sign-out clears all sensitive/session-scoped data (profile, scenarios,
+      // tickets, corrections) — not just the account pointer.
+      signOut: () => {
+        set({
+          account: null,
+          scenarios: [],
+          tickets: [],
+          corrections: [],
+          currentResult: null,
+          profileDraft: {},
+          lastChange: null,
+        });
+      },
+      deleteAccount: () => {
         set({
           account: null,
           scenarios: [],
@@ -157,7 +172,28 @@ export const useAppStore = create<AppState>()(
           corrections: [],
           currentResult: null,
           profileDraft: {},
-        }),
+          currentRouteNames: {},
+          lastChange: null,
+        });
+        clearAllLocalData('cv-app');
+      },
+      clearAllData: () => {
+        set({
+          account: null,
+          scenarios: [],
+          tracker: [],
+          shortlist: [],
+          tickets: [],
+          notifications: [],
+          corrections: [],
+          currentResult: null,
+          profileDraft: {},
+          currentRouteNames: {},
+          weights: DEFAULT_WEIGHTS,
+          lastChange: null,
+        });
+        clearAllLocalData('cv-app');
+      },
 
       profileDraft: {},
       setProfileDraft: (p) => set({ profileDraft: { ...get().profileDraft, ...p } }),
@@ -296,7 +332,10 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'cv-app',
-      storage: createJSONStorage(() => localStorage),
+      // Sensitive keys (profile, scenarios, tickets, corrections, account) are
+      // routed to sessionStorage; only non-sensitive UI state persists in
+      // localStorage, with a TTL. See lib/store/secure-storage.ts.
+      storage: createJSONStorage(() => partitionedStorage({})),
       partialize: (s) => ({
         account: s.account,
         profileDraft: s.profileDraft,

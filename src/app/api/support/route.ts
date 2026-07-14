@@ -13,6 +13,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { deliverSupportTicket } from '@/lib/support/delivery';
+import { storeFullTicket } from '@/lib/support/store';
 import { getKV, safeRateLimit } from '@/lib/storage/kv';
 import { clientIp } from '@/lib/net/ip';
 
@@ -28,8 +29,12 @@ const ticketSchema = z.object({
 });
 
 function referenceNumber(): string {
-  const t = Date.now().toString(36).toUpperCase().slice(-5);
-  const r = Math.random().toString(36).toUpperCase().slice(2, 5);
+  // Random-heavy reference so the KV key (support:ticket:<ref>) is not
+  // enumerable by guessing sequential ids.
+  const t = Date.now().toString(36).toUpperCase().slice(-4);
+  const r = Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) =>
+    'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b % 32],
+  ).join('');
   return `CV-${t}${r}`;
 }
 
@@ -62,27 +67,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     locale: parsed.data.locale,
   });
 
-  // Always retain the FULL ticket in the durable queue so the team can read
-  // and action it. The chat webhook only receives a sanitized alert (no message
-  // body), so this queue is the system of record until an email provider is
-  // added. Memory mode cannot durably retain, so it is skipped (dev only).
+  // Always retain the FULL ticket in durable storage under its own key with a
+  // hard TTL (auto-deletion). The chat webhook only receives a sanitized alert
+  // (no message body), so this record is the system of record until an email
+  // provider is added. Memory mode (dev) cannot durably retain, so it is
+  // skipped. The message body is never logged.
   const kv = getKV();
-  let retained = false;
-  if (kv.mode !== 'memory') {
-    retained = await kv
-      .pushDoc('support:queue', {
-        reference,
-        category: parsed.data.category,
-        message: parsed.data.message,
-        email: parsed.data.email ?? null,
-        locale: parsed.data.locale,
-        receivedAt: new Date().toISOString(),
-        deliveryProvider: delivery.provider,
-        deliveryStatus: delivery.status,
-        deliveryError: delivery.error ?? null,
-      })
-      .catch(() => false);
-  }
+  const retained = await storeFullTicket(kv, {
+    reference,
+    category: parsed.data.category,
+    message: parsed.data.message,
+    email: parsed.data.email ?? null,
+    locale: parsed.data.locale,
+    receivedAt: new Date().toISOString(),
+    deliveryProvider: delivery.provider,
+    deliveryStatus: delivery.status,
+    deliveryError: delivery.error ?? null,
+  });
 
   let status: 'delivered' | 'queued' | 'failed' | 'unconfigured' = delivery.status;
   // If the alert wasn't confirmed delivered but the ticket is durably retained,
