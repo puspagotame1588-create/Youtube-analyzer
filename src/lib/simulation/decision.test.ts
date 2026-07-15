@@ -110,6 +110,18 @@ describe('decision report — deterministic contract', () => {
     expect(anyDemo).toBe(true);
   });
 
+  it('sensitivity shows only factors that actually move the deterministic ranking', () => {
+    for (const s of report.sensitivity) {
+      // Every listed factor must have a real effect (score delta or a re-rank).
+      expect(s.scoreDelta !== 0 || s.changesRanking).toBe(true);
+    }
+    // Deterministic: same inputs → same sensitivity.
+    const again = buildDecisionReport(result, dataset).sensitivity;
+    expect(again.map((s) => [s.id, s.scoreDelta, s.changesRanking])).toEqual(
+      report.sensitivity.map((s) => [s.id, s.scoreDelta, s.changesRanking]),
+    );
+  });
+
   it('eligibility values stay within the allowed set', () => {
     const allowed = ['eligible', 'likely_eligible', 'possibly_eligible', 'not_currently_eligible', 'unknown'];
     for (const r of report.routes) expect(allowed).toContain(r.eligibility);

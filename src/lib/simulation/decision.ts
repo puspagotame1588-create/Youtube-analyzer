@@ -16,7 +16,8 @@
  */
 
 import type { Dataset, School, SourceRecord } from '@/lib/data/types';
-import { JLPT_ORDER, type SimProfile, type SimRoute, type SimulationResult } from './types';
+import { simulate } from './engine';
+import { JLPT_ORDER, type JlptLevel, type SimProfile, type SimRoute, type SimulationResult } from './types';
 
 export type RouteEligibility =
   | 'eligible'
@@ -111,13 +112,92 @@ export interface RouteDecisionResult {
   firstCareer: Bi;
 }
 
+export interface SensitivityFactor {
+  id: string;
+  label: Bi;
+  change: Bi;
+  /** delta to the top route's expected score if this input changed. */
+  scoreDelta: number;
+  /** true if the #1 route by score would change. */
+  changesRanking: boolean;
+}
+
 export interface DecisionReport {
   routes: RouteDecisionResult[];
   /** highest-scoring route that is not not_currently_eligible/unknown; null if none. */
   recommendedRouteId: string | null;
+  /** factors that actually move the deterministic ranking (empty if none do). */
+  sensitivity: SensitivityFactor[];
   closeCall: boolean;
   generatedAt: string;
   engineVersion: string;
+}
+
+const LEVEL_BY_INDEX: JlptLevel[] = ['none', 'n5', 'n4', 'n3', 'n2', 'n1'];
+
+/**
+ * Deterministic sensitivity: re-run the engine with realistic changes to the
+ * model's OWN inputs and report only those that actually move the top score or
+ * the ranking (rule: never show a factor the model doesn't use).
+ */
+export function computeSensitivity(result: SimulationResult, dataset: Dataset): SensitivityFactor[] {
+  const base = result.routes;
+  if (base.length === 0) return [];
+  const topId = base[0]!.id;
+  const topBase = base[0]!.scores.expected;
+  const opts = { weights: result.weights, now: result.generatedAt };
+  const p = result.profile;
+
+  const candidates: Array<{ id: string; label: Bi; change: Bi; profile: SimProfile }> = [];
+
+  // Stronger Japanese (raise effective JLPT by one level).
+  const effIdx = Math.max(JLPT_ORDER[p.jlptCurrent], p.jlptExpected ? JLPT_ORDER[p.jlptExpected] : 0);
+  if (effIdx < 5) {
+    candidates.push({
+      id: 'jlpt',
+      label: { en: 'Stronger Japanese level', ja: '日本語レベルの向上' },
+      change: { en: `Reach JLPT ${LEVEL_BY_INDEX[effIdx + 1]!.toUpperCase()}`, ja: `JLPT ${LEVEL_BY_INDEX[effIdx + 1]!.toUpperCase()} に到達` },
+      profile: { ...p, jlptExpected: LEVEL_BY_INDEX[effIdx + 1] },
+    });
+  }
+  // Larger confirmed budget (+50%).
+  candidates.push({
+    id: 'budget',
+    label: { en: 'Higher tuition budget', ja: '予算の増加' },
+    change: { en: 'Increase your education budget by ~50%', ja: '教育予算を約50%増やす' },
+    profile: { ...p, budgetJpy: { min: Math.round(p.budgetJpy.min * 1.5), expected: Math.round(p.budgetJpy.expected * 1.5), max: Math.round(p.budgetJpy.max * 1.5) } },
+  });
+  // Exact location match (only if not already exact / flexible).
+  if (p.location === 'kanto-any') {
+    candidates.push({
+      id: 'location',
+      label: { en: 'Commit to a specific city', ja: '希望地を特定の都市に固定' },
+      change: { en: 'Set a specific preferred city instead of "anywhere"', ja: '「どこでも」ではなく特定都市を指定' },
+      profile: { ...p, location: 'tokyo' },
+    });
+  }
+  // Desired salary (adds a concrete target where none was set).
+  if (!p.desiredSalaryJpy) {
+    candidates.push({
+      id: 'salary',
+      label: { en: 'Set a target salary', ja: '希望年収の設定' },
+      change: { en: 'Provide a desired salary (e.g. ¥4,000,000)', ja: '希望年収を入力（例：¥4,000,000）' },
+      profile: { ...p, desiredSalaryJpy: 4_000_000 },
+    });
+  }
+
+  const out: SensitivityFactor[] = [];
+  for (const c of candidates) {
+    const sim = simulate(c.profile, dataset, opts);
+    const topAfter = sim.routes.find((r) => r.id === topId)?.scores.expected ?? topBase;
+    const delta = topAfter - topBase;
+    const changesRanking = sim.routes[0]?.id !== topId;
+    if (delta !== 0 || changesRanking) {
+      out.push({ id: c.id, label: c.label, change: c.change, scoreDelta: delta, changesRanking });
+    }
+  }
+  // Largest absolute effect first.
+  return out.sort((a, b) => Math.abs(b.scoreDelta) - Math.abs(a.scoreDelta));
 }
 
 const NOT_VERIFIED: Bi = { en: 'Not verified', ja: '未確認' };
@@ -474,6 +554,7 @@ export function buildDecisionReport(result: SimulationResult, dataset: Dataset):
   return {
     routes,
     recommendedRouteId: recommended ? recommended.routeId : null,
+    sensitivity: computeSensitivity(result, dataset),
     closeCall: result.closeCall,
     generatedAt: result.generatedAt,
     engineVersion: result.engineVersion,

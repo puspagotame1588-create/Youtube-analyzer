@@ -278,6 +278,99 @@ export function DecisionReport({ report }: { report: Report }): React.JSX.Elemen
           </table>
         </div>
       </div>
+
+      {/* Phase 6 — facts / assumptions / estimates / unknowns (recommended route) */}
+      {rec && (
+        <div className="mt-4 rounded-panel border border-ink/10 bg-white/60 p-4">
+          <h3 className="text-sm font-bold text-ink">
+            {ja ? '事実・前提・推定・不明点' : 'Facts, assumptions, estimates & unknowns'}
+            <span className="ml-1 font-normal text-ink-soft">— {t(rec.routeName)}</span>
+          </h3>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            {([
+              ['facts', ja ? '検証済みの事実' : 'Verified facts', 'text-emerald2', rec.facts],
+              ['assumptions', ja ? '前提' : 'Assumptions', 'text-indigo2', rec.assumptions],
+              ['estimates', ja ? '推定' : 'Estimates', 'text-amber2', rec.estimates],
+              ['unknowns', ja ? '不明点' : 'Unknowns', 'text-coral', rec.unknowns],
+            ] as const).map(([key, label, cls, items]) => (
+              <div key={key} className="rounded-xl border border-ink/10 bg-white/70 p-3">
+                <p className={`text-[11px] font-semibold uppercase tracking-wide ${cls}`}>{label} ({items.length})</p>
+                {items.length === 0 ? (
+                  <p className="mt-1 text-[11px] text-ink-soft">{ja ? '該当なし（未確認）' : 'None yet (not verified)'}</p>
+                ) : (
+                  <ul className="mt-1 space-y-1.5">
+                    {items.map((it, i) => (
+                      <li key={i} className="text-[11px] text-ink">
+                        <span className="font-medium">{t(it.statement)}</span>
+                        <span className="block text-ink-soft">
+                          {ja ? '根拠：' : 'Basis: '}{t(it.basis)}
+                          {it.checkedAt ? ` · ${ja ? '確認' : 'checked'} ${it.checkedAt}` : ''}
+                          {` · ${ja ? '信頼度' : 'confidence'} ${it.confidence}`}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] italic text-ink-soft">
+            {ja ? '前提や推定は事実として扱いません。デモデータは「デモ」と明記します。' : 'Assumptions and estimates are never presented as facts. Demonstration data is labeled "Demo".'}
+          </p>
+        </div>
+      )}
+
+      {/* Phase 7 — what would change the result */}
+      <div className="mt-4 rounded-panel border border-ink/10 bg-white/60 p-4">
+        <h3 className="text-sm font-bold text-ink">{ja ? '何が結果を変えるか' : 'What would change the result?'}</h3>
+        {report.sensitivity.length === 0 ? (
+          <p className="mt-1 text-xs text-ink-soft">
+            {ja ? '現在の入力では、上位ルートを動かす主要因は見つかりませんでした。' : 'No single input change moves the top route with the current answers.'}
+          </p>
+        ) : (
+          <ul className="mt-2 space-y-1.5">
+            {report.sensitivity.map((s) => (
+              <li key={s.id} className="flex items-start justify-between gap-3 text-xs">
+                <span className="text-ink"><span className="font-semibold">{t(s.label)}</span> — {t(s.change)}</span>
+                <span className="shrink-0 tabular-nums font-semibold">
+                  {s.scoreDelta !== 0 && (
+                    <span className={s.scoreDelta > 0 ? 'text-emerald2' : 'text-coral'}>
+                      {s.scoreDelta > 0 ? '▲' : '▼'}{Math.abs(s.scoreDelta)}
+                    </span>
+                  )}
+                  {s.changesRanking && <span className="ml-1 rounded-full bg-violet2/10 px-1.5 py-0.5 text-[10px] text-violet2">{ja ? '順位変動' : 'reranks'}</span>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="mt-2 text-[11px] italic text-ink-soft">{ja ? '実際にランキングに影響する要因のみを表示しています。' : 'Only factors that actually influence the deterministic ranking are shown.'}</p>
+      </div>
+
+      {/* Phase 8 — action plan (recommended route) */}
+      {rec && rec.nextActions.length > 0 && (
+        <div className="mt-4 rounded-panel border border-ink/10 bg-white/60 p-4">
+          <h3 className="text-sm font-bold text-ink">{ja ? '次にやること' : 'Your next actions'} <span className="font-normal text-ink-soft">— {t(rec.routeName)}</span></h3>
+          <ol className="mt-2 space-y-2">
+            {rec.nextActions.map((a, i) => (
+              <li key={i} className="flex gap-2 text-xs">
+                <span aria-hidden="true" className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-ink/20 text-[10px] font-bold text-ink-soft">{i + 1}</span>
+                <div className="min-w-0">
+                  <p className="text-ink">
+                    <span className={`mr-1 rounded px-1 py-0.5 text-[10px] font-semibold ${a.priority === 'high' ? 'bg-coral/10 text-coral' : a.priority === 'medium' ? 'bg-amber2/10 text-amber2' : 'bg-ink/5 text-ink-soft'}`}>
+                      {a.priority === 'high' ? (ja ? '優先度：高' : 'High') : a.priority === 'medium' ? (ja ? '中' : 'Med') : (ja ? '低' : 'Low')}
+                    </span>
+                    <span className="font-semibold">{t(a.title)}</span>
+                  </p>
+                  <p className="text-ink-soft">{t(a.why)}</p>
+                  <p className="text-ink-soft">{ja ? '必要な根拠：' : 'Evidence needed: '}{t(a.evidenceNeeded)}{a.deadline ? ` · ${ja ? '期限' : 'deadline'} ${a.deadline}` : ''}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-2 text-[11px] italic text-ink-soft">{ja ? '架空の期限は表示しません。期限は確認できた場合のみ表示します。' : 'No deadlines are fabricated — a deadline appears only when it is known.'}</p>
+        </div>
+      )}
     </section>
   );
 }
