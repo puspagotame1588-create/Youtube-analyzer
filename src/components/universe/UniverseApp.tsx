@@ -17,6 +17,9 @@ import { useHydrated } from '@/components/ui/useHydrated';
 import { SceneCanvas } from '@/components/three/SceneCanvas';
 import { Universe2D } from '@/components/universe/Universe2D';
 import { WhyPanel } from '@/components/universe/WhyPanel';
+import { DecisionReport } from '@/components/universe/DecisionReport';
+import { buildDecisionReport } from '@/lib/simulation/decision';
+import { dataset } from '@/lib/data/seed';
 import { ROUTE_LABEL_TEXT, LEVEL_TEXT } from '@/components/universe/labels';
 import { Badge } from '@/components/ui/Badge';
 import { pick, yen, months } from '@/lib/i18n/bi';
@@ -70,6 +73,9 @@ export function UniverseApp(): React.JSX.Element {
     }
     return routes.slice(0, 2); // free tier: two futures at once
   }, [routes, visibleIds]);
+
+  // Evidence-backed decision report (pure, deterministic — never alters scores).
+  const report = useMemo(() => (result ? buildDecisionReport(result, dataset) : null), [result]);
 
   const displayName = (r: SimRoute): string => routeNames[r.id] ?? (ja ? r.nameJa : r.nameEn);
 
@@ -153,14 +159,8 @@ export function UniverseApp(): React.JSX.Element {
         </div>
       </div>
 
-      {result.closeCall && (
-        <div className="mt-4 rounded-panel border border-amber2/40 bg-amber2/10 px-4 py-3 text-sm text-ink" role="status">
-          <strong className="text-amber2">{ja ? '接戦：' : 'Close call:'}</strong>{' '}
-          {ja
-            ? '上位2ルートの差はごくわずかです。どちらかが明確に優れているわけではありません。'
-            : 'The top two routes are within a few points — neither is clearly superior.'}
-        </div>
-      )}
+      {/* Evidence-backed decision report (main result) */}
+      {report && <DecisionReport report={report} />}
 
       {/* What changed and why */}
       <div aria-live="polite">
@@ -190,8 +190,16 @@ export function UniverseApp(): React.JSX.Element {
         </AnimatePresence>
       </div>
 
-      {/* The universe */}
-      <div className="relative mt-6 h-[52svh] min-h-[360px] overflow-hidden rounded-panel border border-white/70 shadow-panel">
+      {/* Visual route map — supporting visualization (secondary to the report above) */}
+      <div className="mt-8">
+        <h2 className="text-lg font-bold text-ink">{ja ? 'ビジュアル・ルートマップ' : 'Visual route map'}</h2>
+        <p className="mt-0.5 text-xs text-ink-soft">
+          {ja
+            ? '上の決定レポートを補足する図です。各ノードは節目（マイルストーン）を表します。詳細は各ノードをタップしてください。'
+            : 'A supporting view of the decision report above. Each node is a milestone — tap a node for detail.'}
+        </p>
+      </div>
+      <div className="relative mt-3 h-[52svh] min-h-[360px] overflow-hidden rounded-panel border border-white/70 shadow-panel">
         <SceneCanvas
           label={ja ? '並行する未来の3Dルート表示' : '3D view of your parallel future routes'}
           className="h-full w-full"
