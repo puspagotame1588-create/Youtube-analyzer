@@ -17,6 +17,7 @@ import type {
   Scholarship,
   SourceRecord,
 } from './types';
+import { MEXT_REGISTRY_SOURCE } from './universities';
 
 const REVIEWED = '2026-06-15';
 const REVIEW_DUE = '2026-12-15';
@@ -686,4 +687,19 @@ export const jobListings: JobListing[] = [
   },
 ];
 
-export const dataset: Dataset = { sources, schools, scholarships, careers, jobListings };
+/**
+ * Sources exposed to the app. The demo sources above back the demonstration
+ * institutions; MEXT_REGISTRY_SOURCE backs the 825 real, identity-verified
+ * universities in the registry (see src/lib/data/universities) so the decision
+ * report can cite a real official source. Registry universities carry no
+ * demonstration figures — their eligibility/cost fields stay "not verified".
+ */
+export const allSources: SourceRecord[] = [...sources, MEXT_REGISTRY_SOURCE];
+
+export const dataset: Dataset = {
+  sources: allSources,
+  schools,
+  scholarships,
+  careers,
+  jobListings,
+};
