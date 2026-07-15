@@ -195,8 +195,8 @@ export function UniverseApp(): React.JSX.Element {
         <h2 className="text-lg font-bold text-ink">{ja ? 'ビジュアル・ルートマップ' : 'Visual route map'}</h2>
         <p className="mt-0.5 text-xs text-ink-soft">
           {ja
-            ? '上の決定レポートを補足する図です。各ノードは節目（マイルストーン）を表します。詳細は各ノードをタップしてください。'
-            : 'A supporting view of the decision report above. Each node is a milestone — tap a node for detail.'}
+            ? '上の決定レポートを補足する図です。各ノードは節目（マイルストーン）で、タップすると内容と根拠が表示されます。各ノードの充足状況と次の行動を要件と連動させる機能は開発中です。'
+            : 'A supporting view of the decision report above. Each node is a milestone — tap for its detail and evidence. Linking per-node status and next action to the requirement checks is still under development.'}
         </p>
       </div>
       <div className="relative mt-3 h-[52svh] min-h-[360px] overflow-hidden rounded-panel border border-white/70 shadow-panel">
@@ -524,6 +524,24 @@ export function UniverseApp(): React.JSX.Element {
                 {milestone.costJpy ? ` · ${yen(milestone.costJpy)}` : ''}
               </p>
               <p className="mt-3 text-sm leading-relaxed text-ink">{ja ? milestone.detailJa : milestone.detailEn}</p>
+              {(() => {
+                const srcNames = milestone.sourceIds
+                  .map((id) => dataset.sources.find((s) => s.id === id))
+                  .filter((s): s is NonNullable<typeof s> => Boolean(s));
+                return srcNames.length > 0 ? (
+                  <p className="mt-2 text-xs text-ink-soft">
+                    {ja ? '根拠：' : 'Evidence: '}
+                    {srcNames.map((s, i) => (
+                      <span key={s.id}>
+                        {i > 0 ? ' · ' : ''}
+                        <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-indigo2 underline">{ja ? s.nameJa : s.nameEn}</a>
+                      </span>
+                    ))}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-xs text-ink-soft">{ja ? '根拠：未確認' : 'Evidence: Not verified'}</p>
+                );
+              })()}
               {milestone.riskFlag && (
                 <div className="mt-3 rounded-xl border border-coral/40 bg-coral/5 p-3 text-sm text-ink">
                   <strong className="text-coral">{ja ? 'リスク：' : 'Risk:'}</strong> {ja ? milestone.riskFlag.ja : milestone.riskFlag.en}
