@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Brand tokens — swap these values (plus lib/brand.ts) to rebrand later.
+   --------------------------------------------------------------------------- */
+:root {
+  /* Core palette */
+  --mp-bg-deep: #050a1c; /* deep navy space */
+  --mp-bg-deep-2: #0a1330;
+  --mp-surface: #ffffff;
+  --mp-surface-soft: #f5f7fc;
+  --mp-ink: #101728;
+  --mp-ink-soft: #46506a;
+
+  /* Accents */
+  --mp-electric: #3b82f6; /* university routes */
+  --mp-cyan: #22d3ee;
+  --mp-teal: #2dd4bf; /* vocational routes */
+  --mp-violet: #8b5cf6; /* controlled highlights */
+  --mp-amber: #f59e0b; /* deadlines / attention */
+
+  --mp-radius: 1rem;
+}
+
+@theme inline {
+  --color-deep: var(--mp-bg-deep);
+  --color-deep-2: var(--mp-bg-deep-2);
+  --color-ink: var(--mp-ink);
+  --color-ink-soft: var(--mp-ink-soft);
+  --color-surface: var(--mp-surface);
+  --color-surface-soft: var(--mp-surface-soft);
+  --color-electric: var(--mp-electric);
+  --color-cyan-glow: var(--mp-cyan);
+  --color-teal-glow: var(--mp-teal);
+  --color-violet-glow: var(--mp-violet);
+  --color-amber-warn: var(--mp-amber);
+  --font-sans: "Hiragino Sans", "Noto Sans JP", ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  background: var(--mp-surface-soft);
+  color: var(--mp-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Visible focus for keyboard users */
+:focus-visible {
+  outline: 2px solid var(--mp-electric);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Dark hero glass panel */
+.glass-dark {
+  background: rgba(13, 22, 48, 0.62);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(94, 148, 255, 0.22);
+}
+
+.glass-light {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(59, 130, 246, 0.14);
+}
+
+/* Luminous border used on premium cards */
+.lumin-border {
+  position: relative;
+}
+.lumin-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.55),
+    rgba(45, 212, 191, 0.35),
+    rgba(139, 92, 246, 0.3)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Subtle starfield for dark sections (pure CSS, no images) */
+.starfield {
+  background-image: radial-gradient(1px 1px at 20% 30%, rgba(255, 255, 255, 0.5) 0, transparent 100%),
+    radial-gradient(1px 1px at 70% 60%, rgba(255, 255, 255, 0.35) 0, transparent 100%),
+    radial-gradient(1.5px 1.5px at 40% 80%, rgba(148, 199, 255, 0.4) 0, transparent 100%),
+    radial-gradient(1px 1px at 85% 20%, rgba(255, 255, 255, 0.4) 0, transparent 100%),
+    radial-gradient(1px 1px at 10% 70%, rgba(148, 199, 255, 0.3) 0, transparent 100%);
+}
+
+/* 2D fallback route animation */
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.route-flow {
+  stroke-dasharray: 6 6;
+  animation: dash-flow 1.6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-flow {
+    animation: none;
+  }
+}
+
+/* Skip link */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+}
+.skip-link:focus {
+  left: 8px;
+  top: 8px;
+  background: var(--mp-surface);
+  color: var(--mp-ink);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 12px rgba(16, 23, 40, 0.2);
+}
