@@ -78,13 +78,18 @@ export function getEnrichmentStats(): PipelineStats {
 /**
  * Finds enriched entities (program+route+year) for a university.
  * Returns only decision_ready or partially_verified entities suitable for ranking.
+ * Excludes synthetic test fixtures (never used in production).
  */
 export function getDecisionReadyEntities(
   univId: string,
 ): EnrichmentEntity[] {
   const record = ENRICHED_UNIVERSITIES.get(univId);
   if (!record) return [];
-  return record.entities.filter((e) => ['decision_ready', 'partially_verified'].includes(e.status));
+  return record.entities.filter(
+    (e) =>
+      ['decision_ready', 'partially_verified'].includes(e.status) &&
+      !e.isSyntheticFixture, // Never return synthetic fixtures
+  );
 }
 
 export type { EnrichedUniversityRecord, EnrichmentEntity, EnrichedFact, FactValidationIssue, ReviewQueueEntry } from './types';

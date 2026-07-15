@@ -8,56 +8,19 @@ import type {
   EnrichmentSource,
   FactValidationIssue,
   ReviewQueueEntry,
+  SourceClassification,
 } from './types';
-
-const REQUIRED_FIELDS = [
-  'jlpt_requirement',
-  'eju_required',
-  'tuition_jpy',
-  'admission_fee_jpy',
-  'academic_year',
-  'application_end_date',
-  'program_name_ja',
-] as const satisfies readonly EnrichmentField[];
-
-const STALE_THRESHOLD_DAYS = 365;
+import {
+  classifySource,
+  isOfficialSource,
+  checkStaleness,
+  checkDecisionReadiness,
+  REQUIRED_FIELDS,
+  HIGH_IMPACT_FIELDS,
+} from './validation';
 
 /**
- * Validates discovered sources: checks domain is official, not stale, has content.
- */
-export function validateSource(source: EnrichmentSource): FactValidationIssue[] {
-  const issues: FactValidationIssue[] = [];
-
-  // Check domain is official (in real system, match against known official domains).
-  if (!source.officialDomain.includes('.ac.jp') && !source.officialDomain.includes('.go.jp')) {
-    issues.push({
-      field: 'program_scope',
-      issue: 'suspicious_value',
-      severity: 'error',
-      message: `Source domain ${source.officialDomain} is not a recognized Japanese educational/government domain.`,
-    });
-  }
-
-  // Check for staleness.
-  if (source.publicationDate) {
-    const pubDate = new Date(source.publicationDate);
-    const now = new Date();
-    const daysOld = (now.getTime() - pubDate.getTime()) / (1000 * 60 * 60 * 24);
-    if (daysOld > STALE_THRESHOLD_DAYS) {
-      issues.push({
-        field: 'academic_year',
-        issue: 'stale_source',
-        severity: 'warning',
-        message: `Source was published ${Math.round(daysOld)} days ago; may not reflect current requirements.`,
-      });
-    }
-  }
-
-  return issues;
-}
-
-/**
- * Validates extracted facts: checks for required fields, contradictions, suspicious values.
+ * Validates extracted facts: checks for required fields, evidence locators, suspicious values.
  */
 export function validateFacts(facts: EnrichedFact[], source: EnrichmentSource): FactValidationIssue[] {
   const issues: FactValidationIssue[] = [];
@@ -71,6 +34,18 @@ export function validateFacts(facts: EnrichedFact[], source: EnrichmentSource): 
         issue: 'incomplete_required_fields',
         severity: 'error',
         message: `Required field '${req}' not found in extracted facts.`,
+      });
+    }
+  }
+
+  // Check for missing evidence locators (required for decision_ready).
+  for (const fact of facts) {
+    if (!fact.sourceLocation || fact.sourceLocation.trim() === '') {
+      issues.push({
+        field: fact.field,
+        issue: 'scope_unclear',
+        severity: 'error',
+        message: `Fact '${fact.field}' missing evidence locator (page, section, table row). Required for decision_ready.`,
       });
     }
   }
@@ -118,14 +93,32 @@ export function validateFacts(facts: EnrichedFact[], source: EnrichmentSource): 
 }
 
 /**
- * Determines enrichment status based on facts and validation issues.
+ * Determines enrichment status based on facts, validation issues, and decision_ready requirements.
+ * Never returns decision_ready for synthetic fixtures.
  */
 export function deriveStatus(entity: EnrichmentEntity): EnrichmentEntity['status'] {
+  if (entity.isSyntheticFixture) return 'needs_review'; // Fixtures never become decision_ready
+
   if (entity.sources.length === 0) return 'identity_only';
   if (entity.sources.every((s) => s.extractionStatus === 'not_attempted')) return 'sources_discovered';
   if (entity.sources.some((s) => s.extractionStatus === 'parse_error')) return 'extraction_pending';
   if (entity.validationIssues.some((i) => i.severity === 'error')) return 'needs_review';
-  if (entity.validationIssues.length > 0) return 'partially_verified';
+
+  // Check if entity can become decision_ready
+  const hasOfficialSource = entity.sources.some(
+    (s) => isOfficialSource(s.classification) && s.extractionStatus === 'success',
+  );
+  const hasUntrustedSource = entity.sources.some((s) => s.classification === 'untrusted');
+  const hasAllRequired = Array.from(REQUIRED_FIELDS).every((f) =>
+    entity.facts.some((fact) => fact.field === f && fact.value !== null),
+  );
+  const hasLocators = entity.facts.every((f) => f.sourceLocation && f.sourceLocation.trim() !== '');
+  const hasConflicts = entity.validationIssues.some((i) => i.issue === 'conflicting_sources');
+
+  if (!hasOfficialSource || hasUntrustedSource || !hasAllRequired || !hasLocators || hasConflicts) {
+    return 'partially_verified';
+  }
+
   return 'decision_ready';
 }
 
@@ -164,15 +157,10 @@ export function createReviewEntry(
 
 /**
  * Processes an enrichment entity through the validation pipeline.
+ * Validates sources, facts, and builds decision-readiness checklist.
  */
 export function processEntity(entity: EnrichmentEntity): EnrichmentEntity {
   const allIssues: FactValidationIssue[] = [];
-
-  // Validate sources.
-  for (const source of entity.sources) {
-    const sourceIssues = validateSource(source);
-    allIssues.push(...sourceIssues);
-  }
 
   // Validate extracted facts.
   for (const source of entity.sources.filter((s) => s.extractionStatus === 'success')) {
@@ -182,12 +170,47 @@ export function processEntity(entity: EnrichmentEntity): EnrichmentEntity {
     }
   }
 
-  // Update entity with issues and derived status.
+  // Classify sources.
+  const sourceClassifications: SourceClassification[] = entity.sources.map((s) => s.classification);
+
+  // Check decision-readiness requirements.
+  const hasOfficialSource = entity.sources.some(
+    (s) => isOfficialSource(s.classification) && s.extractionStatus === 'success',
+  );
+  const hasAllRequired = Array.from(REQUIRED_FIELDS).every((f) =>
+    entity.facts.some((fact) => fact.field === f && fact.value !== null),
+  );
+  const factsHaveLocators = entity.facts.every((f) => f.sourceLocation && f.sourceLocation.trim() !== '');
+  const hasValidationErrors = allIssues.some((i) => i.severity === 'error');
+  const hasConflicts = allIssues.some((i) => i.issue === 'conflicting_sources');
+  const highImpactFieldsReviewed = Array.from(HIGH_IMPACT_FIELDS).every((f) =>
+    entity.facts.some((fact) => fact.field === f && fact.extractor === 'human-verified'),
+  );
+  const academicYearMatches = entity.facts.some(
+    (f) => f.field === 'academic_year' && f.value === entity.academicYear,
+  );
+
+  const readinessCheck = checkDecisionReadiness({
+    hasOfficialSource,
+    sourceClassifications,
+    hasAllRequiredFields: hasAllRequired,
+    factsHaveLocators,
+    hasValidationErrors,
+    hasConflicts,
+    highImpactFieldsReviewed,
+    academicYearMatches,
+    isSyntheticFixture: entity.isSyntheticFixture,
+  });
+
+  const status = deriveStatus({ ...entity, validationIssues: allIssues });
+
+  // Update entity with issues, status, and checklist.
   return {
     ...entity,
     validationIssues: allIssues,
-    status: deriveStatus({ ...entity, validationIssues: allIssues }),
+    status,
     statusUpdatedAt: new Date().toISOString(),
+    decisionReadinessChecklist: readinessCheck.checklist,
   };
 }
 

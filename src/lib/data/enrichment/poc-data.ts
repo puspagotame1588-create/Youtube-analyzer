@@ -1,21 +1,22 @@
 /**
- * Proof-of-concept enrichment data for 3 Tokyo universities.
+ * Proof-of-concept enrichment data for 3 Tokyo universities — hardened.
  *
- * This demonstrates the pipeline working end-to-end:
- * - Discovery: official sources are "found" (mocked)
- * - Extraction: facts are "extracted" from those sources (mocked)
- * - Validation: facts are validated for completeness and consistency
- * - Status: entities progress through identity_only → decision_ready
+ * ⚠️  SYNTHETIC FIXTURES — NEVER LEAK INTO PRODUCTION
  *
- * In production, discovery + extraction are automated; the pipeline loads
- * real extracted data and validates it. This PoC shows the validation +
- * status-tracking logic with realistic but mock-sourced data.
+ * These entities demonstrate the hardened pipeline:
+ * - All sources classified (official_university / official_government / untrusted)
+ * - All facts have evidence locators (page/section/table row)
+ * - All high-impact fields (JLPT, tuition, EJU) present
+ * - All marked isSyntheticFixture: true → never decision_ready
+ * - Excluded from production ranking/exports via filter
+ *
+ * When real sources are ingested, same pipeline + validation applies.
  */
 
 import type { EnrichedFact, EnrichmentEntity, EnrichmentSource } from './types';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 1. TOKYO UNIVERSITY (東京大学) — National university
+// TOKYO UNIVERSITY (東京大学) — National, full and high-confidence
 // ──────────────────────────────────────────────────────────────────────────────
 
 export const tokyoUniSources: EnrichmentSource[] = [
@@ -23,13 +24,15 @@ export const tokyoUniSources: EnrichmentSource[] = [
     id: 'src-tokyo-uni-intl-admissions',
     url: 'https://www.u-tokyo.ac.jp/en/admissions/undergraduate/index.html',
     officialDomain: 'u-tokyo.ac.jp',
+    classification: 'official_university',
     sourceType: 'admissions-guide',
     academicYear: '2024-2025',
     retrievedAt: '2024-05-15T10:30:00Z',
     publicationDate: '2024-04-01T00:00:00Z',
     contentHash: 'abc123def456',
     extractionStatus: 'success',
-    notes: 'Official undergraduate international admission page',
+    isSyntheticFixture: true,
+    notes: 'Synthetic fixture for PoC; official page URL cited for reference only',
     factsExtracted: [
       {
         field: 'program_name_ja',
@@ -45,6 +48,7 @@ export const tokyoUniSources: EnrichmentSource[] = [
         field: 'program_name_en',
         value: 'School of Science, Department of Biology',
         sourceUrl: 'https://www.u-tokyo.ac.jp/en/admissions/undergraduate/index.html',
+        sourceLocation: 'Program List, English Name Column',
         extractedAt: '2024-05-15T10:30:00Z',
         confidence: 'high',
         extractor: 'pipeline',
@@ -53,62 +57,43 @@ export const tokyoUniSources: EnrichmentSource[] = [
         field: 'jlpt_requirement',
         value: 'n1',
         sourceUrl: 'https://www.u-tokyo.ac.jp/en/admissions/undergraduate/index.html',
-        sourceLocation: 'Language Requirements',
+        sourceLocation: 'Language Requirements Section, Table Row 1',
         extractedAt: '2024-05-15T10:30:00Z',
         confidence: 'high',
         extractor: 'pipeline',
-        notes: 'Minimum JLPT N1 for most undergraduate programs',
       },
       {
         field: 'eju_required',
         value: false,
         sourceUrl: 'https://www.u-tokyo.ac.jp/en/admissions/undergraduate/index.html',
+        sourceLocation: 'Testing Requirements > EJU (Not Required)',
         extractedAt: '2024-05-15T10:30:00Z',
         confidence: 'high',
         extractor: 'pipeline',
-        notes: 'EJU not required; JLPT and English proficiency (TOEFL) accepted',
       },
       {
         field: 'tuition_jpy',
         value: 235_400,
         sourceUrl: 'https://www.u-tokyo.ac.jp/en/admissions/undergraduate/index.html',
-        sourceLocation: 'Fees > Annual Tuition',
+        sourceLocation: 'Fees > Annual Tuition, National University Standard',
         extractedAt: '2024-05-15T10:30:00Z',
         confidence: 'high',
         extractor: 'pipeline',
-        notes: 'National university standard annual tuition',
       },
       {
         field: 'admission_fee_jpy',
         value: 17_000,
         sourceUrl: 'https://www.u-tokyo.ac.jp/en/admissions/undergraduate/index.html',
+        sourceLocation: 'Fees > Admission Fee',
         extractedAt: '2024-05-15T10:30:00Z',
         confidence: 'high',
         extractor: 'pipeline',
-      },
-      {
-        field: 'facility_fee_jpy',
-        value: 0,
-        sourceUrl: 'https://www.u-tokyo.ac.jp/en/admissions/undergraduate/index.html',
-        extractedAt: '2024-05-15T10:30:00Z',
-        confidence: 'high',
-        extractor: 'pipeline',
-        notes: 'Facility fee bundled into tuition',
-      },
-      {
-        field: 'scholarship_reduction_available',
-        value: true,
-        sourceUrl: 'https://www.u-tokyo.ac.jp/en/admissions/undergraduate/index.html',
-        sourceLocation: 'Scholarship Information > MEXT',
-        extractedAt: '2024-05-15T10:30:00Z',
-        confidence: 'high',
-        extractor: 'pipeline',
-        notes: 'MEXT scholarships available for international students',
       },
       {
         field: 'academic_year',
         value: '2024-2025',
         sourceUrl: 'https://www.u-tokyo.ac.jp/en/admissions/undergraduate/index.html',
+        sourceLocation: 'Document Header, Academic Year 2024-2025',
         extractedAt: '2024-05-15T10:30:00Z',
         confidence: 'high',
         extractor: 'pipeline',
@@ -117,15 +102,7 @@ export const tokyoUniSources: EnrichmentSource[] = [
         field: 'application_end_date',
         value: '2024-12-10',
         sourceUrl: 'https://www.u-tokyo.ac.jp/en/admissions/undergraduate/index.html',
-        sourceLocation: 'Important Dates > Deadline',
-        extractedAt: '2024-05-15T10:30:00Z',
-        confidence: 'high',
-        extractor: 'pipeline',
-      },
-      {
-        field: 'interview_required',
-        value: true,
-        sourceUrl: 'https://www.u-tokyo.ac.jp/en/admissions/undergraduate/index.html',
+        sourceLocation: 'Important Dates > Application Deadline',
         extractedAt: '2024-05-15T10:30:00Z',
         confidence: 'high',
         extractor: 'pipeline',
@@ -146,11 +123,12 @@ export const tokyoUniEntity: EnrichmentEntity = {
   validationIssues: [],
   status: 'identity_only',
   statusUpdatedAt: new Date().toISOString(),
+  isSyntheticFixture: true,
   sourceRecordIds: ['src-mext-registry-2026-provisional', 'src-tokyo-uni-intl-admissions'],
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 2. TOKYO METROPOLITAN UNIVERSITY (東京都立大学) — Public university
+// TOKYO METROPOLITAN UNIVERSITY (東京都立大学) — Public, medium-confidence
 // ──────────────────────────────────────────────────────────────────────────────
 
 export const tmuSources: EnrichmentSource[] = [
@@ -158,27 +136,30 @@ export const tmuSources: EnrichmentSource[] = [
     id: 'src-tmu-international',
     url: 'https://www.tmu.ac.jp/english/admission/international/index.html',
     officialDomain: 'tmu.ac.jp',
+    classification: 'official_university',
     sourceType: 'international-admissions',
     academicYear: '2024-2025',
     retrievedAt: '2024-05-16T14:00:00Z',
     publicationDate: '2024-03-15T00:00:00Z',
     contentHash: 'xyz789uvw012',
     extractionStatus: 'success',
-    notes: 'International student admissions guide',
+    isSyntheticFixture: true,
+    notes: 'Synthetic fixture; medium-confidence extraction due to program specialty parsing ambiguity',
     factsExtracted: [
       {
         field: 'program_name_ja',
         value: '工学府 (建築学専攻)',
         sourceUrl: 'https://www.tmu.ac.jp/english/admission/international/index.html',
+        sourceLocation: 'Graduate Programs > Engineering > Architecture Specialty',
         extractedAt: '2024-05-16T14:00:00Z',
         confidence: 'medium',
         extractor: 'pipeline',
-        notes: 'Extracted from program listing; confirm exact specialty name',
       },
       {
         field: 'program_name_en',
         value: 'Graduate School of Engineering, Architecture',
         sourceUrl: 'https://www.tmu.ac.jp/english/admission/international/index.html',
+        sourceLocation: 'Program Name, English Translation',
         extractedAt: '2024-05-16T14:00:00Z',
         confidence: 'medium',
         extractor: 'pipeline',
@@ -187,42 +168,34 @@ export const tmuSources: EnrichmentSource[] = [
         field: 'jlpt_requirement',
         value: 'n3',
         sourceUrl: 'https://www.tmu.ac.jp/english/admission/international/index.html',
-        sourceLocation: 'Language Requirements',
+        sourceLocation: 'Language Requirements > JLPT N3 or higher',
         extractedAt: '2024-05-16T14:00:00Z',
         confidence: 'high',
         extractor: 'pipeline',
-        notes: 'JLPT N3 or higher required for graduate programs',
       },
       {
         field: 'eju_required',
         value: true,
         sourceUrl: 'https://www.tmu.ac.jp/english/admission/international/index.html',
+        sourceLocation: 'Testing Requirements > EJU Required',
         extractedAt: '2024-05-16T14:00:00Z',
         confidence: 'high',
-        extractor: 'pipeline',
-      },
-      {
-        field: 'eju_subjects',
-        value: 'mathematics, science, English',
-        sourceUrl: 'https://www.tmu.ac.jp/english/admission/international/index.html',
-        extractedAt: '2024-05-16T14:00:00Z',
-        confidence: 'medium',
         extractor: 'pipeline',
       },
       {
         field: 'tuition_jpy',
         value: 390_000,
         sourceUrl: 'https://www.tmu.ac.jp/english/admission/international/index.html',
-        sourceLocation: 'Fees > Annual Tuition',
+        sourceLocation: 'Fees > Annual Tuition, Public University',
         extractedAt: '2024-05-16T14:00:00Z',
         confidence: 'high',
         extractor: 'pipeline',
-        notes: 'Public university standard annual tuition',
       },
       {
         field: 'admission_fee_jpy',
         value: 30_000,
         sourceUrl: 'https://www.tmu.ac.jp/english/admission/international/index.html',
+        sourceLocation: 'Fees > Admission Fee Table',
         extractedAt: '2024-05-16T14:00:00Z',
         confidence: 'high',
         extractor: 'pipeline',
@@ -231,6 +204,7 @@ export const tmuSources: EnrichmentSource[] = [
         field: 'academic_year',
         value: '2024-2025',
         sourceUrl: 'https://www.tmu.ac.jp/english/admission/international/index.html',
+        sourceLocation: 'Document Date, 2024-2025 Academic Year',
         extractedAt: '2024-05-16T14:00:00Z',
         confidence: 'high',
         extractor: 'pipeline',
@@ -239,15 +213,7 @@ export const tmuSources: EnrichmentSource[] = [
         field: 'application_end_date',
         value: '2024-07-31',
         sourceUrl: 'https://www.tmu.ac.jp/english/admission/international/index.html',
-        sourceLocation: 'Important Dates',
-        extractedAt: '2024-05-16T14:00:00Z',
-        confidence: 'high',
-        extractor: 'pipeline',
-      },
-      {
-        field: 'interview_required',
-        value: true,
-        sourceUrl: 'https://www.tmu.ac.jp/english/admission/international/index.html',
+        sourceLocation: 'Important Dates > Application Deadline',
         extractedAt: '2024-05-16T14:00:00Z',
         confidence: 'high',
         extractor: 'pipeline',
@@ -268,11 +234,12 @@ export const tmuEntity: EnrichmentEntity = {
   validationIssues: [],
   status: 'identity_only',
   statusUpdatedAt: new Date().toISOString(),
+  isSyntheticFixture: true,
   sourceRecordIds: ['src-mext-registry-2026-provisional', 'src-tmu-international'],
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
-// 3. AOYAMA GAKUIN UNIVERSITY (青山学院大学) — Private university
+// AOYAMA GAKUIN UNIVERSITY (青山学院大学) — Private, high-confidence complete
 // ──────────────────────────────────────────────────────────────────────────────
 
 export const aoyamaSources: EnrichmentSource[] = [
@@ -280,18 +247,21 @@ export const aoyamaSources: EnrichmentSource[] = [
     id: 'src-aoyama-gakuin-admissions',
     url: 'https://www.aoyama.ac.jp/en/admission/index.html',
     officialDomain: 'aoyama.ac.jp',
+    classification: 'official_university',
     sourceType: 'admissions',
     academicYear: '2024-2025',
     retrievedAt: '2024-05-14T11:45:00Z',
     publicationDate: '2024-03-01T00:00:00Z',
     contentHash: 'pqr456stu789',
     extractionStatus: 'success',
-    notes: 'Undergraduate admissions for international students',
+    isSyntheticFixture: true,
+    notes: 'Synthetic fixture for PoC demonstration',
     factsExtracted: [
       {
         field: 'program_name_ja',
         value: '文学部 (英米文学科)',
         sourceUrl: 'https://www.aoyama.ac.jp/en/admission/index.html',
+        sourceLocation: 'Undergraduate Programs > Faculty of Literature > English & American Literature',
         extractedAt: '2024-05-14T11:45:00Z',
         confidence: 'high',
         extractor: 'pipeline',
@@ -300,6 +270,7 @@ export const aoyamaSources: EnrichmentSource[] = [
         field: 'program_name_en',
         value: 'Faculty of Literature, Department of English and American Literature',
         sourceUrl: 'https://www.aoyama.ac.jp/en/admission/index.html',
+        sourceLocation: 'Program List, English Name',
         extractedAt: '2024-05-14T11:45:00Z',
         confidence: 'high',
         extractor: 'pipeline',
@@ -308,7 +279,7 @@ export const aoyamaSources: EnrichmentSource[] = [
         field: 'jlpt_requirement',
         value: 'n2',
         sourceUrl: 'https://www.aoyama.ac.jp/en/admission/index.html',
-        sourceLocation: 'Language Requirements',
+        sourceLocation: 'Language Requirements > JLPT N2',
         extractedAt: '2024-05-14T11:45:00Z',
         confidence: 'high',
         extractor: 'pipeline',
@@ -317,60 +288,34 @@ export const aoyamaSources: EnrichmentSource[] = [
         field: 'eju_required',
         value: true,
         sourceUrl: 'https://www.aoyama.ac.jp/en/admission/index.html',
+        sourceLocation: 'Testing Requirements > EJU Required, 3 Subjects',
         extractedAt: '2024-05-14T11:45:00Z',
         confidence: 'high',
-        extractor: 'pipeline',
-      },
-      {
-        field: 'eju_subjects',
-        value: 'Japanese, English, one subject',
-        sourceUrl: 'https://www.aoyama.ac.jp/en/admission/index.html',
-        extractedAt: '2024-05-14T11:45:00Z',
-        confidence: 'medium',
         extractor: 'pipeline',
       },
       {
         field: 'tuition_jpy',
         value: 1_200_000,
         sourceUrl: 'https://www.aoyama.ac.jp/en/admission/index.html',
-        sourceLocation: 'Fees > Annual Tuition',
+        sourceLocation: 'Fees > Annual Tuition, Private University',
         extractedAt: '2024-05-14T11:45:00Z',
         confidence: 'high',
         extractor: 'pipeline',
-        notes: 'Private university; tuition for literature programs',
       },
       {
         field: 'admission_fee_jpy',
         value: 200_000,
         sourceUrl: 'https://www.aoyama.ac.jp/en/admission/index.html',
+        sourceLocation: 'Fees > Admission Fee',
         extractedAt: '2024-05-14T11:45:00Z',
         confidence: 'high',
         extractor: 'pipeline',
-      },
-      {
-        field: 'other_first_year_fees_jpy',
-        value: 350_000,
-        sourceUrl: 'https://www.aoyama.ac.jp/en/admission/index.html',
-        sourceLocation: 'Fees > Facility and Facility Maintenance',
-        extractedAt: '2024-05-14T11:45:00Z',
-        confidence: 'medium',
-        extractor: 'pipeline',
-        notes: 'Includes facility fee, student union fee, insurance',
-      },
-      {
-        field: 'scholarship_reduction_available',
-        value: true,
-        sourceUrl: 'https://www.aoyama.ac.jp/en/admission/index.html',
-        sourceLocation: 'Scholarships',
-        extractedAt: '2024-05-14T11:45:00Z',
-        confidence: 'high',
-        extractor: 'pipeline',
-        notes: 'Merit-based and need-based scholarships available',
       },
       {
         field: 'academic_year',
         value: '2024-2025',
         sourceUrl: 'https://www.aoyama.ac.jp/en/admission/index.html',
+        sourceLocation: 'Document Header, 2024-2025 Academic Year',
         extractedAt: '2024-05-14T11:45:00Z',
         confidence: 'high',
         extractor: 'pipeline',
@@ -379,19 +324,10 @@ export const aoyamaSources: EnrichmentSource[] = [
         field: 'application_end_date',
         value: '2024-11-30',
         sourceUrl: 'https://www.aoyama.ac.jp/en/admission/index.html',
-        sourceLocation: 'Important Dates',
+        sourceLocation: 'Important Dates > Application Deadline',
         extractedAt: '2024-05-14T11:45:00Z',
         confidence: 'high',
         extractor: 'pipeline',
-      },
-      {
-        field: 'interview_required',
-        value: false,
-        sourceUrl: 'https://www.aoyama.ac.jp/en/admission/index.html',
-        extractedAt: '2024-05-14T11:45:00Z',
-        confidence: 'medium',
-        extractor: 'pipeline',
-        notes: 'No interview for direct application; document screening only',
       },
     ],
   },
@@ -409,8 +345,8 @@ export const aoyamaEntity: EnrichmentEntity = {
   validationIssues: [],
   status: 'identity_only',
   statusUpdatedAt: new Date().toISOString(),
+  isSyntheticFixture: true,
   sourceRecordIds: ['src-mext-registry-2026-provisional', 'src-aoyama-gakuin-admissions'],
 };
 
-// Exported list for PoC.
 export const POC_ENRICHED_ENTITIES: EnrichmentEntity[] = [tokyoUniEntity, tmuEntity, aoyamaEntity];

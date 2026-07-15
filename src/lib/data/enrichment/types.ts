@@ -2,6 +2,21 @@ import type { SourceRecord } from '@/lib/data/types';
 import type { JlptLevel } from '@/lib/simulation/types';
 
 /**
+ * Source domain classification: trust levels for official evidence.
+ * - official_university: verified .ac.jp institutional domain
+ * - official_government: verified government education domain (mext.go.jp, jasso.go.jp, etc.)
+ * - official_public_agency: regional/municipal education authority
+ * - approved_external: manually curated third-party (JASSO partner, etc.)
+ * - untrusted: any other domain (rejected for evidence basis)
+ */
+export type SourceClassification =
+  | 'official_university'
+  | 'official_government'
+  | 'official_public_agency'
+  | 'approved_external'
+  | 'untrusted';
+
+/**
  * Enrichment statuses track progress through the extraction pipeline.
  * Each institution can have multiple EnrichedUniversityRecords (one per program+route+year).
  */
@@ -41,8 +56,8 @@ export interface EnrichedFact {
   value: string | number | boolean | null;
   /** Source URL where this fact was extracted from. */
   sourceUrl: string;
-  /** Location within source (page number, section, etc.), if available. */
-  sourceLocation?: string;
+  /** Location within source (page number, section, table row, etc.). Required for decision_ready. */
+  sourceLocation: string;
   extractedAt: string; // ISO date
   confidence: ExtractionConfidence;
   extractor: 'pipeline' | 'human-verified';
@@ -70,6 +85,8 @@ export interface EnrichmentSource {
   url: string;
   /** e.g. "university.ac.jp" — used for domain validation. */
   officialDomain: string;
+  /** Classification of source trustworthiness. */
+  classification: SourceClassification;
   /** e.g. "admissions" | "international" | "tuition-table" | "program-guide". */
   sourceType: string;
   /** Academic year this source describes (e.g., "2024-2025"). */
@@ -85,6 +102,12 @@ export interface EnrichmentSource {
   factsExtracted?: EnrichedFact[];
   /** Metadata from the source itself (if available). */
   publicationDate?: string; // ISO date
+  /** Application deadline (if document specifies one). */
+  applicationDeadline?: string; // ISO date
+  /** Evidence locator (page number, section heading, etc.). */
+  evidenceLocator?: string;
+  /** True if this is synthetic test/fixture data (never publish as real). */
+  isSyntheticFixture?: boolean;
   /** Human-readable note on what went wrong or special context. */
   notes?: string;
 }
@@ -109,8 +132,19 @@ export interface EnrichmentEntity {
   status: EnrichmentStatus;
   /** Timestamp of last status change. */
   statusUpdatedAt: string;
+  /** True if this is synthetic test/fixture data (never publish as real). */
+  isSyntheticFixture?: boolean;
   /** Human review notes (if needs_review or partially_verified). */
   reviewNotes?: string;
+  /** Checklist of decision_ready requirements (for transparency). */
+  decisionReadinessChecklist?: {
+    hasOfficialSource: boolean;
+    hasAllRequiredFields: boolean;
+    hasEvidenceLocators: boolean;
+    noValidationErrors: boolean;
+    noConflictingSources: boolean;
+    highImpactFieldsReviewed: boolean;
+  };
   /** Which SourceRecord(s) back these extracted facts. */
   sourceRecordIds: string[]; // e.g., ["src-mext-registry", "src-tokyo-univ-admissions"]
 }
