@@ -1,0 +1,20 @@
+{
+  "_comment": "TEMPLATE — structural example only. All IDs below are invalid placeholders and will fail the MEXT registry cross-check on import. Do not fill this in with fabricated data.",
+  "batch_id": "TEMPLATE_DO_NOT_USE",
+  "created_at": "1970-01-01T00:00:00Z",
+  "generated_by": "TEMPLATE_DO_NOT_USE",
+  "academic_year_scope": "0000-0000",
+  "institution_scope": {
+    "mext_school_codes": [],
+    "count": 0
+  },
+  "counts": {
+    "entities": 0,
+    "facts": 0,
+    "sources": 0,
+    "review_required": 0
+  },
+  "research_notes": null,
+  "known_gaps": [],
+  "checksum_sha256": null
+}

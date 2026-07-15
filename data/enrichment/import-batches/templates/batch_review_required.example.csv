@@ -1,0 +1,2 @@
+fact_id,entity_id,field,reason,flagged_at,status,notes
+TEMPLATE_DO_NOT_USE-fact-0001,TEMPLATE_DO_NOT_USE:program-slug:admission-route:0000-0000,jlpt_requirement,jlpt,1970-01-01T00:00:00Z,pending,TEMPLATE — structural example only.
