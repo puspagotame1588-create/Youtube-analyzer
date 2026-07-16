@@ -150,16 +150,44 @@ export function getConsents(): ConsentRecord[] {
   return read<ConsentRecord[]>(KEYS.consents) ?? [];
 }
 
+// --- Email notification (best-effort) ----------------------------------------------
+
+/**
+ * Emails the submission to the site owner via /api/notify (Gmail SMTP).
+ * Best-effort: any failure (including "not configured") returns false and
+ * never blocks the submission itself.
+ */
+async function notifyByEmail(
+  type: "institution_lead" | "consultation",
+  data: unknown,
+  reference?: string
+): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  try {
+    const res = await fetch("/api/notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, data, reference }),
+    });
+    if (!res.ok) return false;
+    const json = (await res.json()) as { ok?: boolean };
+    return Boolean(json?.ok);
+  } catch {
+    return false;
+  }
+}
+
 // --- Institution leads -------------------------------------------------------------
 
 export async function submitInstitutionLead(
   lead: Omit<InstitutionLead, "id" | "createdAt">
-): Promise<{ ok: boolean; mode: "supabase" | "local" }> {
+): Promise<{ ok: boolean; mode: "supabase" | "local"; emailed: boolean }> {
   const record: InstitutionLead = {
     ...lead,
     id: uid("lead"),
     createdAt: new Date().toISOString(),
   };
+  const emailed = await notifyByEmail("institution_lead", record);
   const supabase = await getSupabase();
   if (supabase) {
     const { error } = await supabase.from("institution_leads").insert({
@@ -177,12 +205,12 @@ export async function submitInstitutionLead(
       current_challenge: record.currentChallenge,
       preferred_pilot_type: record.preferredPilotType,
     });
-    if (!error) return { ok: true, mode: "supabase" };
+    if (!error) return { ok: true, mode: "supabase", emailed };
     // fall through to local storage on error
   }
   const all = read<InstitutionLead[]>(KEYS.leads) ?? [];
   write(KEYS.leads, [...all, record]);
-  return { ok: true, mode: "local" };
+  return { ok: true, mode: "local", emailed };
 }
 
 // --- Direct consultation requests ---------------------------------------------------
@@ -199,7 +227,7 @@ export function getConsultationRequests(): ConsultationRequest[] {
 
 export async function submitConsultationRequest(
   input: Omit<ConsultationRequest, "id" | "reference" | "createdAt">
-): Promise<{ ok: boolean; mode: "supabase" | "local"; reference: string }> {
+): Promise<{ ok: boolean; mode: "supabase" | "local"; reference: string; emailed: boolean }> {
   const record: ConsultationRequest = {
     ...input,
     id: uid("consult"),
@@ -209,6 +237,8 @@ export async function submitConsultationRequest(
 
   // Record local consent for this action regardless of storage backend.
   recordConsent("consultation_request");
+
+  const emailed = await notifyByEmail("consultation", record, record.reference);
 
   const supabase = await getSupabase();
   if (supabase) {
@@ -233,11 +263,11 @@ export async function submitConsultationRequest(
       consent_to_record: record.consentToRecord,
       consent_to_contact: record.consentToContact,
     });
-    if (!error) return { ok: true, mode: "supabase", reference: record.reference };
+    if (!error) return { ok: true, mode: "supabase", reference: record.reference, emailed };
     // fall through to local storage on error
   }
 
   const all = getConsultationRequests();
   write(KEYS.consultations, [...all, record]);
-  return { ok: true, mode: "local", reference: record.reference };
+  return { ok: true, mode: "local", reference: record.reference, emailed };
 }
