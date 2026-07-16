@@ -357,9 +357,58 @@ export interface ConsentRecord {
     | "institution_contact"
     | "introduction_request"
     | "event_registration"
-    | "information_request";
+    | "information_request"
+    | "consultation_request";
   targetInstitutionId?: string;
   targetProgramId?: string;
   grantedAt: string;
   revokedAt?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Direct consultation ("Consult us directly")
+// ---------------------------------------------------------------------------
+
+export type ContactMethod = "email" | "line" | "whatsapp" | "phone";
+
+/**
+ * A student's request to find universities by consulting an advisor directly.
+ * The academic snapshot is captured at submit time so the advisor sees the
+ * exact data the recommendation should be based on. Recorded to Supabase when
+ * configured, otherwise to the student's own browser (demo mode).
+ */
+export interface ConsultationRequest {
+  id: string;
+  /** Human-friendly reference shown to the student, e.g. "MP-7F3K2Q". */
+  reference: string;
+  createdAt: string;
+  /** Links back to a locally stored profile when one exists. */
+  profileId?: string;
+
+  // Contact
+  fullName: string;
+  email: string;
+  contactMethod: ContactMethod;
+  /** LINE ID / WhatsApp or phone number, when the method needs one. */
+  contactHandle?: string;
+  preferredLanguage: Locale;
+
+  // Academic snapshot (captured at submit time)
+  currentCountry: string;
+  livingInJapan: boolean;
+  highestEducation: EducationLevel;
+  jlptLevel: JlptLevel;
+  preferredField: FieldOfStudy;
+  schoolTypePreference: SchoolTypePreference;
+  tuitionBudgetJpy: number;
+  desiredStart?: string;
+
+  // What the student needs
+  message: string;
+  /** Programs the student shortlisted before requesting the consultation. */
+  shortlistedProgramIds: string[];
+
+  // Consent
+  consentToRecord: boolean;
+  consentToContact: boolean;
 }

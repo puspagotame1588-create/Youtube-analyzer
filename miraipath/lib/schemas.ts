@@ -100,3 +100,57 @@ export const institutionLeadSchema = z.object({
 });
 
 export type InstitutionLeadFormValues = z.infer<typeof institutionLeadSchema>;
+
+// ---------------------------------------------------------------------------
+// Direct consultation request
+// ---------------------------------------------------------------------------
+
+export const consultationRequestSchema = z
+  .object({
+    fullName: z.string().min(2, "required"),
+    email: z.string().email("email"),
+    contactMethod: z.enum(["email", "line", "whatsapp", "phone"]),
+    contactHandle: z.string().max(60).optional().or(z.literal("")),
+    preferredLanguage: z.enum(["en", "ja"]),
+    currentCountry: z.string().min(1, "required"),
+    livingInJapan: z.boolean(),
+    highestEducation: z.enum([
+      "junior_high",
+      "high_school",
+      "language_school",
+      "vocational_diploma",
+      "associate",
+      "bachelor",
+      "master",
+    ]),
+    jlptLevel: z.enum(["none", "N5", "N4", "N3", "N2", "N1"]),
+    preferredField: z.enum([
+      "business",
+      "it",
+      "engineering",
+      "hospitality",
+      "tourism",
+      "care",
+      "design",
+      "other",
+    ]),
+    schoolTypePreference: z.enum(["university", "vocational_school", "either"]),
+    tuitionBudgetJpy: z
+      .number({ invalid_type_error: "required" })
+      .min(100000, "min")
+      .max(10000000, "max"),
+    desiredStart: z.string().optional().or(z.literal("")),
+    message: z.string().min(10, "min10").max(1500),
+    consentToRecord: z.boolean().refine((v) => v === true, {
+      message: "consentRequired",
+    }),
+    consentToContact: z.boolean(),
+  })
+  .refine(
+    (v) =>
+      v.contactMethod === "email" ||
+      (v.contactHandle !== undefined && v.contactHandle.trim().length > 0),
+    { path: ["contactHandle"], message: "handleRequired" }
+  );
+
+export type ConsultationRequestFormValues = z.infer<typeof consultationRequestSchema>;

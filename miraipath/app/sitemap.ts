@@ -8,6 +8,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/route-finder",
     "/results",
     "/compare",
+    "/consult",
     "/passport",
     "/institutions",
     "/institutions/dashboard",

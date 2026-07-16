@@ -11,6 +11,7 @@
     "routeFinder": "Route Finder",
     "results": "My Matches",
     "compare": "Compare",
+    "consult": "Consult an Advisor",
     "institutions": "For Institutions",
     "methodology": "Trust & Methodology",
     "about": "About",
@@ -209,6 +210,7 @@
     "subtitle": "{count} fictional demo programs ranked by route fit. Sponsored listings are labeled and never rank higher because of payment.",
     "editProfile": "Edit profile",
     "createPassport": "Future Passport",
+    "consultAdvisor": "Consult an advisor",
     "disclaimer": "These matches compare your stated profile against each program's published requirements. They are guidance, not admission decisions. Always confirm details with the institution's official source before applying.",
     "compareTray": "{count} route(s) selected for comparison",
     "goCompare": "Compare now",
@@ -541,5 +543,53 @@
       "Demo: dashboard figures are fictional sample data.",
       "Production: verified institutional catalog, secured database with authentication, consent-enforced introductions, and billing for partner institutions."
     ]
+  },
+  "consult": {
+    "badge": "Talk to a real advisor",
+    "title": "Consult us directly to find your university",
+    "subtitle": "Prefer to talk it through? Enter your details and request a direct online consultation. We record your data so an advisor can prepare tailored university and vocational-school options before you meet.",
+    "value1": "A person reviews your profile and shortlist, not just an algorithm.",
+    "value2": "Online — by email, LINE, WhatsApp or a call, in your language.",
+    "value3": "Private by default; used only to prepare and reply to you.",
+    "contactTitle": "How can we reach you?",
+    "fullName": "Your name",
+    "email": "Email",
+    "contactMethod": "Best way to reach you",
+    "method": {
+      "email": "Email",
+      "line": "LINE",
+      "whatsapp": "WhatsApp",
+      "phone": "Phone call"
+    },
+    "handle": {
+      "line": "LINE ID",
+      "whatsapp": "WhatsApp number",
+      "phone": "Phone number"
+    },
+    "handlePh": {
+      "line": "your LINE ID",
+      "whatsapp": "+81…",
+      "phone": "+81…"
+    },
+    "handleOptional": "Contact ID / number",
+    "errHandleRequired": "Please add the ID or number for your chosen contact method.",
+    "dataTitle": "Your data for the advisor",
+    "dataNote": "Prefilled from your route profile if you have one. Edit anything before you send — this is the snapshot your advice will be based on.",
+    "shortlistTitle": "Programs you're considering",
+    "shortlistNote": "These come from your saved and compared routes and are attached to your request.",
+    "messageLabel": "What would you like help with?",
+    "messagePh": "e.g. I'm at a language school in Tokyo, I pass N3 now and aim for N2 in December. I want an IT route under ¥1.2M/year and I'm not sure whether university or vocational school fits me better…",
+    "consentRecord": "Record my data so an advisor can prepare my consultation.",
+    "consentRecordNote": "Required to submit. Your details are stored securely and used only to prepare and deliver your consultation.",
+    "errConsentRequired": "We need this consent to record your request and prepare your consultation.",
+    "consentContact": "You may contact me about suitable universities and vocational schools using the details above.",
+    "privacyNote": "We never share your identity with an institution without a separate, explicit introduction request. You can export or delete your data anytime from the Privacy page.",
+    "submit": "Request my consultation",
+    "successTitle": "Your consultation request is recorded",
+    "successBody": "An advisor will review your profile and shortlist and reach out with tailored university and vocational-school options.",
+    "referenceLabel": "Your reference",
+    "successSentNote": "Keep this reference for follow-up. We'll contact you using the method you chose.",
+    "successLocalNote": "Demo mode: no database is configured, so this request was recorded in your browser only (nothing was sent to a real advisor). Keep the reference to see how the flow works.",
+    "managePrivacy": "Manage my data"
   }
 }

@@ -99,6 +99,35 @@ create table if not exists events (
   description text
 );
 
+-- Direct consultation requests ("Consult us directly").
+-- The public site inserts these; an advisor reviews them in the backoffice.
+create table if not exists student_consultations (
+  id uuid primary key default gen_random_uuid(),
+  reference text not null unique,
+  created_at timestamptz not null default now(),
+  status text not null default 'new'
+    check (status in ('new','in_review','contacted','closed')),
+  profile_id text,
+  full_name text not null,
+  email text not null,
+  contact_method text not null
+    check (contact_method in ('email','line','whatsapp','phone')),
+  contact_handle text,
+  preferred_language text not null default 'en',
+  current_country text not null,
+  living_in_japan boolean not null default false,
+  highest_education text not null,
+  jlpt_level text not null default 'none',
+  preferred_field text not null,
+  school_type_preference text not null default 'either',
+  tuition_budget_jpy integer not null,
+  desired_start text,
+  message text not null,
+  shortlisted_program_ids text[] not null default '{}',
+  consent_to_record boolean not null default false,
+  consent_to_contact boolean not null default false
+);
+
 -- ---------------------------------------------------------------------------
 -- Row Level Security
 -- ---------------------------------------------------------------------------
@@ -108,10 +137,16 @@ alter table student_profiles enable row level security;
 alter table consent_records enable row level security;
 alter table saved_programs enable row level security;
 alter table events enable row level security;
+alter table student_consultations enable row level security;
 
 -- Anyone may submit a lead; nobody may read them via the anon key.
 create policy "leads: public insert" on institution_leads
   for insert with check (true);
+
+-- Anyone may submit a consultation request; only consent-to-record rows are
+-- accepted. Nobody may read them via the anon key (advisor uses a service role).
+create policy "consultations: public insert" on student_consultations
+  for insert with check (consent_to_record = true);
 
 -- Students own their profile rows.
 create policy "profiles: owner all" on student_profiles

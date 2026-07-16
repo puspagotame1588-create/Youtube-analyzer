@@ -8,7 +8,12 @@
  * When NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY are set,
  * institution leads are also written to Supabase (see supabase/schema.sql).
  */
-import type { ConsentRecord, InstitutionLead, StudentProfile } from "@/types";
+import type {
+  ConsentRecord,
+  ConsultationRequest,
+  InstitutionLead,
+  StudentProfile,
+} from "@/types";
 import { uid } from "@/lib/utils";
 
 const KEYS = {
@@ -17,6 +22,7 @@ const KEYS = {
   compare: "mp.comparePrograms",
   consents: "mp.consents",
   leads: "mp.institutionLeads",
+  consultations: "mp.consultations",
 } as const;
 
 function read<T>(key: string): T | null {
@@ -67,6 +73,7 @@ export function deleteProfile() {
   window.localStorage.removeItem(KEYS.saved);
   window.localStorage.removeItem(KEYS.compare);
   window.localStorage.removeItem(KEYS.consents);
+  window.localStorage.removeItem(KEYS.consultations);
 }
 
 export function exportProfile(): string | null {
@@ -78,6 +85,7 @@ export function exportProfile(): string | null {
       profile,
       savedPrograms: getSavedPrograms(),
       consents: read<ConsentRecord[]>(KEYS.consents) ?? [],
+      consultationRequests: read<ConsultationRequest[]>(KEYS.consultations) ?? [],
     },
     null,
     2
@@ -175,4 +183,61 @@ export async function submitInstitutionLead(
   const all = read<InstitutionLead[]>(KEYS.leads) ?? [];
   write(KEYS.leads, [...all, record]);
   return { ok: true, mode: "local" };
+}
+
+// --- Direct consultation requests ---------------------------------------------------
+
+/** Short human-friendly reference, e.g. "MP-7F3K2Q". */
+function consultationReference(): string {
+  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `MP-${rand}`;
+}
+
+export function getConsultationRequests(): ConsultationRequest[] {
+  return read<ConsultationRequest[]>(KEYS.consultations) ?? [];
+}
+
+export async function submitConsultationRequest(
+  input: Omit<ConsultationRequest, "id" | "reference" | "createdAt">
+): Promise<{ ok: boolean; mode: "supabase" | "local"; reference: string }> {
+  const record: ConsultationRequest = {
+    ...input,
+    id: uid("consult"),
+    reference: consultationReference(),
+    createdAt: new Date().toISOString(),
+  };
+
+  // Record local consent for this action regardless of storage backend.
+  recordConsent("consultation_request");
+
+  const supabase = await getSupabase();
+  if (supabase) {
+    const { error } = await supabase.from("student_consultations").insert({
+      reference: record.reference,
+      profile_id: record.profileId ?? null,
+      full_name: record.fullName,
+      email: record.email,
+      contact_method: record.contactMethod,
+      contact_handle: record.contactHandle ?? null,
+      preferred_language: record.preferredLanguage,
+      current_country: record.currentCountry,
+      living_in_japan: record.livingInJapan,
+      highest_education: record.highestEducation,
+      jlpt_level: record.jlptLevel,
+      preferred_field: record.preferredField,
+      school_type_preference: record.schoolTypePreference,
+      tuition_budget_jpy: record.tuitionBudgetJpy,
+      desired_start: record.desiredStart ?? null,
+      message: record.message,
+      shortlisted_program_ids: record.shortlistedProgramIds,
+      consent_to_record: record.consentToRecord,
+      consent_to_contact: record.consentToContact,
+    });
+    if (!error) return { ok: true, mode: "supabase", reference: record.reference };
+    // fall through to local storage on error
+  }
+
+  const all = getConsultationRequests();
+  write(KEYS.consultations, [...all, record]);
+  return { ok: true, mode: "local", reference: record.reference };
 }

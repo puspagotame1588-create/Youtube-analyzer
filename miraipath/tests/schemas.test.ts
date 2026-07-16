@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { studentProfileSchema, institutionLeadSchema } from "@/lib/schemas";
+import {
+  studentProfileSchema,
+  institutionLeadSchema,
+  consultationRequestSchema,
+} from "@/lib/schemas";
 
 const validStudent = {
   displayName: "Anish",
@@ -86,5 +90,58 @@ describe("institutionLeadSchema", () => {
 
   it("rejects an unknown pilot type", () => {
     expect(institutionLeadSchema.safeParse({ ...validLead, preferredPilotType: "billboard" }).success).toBe(false);
+  });
+});
+
+const validConsult = {
+  fullName: "Anish Gurung",
+  email: "anish@example.com",
+  contactMethod: "email" as const,
+  contactHandle: "",
+  preferredLanguage: "en" as const,
+  currentCountry: "Japan",
+  livingInJapan: true,
+  highestEducation: "high_school" as const,
+  jlptLevel: "N3" as const,
+  preferredField: "it" as const,
+  schoolTypePreference: "either" as const,
+  tuitionBudgetJpy: 1200000,
+  desiredStart: "2027-04",
+  message: "I want an IT route under 1.2M and am unsure about university vs vocational.",
+  consentToRecord: true as const,
+  consentToContact: true,
+};
+
+describe("consultationRequestSchema", () => {
+  it("accepts a valid email-contact request", () => {
+    expect(consultationRequestSchema.safeParse(validConsult).success).toBe(true);
+  });
+
+  it("requires consent to record before submitting", () => {
+    const result = consultationRequestSchema.safeParse({ ...validConsult, consentToRecord: false });
+    expect(result.success).toBe(false);
+  });
+
+  it("requires a handle when the contact method is not email", () => {
+    const noHandle = consultationRequestSchema.safeParse({
+      ...validConsult,
+      contactMethod: "line",
+      contactHandle: "",
+    });
+    expect(noHandle.success).toBe(false);
+    const withHandle = consultationRequestSchema.safeParse({
+      ...validConsult,
+      contactMethod: "line",
+      contactHandle: "anish_line",
+    });
+    expect(withHandle.success).toBe(true);
+  });
+
+  it("rejects a too-short message", () => {
+    expect(consultationRequestSchema.safeParse({ ...validConsult, message: "help" }).success).toBe(false);
+  });
+
+  it("rejects an invalid email", () => {
+    expect(consultationRequestSchema.safeParse({ ...validConsult, email: "nope" }).success).toBe(false);
   });
 });

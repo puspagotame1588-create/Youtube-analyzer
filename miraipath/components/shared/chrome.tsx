@@ -75,9 +75,9 @@ const NAV_ITEMS = [
   { href: "/route-finder", key: "nav.routeFinder" },
   { href: "/results", key: "nav.results" },
   { href: "/compare", key: "nav.compare" },
+  { href: "/consult", key: "nav.consult" },
   { href: "/institutions", key: "nav.institutions" },
   { href: "/methodology", key: "nav.methodology" },
-  { href: "/about", key: "nav.about" },
 ];
 
 export function Header() {
@@ -174,6 +174,7 @@ export function Footer() {
             <li><Link className="hover:text-white" href="/route-finder">{t("nav.routeFinder")}</Link></li>
             <li><Link className="hover:text-white" href="/results">{t("nav.results")}</Link></li>
             <li><Link className="hover:text-white" href="/compare">{t("nav.compare")}</Link></li>
+            <li><Link className="hover:text-white" href="/consult">{t("nav.consult")}</Link></li>
             <li><Link className="hover:text-white" href="/passport">{t("nav.passport")}</Link></li>
           </ul>
         </div>
