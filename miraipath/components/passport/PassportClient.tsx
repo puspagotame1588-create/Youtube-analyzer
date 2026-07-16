@@ -11,7 +11,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Download, Link2, Check } from "lucide-react";
 import { demoPrograms, getInstitution, getProgram } from "@/data/programs";
 import { matchAllPrograms } from "@/lib/matching";
-import { loadProfile } from "@/lib/store";
+import { loadProfile, saveProfile } from "@/lib/store";
+import { createDemoProfile } from "@/lib/demoProfile";
 import { useI18n } from "@/lib/i18n";
 import { REGION_LABELS } from "@/lib/utils";
 import { Badge, Button, Card, Label, Input } from "@/components/shared/ui";
@@ -247,16 +248,43 @@ export default function PassportClient() {
     regenerate();
   }, [regenerate]);
 
-  if (!loaded) return <div className="px-4 py-24 text-center text-ink-soft" role="status">…</div>;
+  if (!loaded) {
+    return (
+      <div className="px-4 py-24 text-center text-ink-soft" role="status">
+        {t("results.loading")}
+      </div>
+    );
+  }
 
   if (!profile) {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">
         <h1 className="text-2xl font-bold text-ink">{t("results.noProfileTitle")}</h1>
         <p className="mt-3 text-ink-soft">{t("results.noProfileBody")}</p>
-        <Link href="/route-finder" className="mt-6 inline-flex h-11 items-center rounded-full bg-electric px-6 text-sm font-semibold text-white hover:bg-blue-600">
-          {t("common.ctaStudent")}
-        </Link>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <Link href="/route-finder" className="inline-flex h-11 items-center rounded-full bg-electric px-6 text-sm font-semibold text-white hover:bg-blue-600">
+            {t("common.ctaStudent")}
+          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              saveProfile(createDemoProfile(locale));
+              const p = loadProfile();
+              setProfile(p);
+              if (p) {
+                const ranked = matchAllPrograms(p, demoPrograms);
+                setBest(ranked[0] ?? null);
+                setDisplayName(p.displayName ?? "");
+              }
+            }}
+            className="inline-flex h-11 cursor-pointer items-center rounded-full border border-ink/15 px-6 text-sm font-semibold text-ink hover:bg-ink/5"
+          >
+            {t("results.tryDemo")}
+          </button>
+        </div>
+        <p className="mx-auto mt-4 max-w-md text-xs leading-relaxed text-ink-soft">
+          {t("results.tryDemoNote")}
+        </p>
       </div>
     );
   }

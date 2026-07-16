@@ -7,8 +7,9 @@
 import { useState } from "react";
 import { ExternalLink, Flag } from "lucide-react";
 import type { EligibilityStatus, OfficialSource } from "@/types";
+import type { FitDimensions } from "@/lib/matching";
 import { Badge, InfoTooltip } from "@/components/shared/ui";
-import { ELIGIBILITY_META, VERIFICATION_META, formatDate } from "@/lib/utils";
+import { ELIGIBILITY_META, VERIFICATION_META, formatDate, cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 
 export function EligibilityBadge({ status }: { status: EligibilityStatus }) {
@@ -57,12 +58,61 @@ export function RouteFitScore({
         }
       >
         {score}
+        <span className={cn("font-medium text-ink-soft", size === "lg" ? "text-xl" : "text-sm")}>
+          /100
+        </span>
       </span>
       <div className="flex items-center gap-1">
         <span className="text-xs font-medium text-ink-soft">{t("results.routeFitScore")}</span>
         <InfoTooltip label={t("results.routeFitScore")} text={t("results.routeFitTooltip")} />
       </div>
     </div>
+  );
+}
+
+/**
+ * Four independent fit dimensions shown next to the route-fit score, so a
+ * single number never has to carry eligibility, readiness, preference and
+ * data quality at once.
+ */
+export function FitDimensionList({ dims }: { dims: FitDimensions }) {
+  const { t, locale } = useI18n();
+  const eligibilityMeta = ELIGIBILITY_META[dims.eligibility];
+  const prefTone =
+    dims.preferenceFit === "high" ? "positive" : dims.preferenceFit === "medium" ? "caution" : "neutral";
+  const evidenceTone =
+    dims.evidence === "verified" ? "positive" : dims.evidence === "partial" ? "neutral" : "warning";
+
+  const cell = "rounded-lg bg-surface-soft px-3 py-2";
+  const label = "text-[11px] font-semibold uppercase tracking-wider text-ink-soft";
+
+  return (
+    <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className={cell}>
+        <dt className={label}>{t("dimensions.eligibility")}</dt>
+        <dd className="mt-1 text-xs font-medium leading-snug text-ink">
+          <Badge tone={eligibilityMeta.tone}>{locale === "ja" ? eligibilityMeta.ja : eligibilityMeta.en}</Badge>
+        </dd>
+      </div>
+      <div className={cell}>
+        <dt className={label}>{t("dimensions.readiness")}</dt>
+        <dd className="mt-1 text-sm font-semibold tabular-nums text-ink">
+          {t("dimensions.readinessValue", { met: dims.readinessMet, total: dims.readinessTotal })}
+        </dd>
+      </div>
+      <div className={cell}>
+        <dt className={label}>{t("dimensions.preference")}</dt>
+        <dd className="mt-1">
+          <Badge tone={prefTone}>{t(`dimensions.${dims.preferenceFit}`)}</Badge>
+        </dd>
+      </div>
+      <div className={cell}>
+        <dt className={label}>{t("dimensions.evidence")}</dt>
+        <dd className="mt-1">
+          <Badge tone={evidenceTone}>{t(`dimensions.${dims.evidence}`)}</Badge>
+        </dd>
+      </div>
+    </dl>
   );
 }
 

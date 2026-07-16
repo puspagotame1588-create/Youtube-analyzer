@@ -12,18 +12,20 @@ import { demoPrograms, getProgram } from "@/data/programs";
 import { matchAllPrograms } from "@/lib/matching";
 import {
   loadProfile,
+  saveProfile,
   getSavedPrograms,
   toggleSavedProgram,
   getComparePrograms,
   toggleCompareProgram,
 } from "@/lib/store";
+import { createDemoProfile } from "@/lib/demoProfile";
 import { useI18n } from "@/lib/i18n";
 import type { StudentProfile } from "@/types";
 import MatchCard from "@/components/results/MatchCard";
 import { Button, Badge } from "@/components/shared/ui";
 
 export default function ResultsClient() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [saved, setSaved] = useState<string[]>([]);
@@ -67,7 +69,20 @@ export default function ResultsClient() {
           >
             {t("results.consultAdvisor")}
           </Link>
+          <button
+            type="button"
+            onClick={() => {
+              saveProfile(createDemoProfile(locale));
+              setProfile(loadProfile());
+            }}
+            className="inline-flex h-11 cursor-pointer items-center rounded-full border border-ink/15 px-6 text-sm font-semibold text-ink hover:bg-ink/5"
+          >
+            {t("results.tryDemo")}
+          </button>
         </div>
+        <p className="mx-auto mt-4 max-w-md text-xs leading-relaxed text-ink-soft">
+          {t("results.tryDemoNote")}
+        </p>
       </div>
     );
   }

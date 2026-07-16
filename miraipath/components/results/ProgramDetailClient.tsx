@@ -10,12 +10,12 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CalendarDays, MapPin, Landmark, GitCompareArrows } from "lucide-react";
 import { getProgram, getInstitution, getCampus, getSource } from "@/data/programs";
 import { loadProfile, getComparePrograms, toggleCompareProgram, recordConsent } from "@/lib/store";
-import { matchProgram } from "@/lib/matching";
+import { matchProgram, deriveDimensions } from "@/lib/matching";
 import { useI18n } from "@/lib/i18n";
 import { formatDate, formatJpy, REGION_LABELS } from "@/lib/utils";
 import { Badge, Button, Card } from "@/components/shared/ui";
 import {
-  EligibilityBadge,
+  FitDimensionList,
   RouteFitScore,
   SourceChip,
   SponsoredTag,
@@ -91,7 +91,9 @@ export default function ProgramDetailClient({ programId }: { programId: string }
         <Card className="lumin-border mt-6 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <RouteFitScore score={match.score} size="lg" />
-            <EligibilityBadge status={match.eligibility} />
+          </div>
+          <div className="mt-4">
+            <FitDimensionList dims={deriveDimensions(match, program)} />
           </div>
           <div className="mt-4">
             <ScoreBreakdown match={match} />

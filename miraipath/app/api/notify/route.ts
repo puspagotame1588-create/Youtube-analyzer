@@ -25,6 +25,22 @@ type Payload = {
   reference?: string;
 };
 
+function mailConfig() {
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  const to = process.env.NOTIFY_TO || user;
+  return { user, pass, to };
+}
+
+/**
+ * Capability check. The UI calls this so page copy can describe truthfully
+ * what happens to a submission in THIS deployment. Never exposes secrets.
+ */
+export async function GET() {
+  const { user, pass } = mailConfig();
+  return NextResponse.json({ configured: Boolean(user && pass) });
+}
+
 function esc(v: unknown): string {
   return String(v ?? "")
     .replace(/&/g, "&amp;")
@@ -74,9 +90,7 @@ function consultationRows(d: Record<string, unknown>): [string, string][] {
 }
 
 export async function POST(req: Request) {
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_APP_PASSWORD;
-  const to = process.env.NOTIFY_TO || user;
+  const { user, pass, to } = mailConfig();
 
   if (!user || !pass) {
     // Not configured — let the caller fall back to storage-only (demo mode).

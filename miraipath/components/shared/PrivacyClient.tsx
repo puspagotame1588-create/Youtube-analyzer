@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ShieldCheck, Download, Trash2 } from "lucide-react";
+import { ShieldCheck, Download, Trash2, Server } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { Badge, Button, Card } from "@/components/shared/ui";
 import { deleteProfile, exportProfile, loadProfile } from "@/lib/store";
+import { useSubmissionChannels } from "@/lib/deployment";
 
 export default function PrivacyClient() {
   const { t, tList } = useI18n();
   const [hasProfile, setHasProfile] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const channels = useSubmissionChannels();
 
   useEffect(() => {
     setHasProfile(Boolean(loadProfile()));
@@ -43,7 +45,24 @@ export default function PrivacyClient() {
       <h1 className="mt-3 text-3xl font-bold tracking-tight text-ink">{t("privacy.title")}</h1>
       <p className="mt-3 leading-relaxed text-ink-soft">{t("privacy.intro")}</p>
 
+      {/* Generated from the live deployment configuration — never hand-written,
+          so this page can't contradict what the forms actually do. */}
       <Card className="mt-8 p-6">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-ink">
+          <Server className="h-4 w-4 text-electric" aria-hidden /> {t("privacy.deploymentTitle")}
+        </h2>
+        <ul className="mt-3 space-y-2 text-sm leading-relaxed text-ink">
+          <li>• {t("privacy.channelProfileLocal")}</li>
+          {channels.email === null && <li>• {t("privacy.deploymentChecking")}</li>}
+          {channels.email === true && <li>• {t("privacy.channelFormsEmail")}</li>}
+          {channels.database && <li>• {t("privacy.channelFormsDb")}</li>}
+          {channels.email === false && !channels.database && (
+            <li>• {t("privacy.channelFormsLocal")}</li>
+          )}
+        </ul>
+      </Card>
+
+      <Card className="mt-6 p-6">
         <h2 className="text-lg font-semibold text-ink">{t("privacy.principlesTitle")}</h2>
         <ul className="mt-3 space-y-2 text-sm leading-relaxed text-ink">
           {tList("privacy.principles").map((p) => (

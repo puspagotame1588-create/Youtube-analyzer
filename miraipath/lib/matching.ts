@@ -16,7 +16,7 @@ import type {
   ScoreComponent,
   StudentProfile,
 } from "@/types";
-import { getCampus, getInstitution } from "@/data/programs";
+import { getCampus, getInstitution, getSource } from "@/data/programs";
 
 // Ordinal scales -------------------------------------------------------------
 
@@ -388,6 +388,58 @@ export function matchProgram(
     nextDeadline: route.applicationPeriodEnd,
     nextAction,
   };
+}
+
+// Fit dimensions -------------------------------------------------------------
+//
+// One number hides too much: a student can be legally eligible but unable to
+// afford the route, or have great preference fit while failing a hard
+// requirement. These four independent dimensions are shown alongside the
+// route-fit score (always rendered as N/100, never as a percentage).
+
+export type PreferenceFitLevel = "high" | "medium" | "low";
+export type EvidenceConfidence = "verified" | "partial" | "outdated";
+
+export interface FitDimensions {
+  eligibility: EligibilityStatus;
+  /** Known required conditions this student already satisfies. */
+  readinessMet: number;
+  readinessTotal: number;
+  preferenceFit: PreferenceFitLevel;
+  evidence: EvidenceConfidence;
+}
+
+const PREFERENCE_KEYS = ["budget", "field", "school_type", "location", "timeline"];
+
+export function deriveDimensions(match: MatchResult, program: Program): FitDimensions {
+  const route = program.admissionRoutes[0];
+
+  const readinessTotal = route.requirements.filter((r) => r.required).length;
+  const readinessMet = Math.min(
+    readinessTotal,
+    Math.max(0, readinessTotal - match.missingRequirements.length)
+  );
+
+  const prefComponents = match.components.filter((c) => PREFERENCE_KEYS.includes(c.key));
+  const points = prefComponents.reduce((sum, c) => sum + Math.max(0, c.points), 0);
+  const maxPoints = prefComponents.reduce((sum, c) => sum + c.maxPoints, 0);
+  const ratio = maxPoints > 0 ? points / maxPoints : 0;
+  const preferenceFit: PreferenceFitLevel = ratio >= 0.75 ? "high" : ratio >= 0.45 ? "medium" : "low";
+
+  const statuses = [
+    ...program.sourceIds.map((id) => getSource(id)?.verificationStatus).filter(Boolean),
+    program.tuition.verificationStatus,
+  ];
+  let evidence: EvidenceConfidence;
+  if (statuses.some((s) => s === "outdated")) {
+    evidence = "outdated";
+  } else if (statuses.length > 0 && statuses.every((s) => s === "officially_verified")) {
+    evidence = "verified";
+  } else {
+    evidence = "partial";
+  }
+
+  return { eligibility: match.eligibility, readinessMet, readinessTotal, preferenceFit, evidence };
 }
 
 /** Rank all programs for a profile. Deterministic; ties broken by program id. */

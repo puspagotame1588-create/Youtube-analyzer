@@ -26,6 +26,7 @@ import {
   submitConsultationRequest,
 } from "@/lib/store";
 import { getProgram } from "@/data/programs";
+import { useSubmissionChannels, channelsDeliver } from "@/lib/deployment";
 import { useI18n } from "@/lib/i18n";
 import {
   Badge,
@@ -44,7 +45,12 @@ export default function ConsultClient() {
   const { t, locale } = useI18n();
   const [profileId, setProfileId] = useState<string | undefined>(undefined);
   const [shortlist, setShortlist] = useState<string[]>([]);
-  const [result, setResult] = useState<null | { mode: "supabase" | "local"; reference: string }>(null);
+  const [result, setResult] = useState<null | {
+    mode: "supabase" | "local";
+    reference: string;
+    emailed: boolean;
+  }>(null);
+  const channels = useSubmissionChannels();
 
   const {
     register,
@@ -138,18 +144,19 @@ export default function ConsultClient() {
       consentToRecord: values.consentToRecord,
       consentToContact: values.consentToContact,
     });
-    setResult({ mode: res.mode, reference: res.reference });
+    setResult({ mode: res.mode, reference: res.reference, emailed: res.emailed });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   if (result) {
+    const delivered = result.emailed || result.mode === "supabase";
     return (
       <div className="mx-auto max-w-2xl px-4 py-16">
         <Card className="lumin-border p-8 text-center" role="status">
           <p className="text-3xl" aria-hidden>✅</p>
           <h1 className="mt-3 text-2xl font-bold text-ink">{t("consult.successTitle")}</h1>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-ink-soft">
-            {t("consult.successBody")}
+            {delivered ? t("consult.successBody") : t("consult.successBodyDemo")}
           </p>
           <div className="mx-auto mt-5 inline-flex flex-col items-center rounded-xl bg-surface-soft px-6 py-4">
             <span className="text-xs font-medium uppercase tracking-wider text-ink-soft">
@@ -160,7 +167,7 @@ export default function ConsultClient() {
             </span>
           </div>
           <p className="mt-5 text-xs leading-relaxed text-ink-soft">
-            {result.mode === "local" ? t("consult.successLocalNote") : t("consult.successSentNote")}
+            {delivered ? t("consult.successSentNote") : t("consult.successLocalNote")}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link href="/results">
@@ -332,13 +339,33 @@ export default function ConsultClient() {
             <FieldError message={err("message")} />
           </div>
 
+          {/* What actually happens to the submission in THIS deployment. */}
+          <div className="rounded-xl border border-ink/10 bg-surface p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+              {t("consult.transmitTitle")}
+            </p>
+            <ul className="mt-2 space-y-1.5 text-sm leading-relaxed text-ink">
+              {channels.email === null && <li>{t("consult.channelChecking")}</li>}
+              {channels.email === true && <li>✓ {t("consult.channelEmail")}</li>}
+              {channels.database && <li>✓ {t("consult.channelDb")}</li>}
+              <li>✓ {t("consult.channelLocal")}</li>
+              {channels.email === false && !channels.database && (
+                <li className="font-medium text-amber-800">⚠ {t("consult.channelNone")}</li>
+              )}
+            </ul>
+          </div>
+
           <div className="space-y-3 rounded-xl bg-surface-soft p-4">
             <label className="flex items-start gap-3">
               <input type="checkbox" className="mt-1 h-4 w-4 accent-[var(--mp-electric)]" {...register("consentToRecord")} />
               <span className="text-sm leading-relaxed text-ink">
                 <strong>{t("consult.consentRecord")}</strong>
                 <br />
-                <span className="text-ink-soft">{t("consult.consentRecordNote")}</span>
+                <span className="text-ink-soft">
+                  {channelsDeliver(channels)
+                    ? t("consult.consentRecordNoteSent")
+                    : t("consult.consentRecordNoteLocal")}
+                </span>
               </span>
             </label>
             <FieldError message={errors.consentToRecord ? t("consult.errConsentRequired") : undefined} />

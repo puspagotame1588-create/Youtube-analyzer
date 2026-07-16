@@ -5,12 +5,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { institutionLeadSchema, type InstitutionLeadFormValues } from "@/lib/schemas";
 import { submitInstitutionLead } from "@/lib/store";
+import { useSubmissionChannels } from "@/lib/deployment";
 import { useI18n } from "@/lib/i18n";
 import { Button, Card, Input, Select, Textarea, Label, FieldError } from "@/components/shared/ui";
 
 export default function LeadForm() {
   const { t } = useI18n();
-  const [submitted, setSubmitted] = useState<null | "supabase" | "local">(null);
+  const [submitted, setSubmitted] = useState<null | { mode: "supabase" | "local"; emailed: boolean }>(null);
+  const channels = useSubmissionChannels();
 
   const {
     register,
@@ -38,17 +40,18 @@ export default function LeadForm() {
       ...values,
       phone: values.phone || undefined,
     });
-    setSubmitted(result.mode);
+    setSubmitted({ mode: result.mode, emailed: result.emailed });
   };
 
   if (submitted) {
+    const delivered = submitted.emailed || submitted.mode === "supabase";
     return (
       <Card className="p-8 text-center" role="status">
         <p className="text-2xl" aria-hidden>🎉</p>
         <h3 className="mt-2 text-xl font-bold text-ink">{t("inst.formSuccessTitle")}</h3>
         <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-ink-soft">
           {t("inst.formSuccessBody")}
-          {submitted === "local" && (
+          {!delivered && (
             <span className="mt-2 block text-xs text-amber-700">{t("inst.formLocalNote")}</span>
           )}
         </p>
@@ -144,6 +147,13 @@ export default function LeadForm() {
             {isSubmitting ? "…" : t("inst.fSubmit")}
           </Button>
           <p className="mt-3 text-xs leading-relaxed text-ink-soft">{t("inst.fPrivacyNote")}</p>
+          <p className="mt-2 text-xs leading-relaxed text-ink-soft">
+            {channels.email === null
+              ? t("consult.channelChecking")
+              : channels.email || channels.database
+                ? t("inst.fDeliveryNote")
+                : t("inst.fDeliveryNoteLocal")}
+          </p>
         </div>
       </form>
     </Card>

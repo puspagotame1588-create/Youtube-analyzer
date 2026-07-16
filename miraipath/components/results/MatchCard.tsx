@@ -6,11 +6,12 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Bookmark, BookmarkCheck, ChevronDown, GitCompareArrows, MailQuestion } from "lucide-react";
 import type { MatchResult, Program } from "@/types";
 import { getCampus, getInstitution, getSource } from "@/data/programs";
+import { deriveDimensions } from "@/lib/matching";
 import { useI18n } from "@/lib/i18n";
 import { formatDate, formatJpy, cn } from "@/lib/utils";
 import { Badge, Card, Button } from "@/components/shared/ui";
 import {
-  EligibilityBadge,
+  FitDimensionList,
   RouteFitScore,
   SourceChip,
   SponsoredTag,
@@ -81,7 +82,6 @@ export default function MatchCard({
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="neutral">{t("common.demoDataBadge")}</Badge>
               {program.sponsored && <SponsoredTag />}
-              <EligibilityBadge status={match.eligibility} />
             </div>
             <h3 className="mt-2 text-lg font-bold leading-snug text-ink">
               <Link href={`/programs/${program.id}`} className="hover:text-electric">
@@ -95,6 +95,10 @@ export default function MatchCard({
             </p>
           </div>
           <RouteFitScore score={match.score} />
+        </div>
+
+        <div className="mt-4">
+          <FitDimensionList dims={deriveDimensions(match, program)} />
         </div>
 
         <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
