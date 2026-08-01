@@ -38,12 +38,15 @@ export function SceneCanvas({
   className = '',
   camera = { position: [0, 4, 14] as [number, number, number], fov: 45 },
   label,
+  onModeChange,
 }: {
   children: ReactNode;
   fallback: ReactNode;
   className?: string;
   camera?: { position: [number, number, number]; fov: number };
   label: string;
+  /** Optional: notified whenever the canvas swaps between the live and 2D view. */
+  onModeChange?: (mode: '2d' | '3d') => void;
 }): React.JSX.Element {
   const { tier, reducedMotion, detected } = useQuality();
   const locale = useLocale();
@@ -63,11 +66,17 @@ export function SceneCanvas({
 
   const use2D = !detected || tier === 'C' || force2D || sceneError;
 
+  useEffect(() => {
+    onModeChange?.(use2D ? '2d' : '3d');
+  }, [use2D, onModeChange]);
+
   if (use2D) {
     return (
       <div className={`relative ${className}`}>
         {fallback}
-        {sceneError && (
+        {/* An explicit switch to 2D is not a failure: tearing the canvas down can
+            trip the error boundary, so a deliberate force2D always wins here. */}
+        {sceneError && !force2D && (
           <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full bg-white/90 px-4 py-1.5 text-xs text-ink shadow-panel">
             {ja ? '3D表示でエラーが発生したため、2D表示に切り替えました。' : '3D view hit an error — switched to the 2D view.'}{' '}
             <button
@@ -83,9 +92,14 @@ export function SceneCanvas({
             </button>
           </div>
         )}
-        {detected && tier !== 'C' && !sceneError && force2D && (
+        {detected && tier !== 'C' && force2D && (
           <button
-            onClick={() => setForce2D(false)}
+            onClick={() => {
+              setSceneError(false);
+              setForce2D(false);
+              setReady(false);
+              setTimedOut(false);
+            }}
             className="absolute right-3 top-3 z-10 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-ink shadow-panel hover:text-cyan2"
           >
             {ja ? '3D表示に戻す' : 'Back to 3D view'}
