@@ -29,7 +29,12 @@
           "castShadow",
           "receiveShadow",
           "shadow-mapSize-width",
-          "shadow-mapSize-height"
+          "shadow-mapSize-height",
+          "depthWrite",
+          "toneMapped",
+          "map",
+          "fog",
+          "renderOrder"
         ]
       }
     ]

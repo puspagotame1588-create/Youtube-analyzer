@@ -577,7 +577,14 @@ function Skyline({ count }: { count: number }): React.JSX.Element {
   );
 }
 
-export function District({ tier }: { tier: 'A' | 'B' }): React.JSX.Element {
+export function District({
+  tier,
+  plate = false,
+}: {
+  tier: 'A' | 'B';
+  /** True when a photographic backdrop supplies the horizon instead. */
+  plate?: boolean;
+}): React.JSX.Element {
   return (
     <group>
       <Terrain />
@@ -590,7 +597,7 @@ export function District({ tier }: { tier: 'A' | 'B' }): React.JSX.Element {
       <Transit />
       <BoulevardTrees count={tier === 'A' ? 56 : 32} />
       <Planting count={tier === 'A' ? 120 : 54} />
-      <Skyline count={tier === 'A' ? 210 : 110} />
+      {!plate && <Skyline count={tier === 'A' ? 210 : 110} />}
     </group>
   );
 }

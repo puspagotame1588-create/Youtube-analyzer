@@ -26,6 +26,7 @@ import { useQuality } from '@/lib/store/quality';
 import { CAMPUSES, campusFacing, campusPosition, type CampusEntry } from './campus/data';
 import { CampusBuilding, MODEL_HEIGHT } from './campus/Buildings';
 import { District } from './campus/District';
+import { BACKDROP, Backdrop, backdropEnabled } from './campus/Backdrop';
 
 const TARGET = new THREE.Vector3(0, 6, 0);
 const MIN_DISTANCE = 54;
@@ -58,7 +59,7 @@ function useModifierGatedZoom(domElement: HTMLElement): void {
 function ToneMapping(): null {
   const { gl } = useThree();
   useEffect(() => {
-    gl.toneMappingExposure = 1.0;
+    gl.toneMappingExposure = BACKDROP.light.exposure;
   }, [gl]);
   return null;
 }
@@ -209,9 +210,9 @@ function KeyLight({ tier }: { tier: 'A' | 'B' }): React.JSX.Element {
   return (
     <directionalLight
       ref={ref}
-      position={[86, 34, 56]}
-      intensity={3.9}
-      color="#ffe2b6"
+      position={BACKDROP.light.keyPosition}
+      intensity={BACKDROP.light.keyIntensity}
+      color={BACKDROP.light.keyColor}
       castShadow={tier === 'A'}
       shadow-mapSize-width={1536}
       shadow-mapSize-height={1536}
@@ -222,19 +223,24 @@ function KeyLight({ tier }: { tier: 'A' | 'B' }): React.JSX.Element {
 export function TokyoCampusScene({ showLabels }: { showLabels: boolean }): React.JSX.Element {
   const { tier, reducedMotion } = useQuality();
   const t: 'A' | 'B' = tier === 'A' ? 'A' : 'B';
+  // With a photographic plate the procedural skyline is redundant — it would
+  // sit in front of a better horizon and read as a second, worse one.
+  const plate = backdropEnabled(BACKDROP);
 
   return (
     <group>
-      <color attach="background" args={['#e4ecf7']} />
+      <color attach="background" args={[BACKDROP.skyColor]} />
       {/* Graded haze does the depth separation a depth-of-field pass would, at no
           per-frame cost — and the hero card's own backdrop blur already supplies
           the near-field focus effect DoF would be bought for. */}
-      <fog attach="fog" args={['#e4ecf7', 95, 280]} />
+      <fog attach="fog" args={[BACKDROP.skyColor, 95, plate ? 232 : 280]} />
 
       <ToneMapping />
 
       {/* Sky/ground bounce, a warm low key, and a cool counter-fill. */}
-      <hemisphereLight args={['#cfe0fa', '#a2988a', 0.55]} />
+      <hemisphereLight
+        args={[BACKDROP.light.fillSky, BACKDROP.light.fillGround, BACKDROP.light.fillIntensity]}
+      />
       <KeyLight tier={t} />
       <directionalLight position={[-56, 26, -40]} intensity={0.45} color="#a9c4ee" />
 
@@ -248,7 +254,8 @@ export function TokyoCampusScene({ showLabels }: { showLabels: boolean }): React
         <Lightformer intensity={0.28} color="#ffffff" position={[0, 9, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[14, 14, 1]} />
       </Environment>
 
-      <District tier={t} />
+      <Backdrop />
+      <District tier={t} plate={plate} />
 
       {CAMPUSES.map((c) => (
         <Campus key={c.id} campus={c} withLabel={showLabels} />
