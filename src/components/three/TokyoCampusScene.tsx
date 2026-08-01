@@ -1,11 +1,17 @@
 'use client';
 
 /**
- * The CareerVerse hero scene — a miniature Tokyo university district.
+ * The CareerVerse hero scene — a semi-realistic model of a Tokyo academic
+ * district, lit as an architectural visualisation rather than a game level.
  *
  * The campuses are STYLISED VISUAL REPRESENTATIONS inspired by each university's
  * best-known landmark. They are not architectural reproductions, and nothing in
  * this scene is derived from licensed or surveyed building data.
+ *
+ * Lighting is a single low golden-hour key with a cool sky fill, ACES tone
+ * mapping, soft shadow maps and a baked contact-shadow pass for ambient
+ * grounding. Depth comes from graded haze rather than a post-processing blur —
+ * see the note on ContactShadows/DoF below.
  *
  * Camera: orbit-only (no pan) so the hero card always sits over the district
  * centre and stays readable from every permitted angle. Distance and polar
@@ -15,17 +21,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Html, OrbitControls } from '@react-three/drei';
+import { ContactShadows, Environment, Html, Lightformer, OrbitControls } from '@react-three/drei';
 import { useQuality } from '@/lib/store/quality';
 import { CAMPUSES, campusFacing, campusPosition, type CampusEntry } from './campus/data';
 import { CampusBuilding, MODEL_HEIGHT } from './campus/Buildings';
 import { District } from './campus/District';
 
-const TARGET = new THREE.Vector3(0, 3, 0);
-const MIN_DISTANCE = 44;
-const MAX_DISTANCE = 78;
-const MAX_POLAR = 1.33; // keeps the camera clear of every campus footprint
-const MIN_POLAR = 0.62;
+const TARGET = new THREE.Vector3(0, 6, 0);
+const MIN_DISTANCE = 54;
+const MAX_DISTANCE = 104;
+const MAX_POLAR = 1.45; // still leaves the camera outside every footprint
+const MIN_POLAR = 0.78;
 const IDLE_BEFORE_AUTOROTATE_MS = 4000;
 
 /**
@@ -48,9 +54,19 @@ function useModifierGatedZoom(domElement: HTMLElement): void {
   }, [domElement]);
 }
 
+/** Slightly lifted exposure so the filmic curve lands warm rather than muddy. */
+function ToneMapping(): null {
+  const { gl } = useThree();
+  useEffect(() => {
+    gl.toneMappingExposure = 1.0;
+  }, [gl]);
+  return null;
+}
+
 /**
- * Floating campus label: English name over Japanese name, with a thin leader
- * line down to the roof. Fades out when it drifts behind the hero card.
+ * Campus label: a minimal white glass card, English over Japanese, on a hairline
+ * leader down to the roof. No accent dot or colour coding — a coloured pip is
+ * the kind of detail that reads as a game HUD rather than a considered map.
  */
 function CampusLabel({
   campus,
@@ -86,45 +102,33 @@ function CampusLabel({
       zIndexRange={[6, 0]}
       style={{ pointerEvents: 'none' }}
     >
-      <div ref={ref} style={{ transition: 'opacity 260ms ease', willChange: 'opacity' }}>
+      <div ref={ref} style={{ transition: 'opacity 300ms ease', willChange: 'opacity' }}>
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            background: 'rgba(255,255,255,0.92)',
-            border: '1px solid rgba(27,35,64,0.10)',
-            boxShadow: '0 6px 18px rgba(27,35,64,0.12)',
+            background: 'rgba(255,255,255,0.82)',
+            border: '1px solid rgba(255,255,255,0.9)',
+            boxShadow: '0 10px 30px rgba(27,35,64,0.14), 0 1px 2px rgba(27,35,64,0.06)',
             color: '#1B2340',
-            borderRadius: 12,
-            padding: '7px 13px',
+            borderRadius: 10,
+            padding: '8px 14px',
             whiteSpace: 'nowrap',
-            backdropFilter: 'blur(6px)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            textAlign: 'center',
           }}
         >
-          <span
-            aria-hidden="true"
-            style={{
-              width: 9,
-              height: 9,
-              borderRadius: 999,
-              background: campus.accent,
-              flexShrink: 0,
-            }}
-          />
-          <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
-            <span style={{ fontSize: 13, fontWeight: 700 }}>{campus.nameEn}</span>
-            <span style={{ fontSize: 11, color: '#5A6384' }}>{campus.nameJa}</span>
-          </span>
+          <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em' }}>
+            {campus.nameEn}
+          </div>
+          <div style={{ fontSize: 11, color: '#5A6384', marginTop: 1 }}>{campus.nameJa}</div>
         </div>
-        {/* leader line down toward the roof */}
         <div
           aria-hidden="true"
           style={{
             width: 1,
-            height: 26,
+            height: 30,
             margin: '0 auto',
-            background: `linear-gradient(to bottom, ${campus.accent}99, ${campus.accent}00)`,
+            background: 'linear-gradient(to bottom, rgba(27,35,64,0.34), rgba(27,35,64,0))',
           }}
         />
       </div>
@@ -135,7 +139,7 @@ function CampusLabel({
 function Campus({ campus, withLabel }: { campus: CampusEntry; withLabel: boolean }): React.JSX.Element {
   const pos = campusPosition(campus);
   const facing = campusFacing(campus);
-  const labelY = MODEL_HEIGHT[campus.model] * campus.scale + 1.6;
+  const labelY = MODEL_HEIGHT[campus.model] * campus.scale + 1.8;
 
   return (
     <group>
@@ -164,15 +168,15 @@ function CameraRig({ reducedMotion }: { reducedMotion: boolean }): React.JSX.Ele
       target={TARGET}
       enablePan={false}
       enableDamping={!reducedMotion}
-      dampingFactor={0.055}
-      rotateSpeed={0.55}
+      dampingFactor={0.05}
+      rotateSpeed={0.5}
       zoomSpeed={0.7}
       minDistance={MIN_DISTANCE}
       maxDistance={MAX_DISTANCE}
       minPolarAngle={MIN_POLAR}
       maxPolarAngle={MAX_POLAR}
       autoRotate={idle && !reducedMotion}
-      autoRotateSpeed={0.32}
+      autoRotateSpeed={0.3}
       onStart={() => {
         clearTimeout(timer.current);
         setIdle(false);
@@ -185,26 +189,85 @@ function CameraRig({ reducedMotion }: { reducedMotion: boolean }): React.JSX.Ele
   );
 }
 
+/** Low golden-hour key with a shadow frustum sized to the district. */
+function KeyLight({ tier }: { tier: 'A' | 'B' }): React.JSX.Element {
+  const ref = useRef<THREE.DirectionalLight>(null);
+  useEffect(() => {
+    const l = ref.current;
+    if (!l) return;
+    l.shadow.camera.left = -70;
+    l.shadow.camera.right = 70;
+    l.shadow.camera.top = 70;
+    l.shadow.camera.bottom = -70;
+    l.shadow.camera.near = 10;
+    l.shadow.camera.far = 220;
+    l.shadow.bias = -0.0006;
+    l.shadow.normalBias = 0.035;
+    l.shadow.camera.updateProjectionMatrix();
+  }, []);
+
+  return (
+    <directionalLight
+      ref={ref}
+      position={[86, 34, 56]}
+      intensity={3.9}
+      color="#ffe2b6"
+      castShadow={tier === 'A'}
+      shadow-mapSize-width={1536}
+      shadow-mapSize-height={1536}
+    />
+  );
+}
+
 export function TokyoCampusScene({ showLabels }: { showLabels: boolean }): React.JSX.Element {
   const { tier, reducedMotion } = useQuality();
   const t: 'A' | 'B' = tier === 'A' ? 'A' : 'B';
 
   return (
     <group>
-      <color attach="background" args={['#e9f0fa']} />
-      <fog attach="fog" args={['#e9f0fa', 58, 196]} />
+      <color attach="background" args={['#e4ecf7']} />
+      {/* Graded haze does the depth separation a depth-of-field pass would, at no
+          per-frame cost — and the hero card's own backdrop blur already supplies
+          the near-field focus effect DoF would be bought for. */}
+      <fog attach="fog" args={['#e4ecf7', 95, 280]} />
 
-      {/* Clean daylight: one key light, soft sky/ground bounce, no shadow maps. */}
-      <hemisphereLight args={['#ffffff', '#cdd8e8', 1.15]} />
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[46, 72, 40]} intensity={1.15} color="#fffaf2" />
-      <directionalLight position={[-40, 34, -26]} intensity={0.35} color="#cfe0ff" />
+      <ToneMapping />
+
+      {/* Sky/ground bounce, a warm low key, and a cool counter-fill. */}
+      <hemisphereLight args={['#cfe0fa', '#a2988a', 0.55]} />
+      <KeyLight tier={t} />
+      <directionalLight position={[-56, 26, -40]} intensity={0.45} color="#a9c4ee" />
+
+      {/* Small procedural environment, kept deliberately dim. It exists to give
+          glass and metal something plausible to reflect — pushed brighter it acts
+          as a full IBL fill, which flattens the key light's shadow-side contrast
+          and is what makes a PBR scene read washed out. Rendered once. */}
+      <Environment resolution={64} frames={1}>
+        <Lightformer intensity={0.5} color="#fff0d6" position={[8, 5, 2]} scale={[10, 10, 1]} />
+        <Lightformer intensity={0.18} color="#cfe0ff" position={[-8, 3, -4]} scale={[10, 10, 1]} />
+        <Lightformer intensity={0.28} color="#ffffff" position={[0, 9, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[14, 14, 1]} />
+      </Environment>
 
       <District tier={t} />
 
       {CAMPUSES.map((c) => (
         <Campus key={c.id} campus={c} withLabel={showLabels} />
       ))}
+
+      {/* Ambient grounding. frames={1} bakes it once — the geometry never moves,
+          so this is a one-off cost that reads like soft ambient occlusion. */}
+      {!reducedMotion && (
+        <ContactShadows
+          position={[0, 0.06, 0]}
+          scale={130}
+          resolution={t === 'A' ? 1024 : 512}
+          far={16}
+          blur={2.8}
+          opacity={0.45}
+          color="#2b3350"
+          frames={1}
+        />
+      )}
 
       <CameraRig reducedMotion={reducedMotion} />
     </group>

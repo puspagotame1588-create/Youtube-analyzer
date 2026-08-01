@@ -39,6 +39,8 @@ export function SceneCanvas({
   camera = { position: [0, 4, 14] as [number, number, number], fov: 45 },
   label,
   onModeChange,
+  shadows = false,
+  filmic = false,
 }: {
   children: ReactNode;
   fallback: ReactNode;
@@ -47,6 +49,10 @@ export function SceneCanvas({
   label: string;
   /** Optional: notified whenever the canvas swaps between the live and 2D view. */
   onModeChange?: (mode: '2d' | '3d') => void;
+  /** Opt in to soft shadow maps. Off by default — shadows are not free. */
+  shadows?: boolean;
+  /** Opt in to ACES filmic tone mapping instead of the default flat pipeline. */
+  filmic?: boolean;
 }): React.JSX.Element {
   const { tier, reducedMotion, detected } = useQuality();
   const locale = useLocale();
@@ -133,7 +139,10 @@ export function SceneCanvas({
 
       <SceneErrorBoundary onError={() => setSceneError(true)}>
         <Canvas
-          flat /* NoToneMapping — keeps the pearl-and-pastel palette true to token colors */
+          /* Flat (NoToneMapping) keeps the pearl-and-pastel palette true to token
+             colours; filmic scenes opt into ACES for physically based lighting. */
+          flat={!filmic}
+          shadows={shadows ? 'soft' : false}
           dpr={tier === 'A' ? [1, 2] : [1, 1.5]}
           gl={{
             antialias: tier === 'A',

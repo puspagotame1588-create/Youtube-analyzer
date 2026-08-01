@@ -113,8 +113,10 @@ export function GatewayHero(): React.JSX.Element {
           label={sceneLabel}
           fallback={<StaticDistrict />}
           className="h-full w-full"
-          camera={{ position: [0, 23, 64], fov: 46 }}
+          camera={{ position: [0, 19, 70], fov: 45 }}
           onModeChange={handleModeChange}
+          shadows={tier === 'A'}
+          filmic
         >
           <TokyoCampusScene showLabels={wideEnoughForLabels} />
         </SceneCanvas>

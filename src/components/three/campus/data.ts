@@ -112,24 +112,33 @@ export function campusFacing(c: CampusEntry): number {
   return Math.atan2(x, z);
 }
 
-/** Shared material palette — warm stone, brick, glass and foliage. */
+/**
+ * Architectural-model palette. Hue is deliberately restrained — materials are
+ * separated by value and roughness rather than colour, the way a physical
+ * presentation model or an architectural render reads. Saturated colour is what
+ * makes a massing model look like a toy, so there is almost none here; the
+ * warmth in the scene comes from the golden-hour key light, not the albedo.
+ */
 export const PALETTE = {
-  stone: '#dcd3c4',
-  stoneDark: '#c2b7a5',
-  brick: '#a8544a',
-  brickDark: '#8f463d',
-  roof: '#49536b',
-  roofDark: '#3a4258',
-  copper: '#7fb59b',
-  glass: '#9fc0e4',
-  glassDark: '#7ea4cf',
-  concrete: '#e6e9f2',
-  trunk: '#8a7460',
-  foliage: '#7fa88a',
-  foliageLight: '#9cc0a4',
-  ground: '#e9edf3',
-  lawn: '#cfe0cf',
-  road: '#d3d8e4',
-  plaza: '#f0f2f8',
-  skyline: '#c8d5ea',
+  stone: '#e6e1d8',
+  stoneDark: '#d2ccc1',
+  stoneShade: '#bdb6aa',
+  brick: '#b28c7d',
+  brickDark: '#9c7768',
+  roof: '#5b6270',
+  roofDark: '#474d59',
+  copper: '#8fae9f',
+  glass: '#b9c9da',
+  glassDark: '#93a8bd',
+  concrete: '#dcdcd9',
+  metal: '#a9adb4',
+  trunk: '#6f6357',
+  foliage: '#7c8f76',
+  foliageDeep: '#68785f',
+  ground: '#bcbbb4',
+  lawn: '#93a486',
+  paving: '#c6c4be',
+  road: '#9d9e9d',
+  plaza: '#cfccc4',
+  skyline: '#c2c8d2',
 } as const;

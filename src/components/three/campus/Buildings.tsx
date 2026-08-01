@@ -1,53 +1,93 @@
 'use client';
 
 /**
- * Stylised campus landmarks, built entirely from primitive geometry.
+ * Campus landmarks, built from primitive geometry in the manner of an
+ * architectural massing model.
  *
  * These are *visual representations* inspired by each campus's best-known
- * building — recognisable silhouettes, deliberately low-poly, not architectural
- * reproductions. No surveyed or licensed building data is used.
+ * building — recognisable silhouettes, not architectural reproductions. No
+ * surveyed or licensed building data is used.
  *
- * Every model keeps its front facade on local +Z so the scene can turn each
- * campus outward with a single Y rotation.
+ * Design rules, applied consistently so the set reads as one commissioned model
+ * rather than a kit of parts:
+ *  - silhouette first: massing, plinth and roofline carry the recognition, and
+ *    nothing smaller than a window band is modelled
+ *  - smooth shading everywhere; faceted normals are what make geometry read as
+ *    a low-poly game asset
+ *  - materials differ by roughness, not by hue
+ *  - every model keeps its front facade on local +Z
  */
 
 import { PALETTE, type CampusModel } from './data';
 
-/** Flat contact shading in place of shadow maps — far cheaper, reads as grounded. */
-function Base({ w, d, color = PALETTE.plaza }: { w: number; d: number; color?: string }): React.JSX.Element {
+const STONE = { roughness: 0.82, metalness: 0.02 };
+const GLASS = { roughness: 0.22, metalness: 0.18 };
+const ROOFING = { roughness: 0.62, metalness: 0.12 };
+
+/** Plinth: the low base an institutional building sits on. Cheap, and it stops
+ *  the massing from looking like a box dropped on a plane. */
+function Plinth({ w, d, h = 0.34 }: { w: number; d: number; h?: number }): React.JSX.Element {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-      <planeGeometry args={[w, d]} />
-      <meshBasicMaterial color={color} />
+    <mesh position={[0, h / 2, 0]} castShadow receiveShadow>
+      <boxGeometry args={[w, h, d]} />
+      <meshStandardMaterial color={PALETTE.stoneShade} {...STONE} />
     </mesh>
   );
 }
 
-function Wing({
+function Mass({
   w,
   h,
   d,
   x = 0,
+  y = 0,
   z = 0,
   color = PALETTE.stone,
+  material = STONE,
 }: {
   w: number;
   h: number;
   d: number;
   x?: number;
+  y?: number;
   z?: number;
   color?: string;
+  material?: { roughness: number; metalness: number };
 }): React.JSX.Element {
   return (
-    <mesh position={[x, h / 2, z]}>
+    <mesh position={[x, y + h / 2, z]} castShadow receiveShadow>
       <boxGeometry args={[w, h, d]} />
-      <meshStandardMaterial color={color} roughness={0.85} metalness={0} />
+      <meshStandardMaterial color={color} {...material} />
     </mesh>
   );
 }
 
-/** Pyramidal / hipped roof. 4 radial segments reads as a square pitched roof. */
-function PitchedRoof({
+/** Cornice / string course — a thin oversailing band that reads as a roofline. */
+function Cornice({
+  w,
+  d,
+  y,
+  x = 0,
+  z = 0,
+  color = PALETTE.stoneDark,
+}: {
+  w: number;
+  d: number;
+  y: number;
+  x?: number;
+  z?: number;
+  color?: string;
+}): React.JSX.Element {
+  return (
+    <mesh position={[x, y, z]} castShadow receiveShadow>
+      <boxGeometry args={[w, 0.22, d]} />
+      <meshStandardMaterial color={color} {...STONE} />
+    </mesh>
+  );
+}
+
+/** Hipped roof. 24 segments keeps the ridge smooth instead of faceted. */
+function HippedRoof({
   w,
   h,
   y,
@@ -63,185 +103,241 @@ function PitchedRoof({
   color?: string;
 }): React.JSX.Element {
   return (
-    <mesh position={[x, y + h / 2, z]} rotation={[0, Math.PI / 4, 0]}>
-      <coneGeometry args={[w * 0.78, h, 4]} />
-      <meshStandardMaterial color={color} roughness={0.7} flatShading />
+    <mesh position={[x, y + h / 2, z]} rotation={[0, Math.PI / 4, 0]} castShadow receiveShadow>
+      <coneGeometry args={[w * 0.76, h, 4, 1]} />
+      <meshStandardMaterial color={color} {...ROOFING} />
     </mesh>
   );
 }
 
-/** Horizontal glazing band — cheap stand-in for rows of windows. */
-function Band({
+/** Recessed glazing band standing in for a storey of windows. */
+function Glazing({
   w,
   d,
   y,
   x = 0,
   z = 0,
-  color = PALETTE.glassDark,
+  h = 0.42,
 }: {
   w: number;
   d: number;
   y: number;
   x?: number;
   z?: number;
-  color?: string;
+  h?: number;
 }): React.JSX.Element {
   return (
-    <mesh position={[x, y, z]}>
-      <boxGeometry args={[w, 0.16, d]} />
-      <meshStandardMaterial color={color} roughness={0.25} metalness={0.35} />
+    <mesh position={[x, y, z]} castShadow>
+      <boxGeometry args={[w, h, d]} />
+      <meshStandardMaterial color={PALETTE.glassDark} {...GLASS} />
     </mesh>
   );
 }
 
-function ClockFace({ y, z, r = 0.34 }: { y: number; z: number; r?: number }): React.JSX.Element {
-  return (
-    <group position={[0, y, z]}>
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[r, r, 0.09, 16]} />
-        <meshStandardMaterial color="#fdfcf8" roughness={0.5} />
-      </mesh>
-      <mesh position={[0, 0, 0.06]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[r, 0.045, 6, 16]} />
-        <meshStandardMaterial color={PALETTE.roofDark} roughness={0.6} />
-      </mesh>
-    </group>
-  );
-}
-
-/** UTokyo — Yasuda-Auditorium-inspired: gothic centre tower with low wings. */
-function ClockTowerCampus(): React.JSX.Element {
+/** Evenly spaced pilasters — vertical rhythm on a classical facade. */
+function Pilasters({
+  count,
+  span,
+  h,
+  z,
+  y = 0,
+}: {
+  count: number;
+  span: number;
+  h: number;
+  z: number;
+  y?: number;
+}): React.JSX.Element {
+  const step = span / (count - 1);
   return (
     <group>
-      <Base w={11} d={7} />
-      <Wing w={3.6} h={2.4} d={3.2} x={-3.6} color={PALETTE.stoneDark} />
-      <PitchedRoof w={3.6} h={1.1} y={2.4} x={-3.6} />
-      <Wing w={3.6} h={2.4} d={3.2} x={3.6} color={PALETTE.stoneDark} />
-      <PitchedRoof w={3.6} h={1.1} y={2.4} x={3.6} />
-      <Wing w={4.2} h={5.6} d={3.6} />
-      <ClockFace y={4.6} z={1.85} />
-      <PitchedRoof w={4.4} h={2.2} y={5.6} />
-      <mesh position={[0, 8.2, 0]}>
-        <coneGeometry args={[0.16, 1.1, 6]} />
-        <meshStandardMaterial color={PALETTE.roofDark} />
-      </mesh>
-      {/* arched entrance */}
-      <mesh position={[0, 0.95, 1.83]}>
-        <boxGeometry args={[1.5, 1.9, 0.2]} />
-        <meshStandardMaterial color={PALETTE.roofDark} roughness={0.8} />
-      </mesh>
-    </group>
-  );
-}
-
-/** Waseda — Okuma-Auditorium-inspired: gabled hall with a slim corner tower. */
-function OkumaTowerCampus(): React.JSX.Element {
-  return (
-    <group>
-      <Base w={10} d={7} />
-      <Wing w={6.4} h={3.2} d={4} x={0.9} color={PALETTE.stone} />
-      <PitchedRoof w={6.4} h={1.6} y={3.2} x={0.9} color={PALETTE.roofDark} />
-      <Wing w={2} h={7.4} d={2} x={-3.3} color={PALETTE.stoneDark} />
-      <ClockFace y={6.4} z={1.05} r={0.28} />
-      <mesh position={[-3.3, 8.1, 0]} rotation={[0, Math.PI / 4, 0]}>
-        <coneGeometry args={[1.5, 1.7, 4]} />
-        <meshStandardMaterial color={PALETTE.roofDark} flatShading />
-      </mesh>
-      <Band w={6.4} d={4.05} y={2.1} x={0.9} color={PALETTE.glass} />
-    </group>
-  );
-}
-
-/** Keio — Mita-old-library-inspired: red brick with an octagonal corner turret. */
-function BrickLibraryCampus(): React.JSX.Element {
-  return (
-    <group>
-      <Base w={10} d={7} />
-      <Wing w={6.2} h={3.4} d={4.2} x={1.2} color={PALETTE.brick} />
-      <PitchedRoof w={6.2} h={1.5} y={3.4} x={1.2} color={PALETTE.roofDark} />
-      <mesh position={[-2.9, 2.9, 0]}>
-        <cylinderGeometry args={[1.5, 1.5, 5.8, 8]} />
-        <meshStandardMaterial color={PALETTE.brickDark} roughness={0.9} flatShading />
-      </mesh>
-      <mesh position={[-2.9, 6.6, 0]}>
-        <coneGeometry args={[1.75, 2.1, 8]} />
-        <meshStandardMaterial color={PALETTE.roof} flatShading />
-      </mesh>
-      <Band w={6.25} d={4.25} y={2.2} x={1.2} color={PALETTE.stone} />
-      <mesh position={[1.2, 1, 2.15]}>
-        <boxGeometry args={[1.3, 2, 0.18]} />
-        <meshStandardMaterial color={PALETTE.roofDark} roughness={0.8} />
-      </mesh>
-    </group>
-  );
-}
-
-/** Institute of Science Tokyo — paired modern research towers. */
-function GlassTwinCampus(): React.JSX.Element {
-  return (
-    <group>
-      <Base w={10} d={7} />
-      <Wing w={8.4} h={1.6} d={4.4} color={PALETTE.concrete} />
-      <Wing w={2.8} h={8.2} d={2.8} x={-2.1} z={-0.2} color={PALETTE.glass} />
-      <Wing w={2.4} h={6.2} d={2.6} x={2.3} z={0.1} color={PALETTE.glassDark} />
-      {[2.6, 4.1, 5.6, 7.1].map((y) => (
-        <Band key={y} w={2.86} d={2.86} y={y} x={-2.1} z={-0.2} color={PALETTE.concrete} />
-      ))}
-      {[2.4, 3.9, 5.4].map((y) => (
-        <Band key={y} w={2.46} d={2.66} y={y} x={2.3} z={0.1} color={PALETTE.concrete} />
-      ))}
-      <mesh position={[-2.1, 8.6, -0.2]}>
-        <boxGeometry args={[1.1, 0.8, 1.1]} />
-        <meshStandardMaterial color={PALETTE.concrete} roughness={0.7} />
-      </mesh>
-    </group>
-  );
-}
-
-/** Hitotsubashi — Kanematsu-Auditorium-inspired: stone hall under a copper dome. */
-function DomedHallCampus(): React.JSX.Element {
-  return (
-    <group>
-      <Base w={10} d={7} />
-      <Wing w={7.6} h={2.8} d={4.6} color={PALETTE.stone} />
-      <PitchedRoof w={7.6} h={1.2} y={2.8} color={PALETTE.roof} />
-      <mesh position={[0, 4, 0]}>
-        <cylinderGeometry args={[1.85, 2.05, 1.3, 12]} />
-        <meshStandardMaterial color={PALETTE.stoneDark} roughness={0.85} flatShading />
-      </mesh>
-      <mesh position={[0, 4.65, 0]}>
-        <sphereGeometry args={[1.85, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshStandardMaterial color={PALETTE.copper} roughness={0.55} flatShading />
-      </mesh>
-      <mesh position={[0, 6.7, 0]}>
-        <coneGeometry args={[0.2, 0.9, 6]} />
-        <meshStandardMaterial color={PALETTE.copper} />
-      </mesh>
-      {[-2.3, 0, 2.3].map((x) => (
-        <mesh key={x} position={[x, 1.1, 2.35]}>
-          <boxGeometry args={[1, 2.2, 0.16]} />
-          <meshStandardMaterial color={PALETTE.roofDark} roughness={0.8} />
+      {Array.from({ length: count }, (_, i) => (
+        <mesh key={i} position={[-span / 2 + i * step, y + h / 2, z]} castShadow>
+          <boxGeometry args={[0.34, h, 0.3]} />
+          <meshStandardMaterial color={PALETTE.stoneDark} {...STONE} />
         </mesh>
       ))}
     </group>
   );
 }
 
-/** Meiji — Liberty-Tower-inspired: slender stepped high-rise. */
+function ClockFace({ y, z, r = 0.32 }: { y: number; z: number; r?: number }): React.JSX.Element {
+  return (
+    <group position={[0, y, z]}>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[r, r, 0.1, 32]} />
+        <meshStandardMaterial color="#f2efe8" roughness={0.4} metalness={0.1} />
+      </mesh>
+      <mesh position={[0, 0, 0.06]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[r, 0.04, 12, 32]} />
+        <meshStandardMaterial color={PALETTE.roofDark} roughness={0.5} metalness={0.3} />
+      </mesh>
+    </group>
+  );
+}
+
+/** UTokyo — Yasuda Auditorium: symmetrical wings under a tall gothic centre tower. */
+function ClockTowerCampus(): React.JSX.Element {
+  return (
+    <group>
+      <Plinth w={12.4} d={7.6} />
+      <Mass w={3.9} h={2.6} d={3.4} x={-3.8} y={0.34} color={PALETTE.stoneDark} />
+      <Cornice w={4.2} d={3.7} y={3.02} x={-3.8} />
+      <HippedRoof w={3.9} h={1.15} y={3.1} x={-3.8} />
+      <Mass w={3.9} h={2.6} d={3.4} x={3.8} y={0.34} color={PALETTE.stoneDark} />
+      <Cornice w={4.2} d={3.7} y={3.02} x={3.8} />
+      <HippedRoof w={3.9} h={1.15} y={3.1} x={3.8} />
+      <Glazing w={3.5} d={3.46} y={1.7} x={-3.8} />
+      <Glazing w={3.5} d={3.46} y={1.7} x={3.8} />
+
+      <Mass w={4.4} h={6} d={3.8} y={0.34} />
+      <Pilasters count={4} span={3.6} h={5.4} z={1.94} y={0.4} />
+      <Cornice w={4.8} d={4.2} y={6.5} />
+      <ClockFace y={5.1} z={1.96} />
+      <HippedRoof w={4.6} h={2.3} y={6.62} />
+      <mesh position={[0, 9.4, 0]} castShadow>
+        <coneGeometry args={[0.14, 1.2, 12]} />
+        <meshStandardMaterial color={PALETTE.roofDark} {...ROOFING} />
+      </mesh>
+      {/* arched entrance */}
+      <mesh position={[0, 1.25, 1.93]} castShadow>
+        <boxGeometry args={[1.5, 1.8, 0.16]} />
+        <meshStandardMaterial color={PALETTE.roofDark} roughness={0.7} metalness={0.1} />
+      </mesh>
+    </group>
+  );
+}
+
+/** Waseda — Okuma Auditorium: gabled hall with an offset clock campanile. */
+function OkumaTowerCampus(): React.JSX.Element {
+  return (
+    <group>
+      <Plinth w={11} d={7.4} />
+      <Mass w={6.8} h={3.5} d={4.3} x={1} y={0.34} color={PALETTE.stone} />
+      <Glazing w={6.4} d={4.36} y={2.2} x={1} />
+      <Cornice w={7.2} d={4.7} y={4.05} x={1} />
+      <HippedRoof w={6.8} h={1.8} y={4.16} x={1} color={PALETTE.roofDark} />
+
+      <Mass w={2.1} h={7.8} d={2.1} x={-3.5} y={0.34} color={PALETTE.stoneDark} />
+      <Cornice w={2.5} d={2.5} y={8.24} x={-3.5} />
+      <ClockFace y={6.9} z={1.09} r={0.27} />
+      <mesh position={[-3.5, 9.1, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
+        <coneGeometry args={[1.55, 1.8, 4, 1]} />
+        <meshStandardMaterial color={PALETTE.roofDark} {...ROOFING} />
+      </mesh>
+    </group>
+  );
+}
+
+/** Keio — Mita Library: brick range with an octagonal corner turret. */
+function BrickLibraryCampus(): React.JSX.Element {
+  return (
+    <group>
+      <Plinth w={11} d={7.4} />
+      <Mass w={6.6} h={3.7} d={4.4} x={1.3} y={0.34} color={PALETTE.brick} />
+      <Glazing w={6.2} d={4.46} y={2.3} x={1.3} />
+      <Cornice w={7} d={4.8} y={4.25} x={1.3} color={PALETTE.brickDark} />
+      <HippedRoof w={6.6} h={1.7} y={4.36} x={1.3} color={PALETTE.roofDark} />
+
+      <mesh position={[-3.1, 3.4, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[1.55, 1.6, 6.1, 8, 1]} />
+        <meshStandardMaterial color={PALETTE.brickDark} {...STONE} />
+      </mesh>
+      <mesh position={[-3.1, 6.6, 0]} castShadow>
+        <cylinderGeometry args={[1.78, 1.72, 0.24, 8]} />
+        <meshStandardMaterial color={PALETTE.stoneDark} {...STONE} />
+      </mesh>
+      <mesh position={[-3.1, 7.75, 0]} castShadow>
+        <coneGeometry args={[1.8, 2.1, 8, 1]} />
+        <meshStandardMaterial color={PALETTE.roof} {...ROOFING} />
+      </mesh>
+      <mesh position={[1.3, 1.3, 2.24]} castShadow>
+        <boxGeometry args={[1.4, 1.9, 0.16]} />
+        <meshStandardMaterial color={PALETTE.roofDark} roughness={0.7} metalness={0.1} />
+      </mesh>
+    </group>
+  );
+}
+
+/** Institute of Science Tokyo — paired research towers over a shared podium. */
+function GlassTwinCampus(): React.JSX.Element {
+  return (
+    <group>
+      <Plinth w={11} d={7.4} h={0.28} />
+      <Mass w={8.8} h={1.8} d={4.7} y={0.28} color={PALETTE.concrete} />
+      <Mass w={2.9} h={8.6} d={2.9} x={-2.2} z={-0.2} y={2.08} color={PALETTE.glass} material={GLASS} />
+      <Mass w={2.5} h={6.4} d={2.7} x={2.4} z={0.1} y={2.08} color={PALETTE.glassDark} material={GLASS} />
+      {/* floor plates read as horizontal rhythm without modelling storeys */}
+      {[3.3, 4.9, 6.5, 8.1, 9.7].map((y) => (
+        <mesh key={`a${y}`} position={[-2.2, y, -0.2]} castShadow>
+          <boxGeometry args={[3.02, 0.12, 3.02]} />
+          <meshStandardMaterial color={PALETTE.concrete} roughness={0.7} metalness={0.05} />
+        </mesh>
+      ))}
+      {[3.2, 4.8, 6.4].map((y) => (
+        <mesh key={`b${y}`} position={[2.4, y, 0.1]} castShadow>
+          <boxGeometry args={[2.62, 0.12, 2.82]} />
+          <meshStandardMaterial color={PALETTE.concrete} roughness={0.7} metalness={0.05} />
+        </mesh>
+      ))}
+      <mesh position={[-2.2, 11, -0.2]} castShadow>
+        <boxGeometry args={[1.2, 0.7, 1.2]} />
+        <meshStandardMaterial color={PALETTE.metal} roughness={0.45} metalness={0.6} />
+      </mesh>
+    </group>
+  );
+}
+
+/** Hitotsubashi — Kanematsu Auditorium: stone hall under a verdigris dome. */
+function DomedHallCampus(): React.JSX.Element {
+  return (
+    <group>
+      <Plinth w={11} d={7.6} />
+      <Mass w={7.9} h={3} d={4.9} y={0.34} color={PALETTE.stone} />
+      <Pilasters count={6} span={7} h={2.8} z={2.5} y={0.4} />
+      <Cornice w={8.4} d={5.3} y={3.45} />
+      <HippedRoof w={7.9} h={1.2} y={3.56} color={PALETTE.roof} />
+
+      <mesh position={[0, 4.6, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[1.9, 2.1, 1.4, 24, 1]} />
+        <meshStandardMaterial color={PALETTE.stoneDark} {...STONE} />
+      </mesh>
+      <mesh position={[0, 5.3, 0]} castShadow>
+        <sphereGeometry args={[1.9, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color={PALETTE.copper} roughness={0.42} metalness={0.4} />
+      </mesh>
+      <mesh position={[0, 7.35, 0]} castShadow>
+        <coneGeometry args={[0.18, 0.95, 12]} />
+        <meshStandardMaterial color={PALETTE.copper} roughness={0.42} metalness={0.4} />
+      </mesh>
+      {[-2.4, 0, 2.4].map((x) => (
+        <mesh key={x} position={[x, 1.3, 2.5]} castShadow>
+          <boxGeometry args={[1, 2, 0.14]} />
+          <meshStandardMaterial color={PALETTE.roofDark} roughness={0.7} metalness={0.1} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** Meiji — Liberty Tower: slender stepped high-rise. */
 function LibertyTowerCampus(): React.JSX.Element {
   return (
     <group>
-      <Base w={9} d={7} />
-      <Wing w={7} h={1.8} d={4.6} color={PALETTE.concrete} />
-      <Wing w={3.4} h={9.4} d={3.2} color={PALETTE.glass} />
-      <Wing w={2.6} h={11.4} d={2.5} color={PALETTE.glassDark} />
-      <Wing w={1.7} h={12.6} d={1.7} color={PALETTE.concrete} />
-      {[3, 4.6, 6.2, 7.8, 9.4].map((y) => (
-        <Band key={y} w={3.46} d={3.26} y={y} color={PALETTE.concrete} />
+      <Plinth w={9.6} d={7.4} h={0.28} />
+      <Mass w={7.2} h={2} d={4.8} y={0.28} color={PALETTE.concrete} />
+      <Mass w={3.5} h={9} d={3.3} y={2.28} color={PALETTE.glass} material={GLASS} />
+      <Mass w={2.7} h={11.2} d={2.6} y={2.28} color={PALETTE.glassDark} material={GLASS} />
+      <Mass w={1.8} h={12.6} d={1.8} y={2.28} color={PALETTE.concrete} />
+      {[3.6, 5.2, 6.8, 8.4, 10].map((y) => (
+        <mesh key={y} position={[0, y, 0]} castShadow>
+          <boxGeometry args={[3.62, 0.13, 3.42]} />
+          <meshStandardMaterial color={PALETTE.concrete} roughness={0.7} metalness={0.05} />
+        </mesh>
       ))}
-      <mesh position={[0, 13.4, 0]}>
-        <cylinderGeometry args={[0.07, 0.07, 1.6, 6]} />
-        <meshStandardMaterial color={PALETTE.roofDark} />
+      <mesh position={[0, 15.6, 0]} castShadow>
+        <cylinderGeometry args={[0.06, 0.06, 1.8, 8]} />
+        <meshStandardMaterial color={PALETTE.metal} roughness={0.35} metalness={0.7} />
       </mesh>
     </group>
   );
@@ -263,10 +359,10 @@ export function CampusBuilding({ model }: { model: CampusModel }): React.JSX.Ele
 
 /** Tallest point of each model, used to place labels clear of the roofline. */
 export const MODEL_HEIGHT: Record<CampusModel, number> = {
-  'clock-tower': 9.3,
-  'okuma-tower': 9,
-  'brick-library': 8.7,
-  'glass-twin': 9.4,
-  'domed-hall': 7.6,
-  'liberty-tower': 15,
+  'clock-tower': 10,
+  'okuma-tower': 10,
+  'brick-library': 9.9,
+  'glass-twin': 11.4,
+  'domed-hall': 8.3,
+  'liberty-tower': 16.5,
 };
