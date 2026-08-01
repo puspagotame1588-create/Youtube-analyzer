@@ -102,7 +102,10 @@ export function GatewayHero(): React.JSX.Element {
               {t('secondaryCta')}
             </Link>
           </div>
-          <p className="mt-6 text-sm text-ink-soft">{t('heroNote')}</p>
+          <div className="mt-6 space-y-1">
+            <p className="text-sm text-ink-soft">{t('heroTrust')}</p>
+            <p className="text-xs text-ink-soft">{t('heroNote')}</p>
+          </div>
         </motion.div>
       </div>
     </section>
