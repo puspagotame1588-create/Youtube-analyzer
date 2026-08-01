@@ -49,7 +49,7 @@ export function GatewayHero(): React.JSX.Element {
   };
 
   return (
-    <section className="relative min-h-[88svh] overflow-hidden">
+    <section className="relative overflow-hidden" aria-labelledby="hero-title">
       <div className="absolute inset-0">
         <SceneCanvas
           label={
@@ -66,36 +66,43 @@ export function GatewayHero(): React.JSX.Element {
         {tier !== 'C' && <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-base" />}
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[88svh] max-w-7xl flex-col items-center justify-end px-4 pb-12 text-center sm:pb-16">
+      {/* Content is vertically centred inside a content-sized hero: the scene sits
+          behind it rather than pushing it to the fold, so there is no dead space
+          above the headline on any viewport. */}
+      <div className="relative z-10 mx-auto flex min-h-[34rem] max-w-7xl flex-col items-center justify-center px-4 py-16 text-center sm:min-h-[38rem] sm:py-20">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: 'easeOut' }}
-          className="cv-glass rounded-panel px-6 py-8 shadow-panel sm:px-12 sm:py-10"
+          className="cv-glass w-full max-w-3xl rounded-panel px-6 py-10 shadow-panel sm:px-12 sm:py-12"
         >
-          <p className="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-violet2">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-violet2 sm:text-sm">
             CareerVerse
           </p>
-          <h1 className="max-w-2xl text-balance text-3xl font-bold leading-tight tracking-tight text-ink sm:text-5xl">
+          <h1
+            id="hero-title"
+            className="text-balance text-[2rem] font-bold leading-[1.15] tracking-tight text-ink sm:text-5xl lg:text-[3.5rem]"
+          >
             {t('tagline')}
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-pretty text-base text-ink-soft sm:text-lg">
+          <p className="mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-ink-soft sm:text-lg">
             {t('sub')}
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href="/create"
-              className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-gradient-to-r from-cyan2 to-violet2 px-8 py-3 text-base font-semibold text-white shadow-glow transition-all hover:brightness-110"
+              className="inline-flex min-h-[48px] w-full max-w-xs items-center justify-center rounded-full bg-gradient-to-r from-cyan2 to-violet2 px-8 py-3 text-base font-semibold text-white shadow-glow transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:w-auto"
             >
               {t('cta')}
             </Link>
             <Link
-              href="/schools"
-              className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-ink/10 bg-white/70 px-8 py-3 text-base font-semibold text-ink transition-all hover:border-cyan2/50"
+              href="/universe"
+              className="inline-flex min-h-[48px] w-full max-w-xs items-center justify-center rounded-full border border-ink/10 bg-white/70 px-8 py-3 text-base font-semibold text-ink transition-all hover:border-cyan2/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan2 sm:w-auto"
             >
               {t('secondaryCta')}
             </Link>
           </div>
+          <p className="mt-6 text-sm text-ink-soft">{t('heroNote')}</p>
         </motion.div>
       </div>
     </section>
