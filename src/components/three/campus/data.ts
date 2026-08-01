@@ -136,7 +136,7 @@ export const PALETTE = {
   foliage: '#7c8f76',
   foliageDeep: '#68785f',
   ground: '#bcbbb4',
-  lawn: '#93a486',
+  lawn: '#8aa279',
   paving: '#c6c4be',
   road: '#9d9e9d',
   plaza: '#cfccc4',
