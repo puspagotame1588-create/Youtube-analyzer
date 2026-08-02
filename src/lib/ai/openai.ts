@@ -39,6 +39,10 @@ export class OpenAIProvider implements AIProvider {
     const start = Date.now();
     const schema = schemaFor(task);
     const format = jsonSchemaFor(task);
+    // Distinguishes "the call never succeeded" from "the model answered badly".
+    // Both messages are fixed strings — an upstream error can quote request
+    // headers, so provider error text is never propagated.
+    let transportFailed = false;
 
     for (let attempt = 0; attempt < 2; attempt++) {
       let text: string;
@@ -61,8 +65,10 @@ export class OpenAIProvider implements AIProvider {
       } catch {
         // Network, auth or quota failure. The message is deliberately not
         // propagated: provider error text can echo request headers.
+        transportFailed = true;
         continue;
       }
+      transportFailed = false;
 
       try {
         return {
@@ -76,6 +82,12 @@ export class OpenAIProvider implements AIProvider {
         // Malformed or schema-violating output: retry once, then fail.
       }
     }
-    throw new Error('AI output failed validation');
+    // Callers turn either failure into a refusal; the distinction exists so a
+    // misconfigured key is diagnosable without inspecting the key.
+    throw new Error(
+      transportFailed
+        ? 'AI provider request failed (check OPENAI_API_KEY, model access and network)'
+        : 'AI output failed validation',
+    );
   }
 }

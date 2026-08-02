@@ -221,9 +221,20 @@ describe('secrets stay out of responses and errors', () => {
         }),
       },
     };
-    await expect(p.run(chatTask())).rejects.toThrow('AI output failed validation');
+    // A transport failure is named as such so a bad key is diagnosable, but the
+    // upstream message — which quoted the key — is never propagated.
+    await expect(p.run(chatTask())).rejects.toThrow('AI provider request failed');
     await p.run(chatTask()).catch((e: unknown) => {
       expect(String(e)).not.toContain(FAKE_KEY);
+      expect(String(e)).not.toContain('Bearer');
+      expect(String(e)).not.toContain('401');
     });
+  });
+
+  it('distinguishes a transport failure from a bad model response', async () => {
+    // Reaching the model and getting garbage is a different problem from never
+    // reaching it; the two were indistinguishable when setting up a live run.
+    const bad = providerReturning('not json at all');
+    await expect(bad.run(chatTask())).rejects.toThrow('AI output failed validation');
   });
 });

@@ -101,8 +101,22 @@ Real API calls cost money, so they are excluded from `npm test` and need two opt
 AI_LIVE_TEST=1 OPENAI_API_KEY=... npm run test:live
 ```
 
+Or put both in `.env.local` (gitignored) — `vitest.live.config.ts` loads that file, so the
+key never enters shell history or a process listing. Real environment variables win over
+the file.
+
+```
+AI_LIVE_TEST=1
+OPENAI_API_KEY=...
+```
+
 Without both the flag and a key, every case is **skipped** and the run prints
 `the live provider path was NOT verified by this run`. A skipped run is not evidence.
+
+Failures name their cause: `AI provider request failed` means the call never succeeded
+(key, model access or network); `AI output failed validation` means the model answered but
+the response did not satisfy the schema. Neither message ever contains the key — the
+upstream error text is dropped, because it can quote the `Authorization` header.
 
 ## Known limitations
 
