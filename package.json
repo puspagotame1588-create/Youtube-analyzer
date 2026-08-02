@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "seed": "tsx scripts/seed.ts",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "build:claims": "node scripts/build-scholarship-claims.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",

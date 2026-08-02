@@ -18,6 +18,7 @@ import type {
   SourceRecord,
 } from './types';
 import { MEXT_REGISTRY_SOURCE } from './universities';
+import { SCHOLARSHIP_VERIFICATION_SOURCE } from './scholarships';
 
 const REVIEWED = '2026-06-15';
 const REVIEW_DUE = '2026-12-15';
@@ -694,7 +695,11 @@ export const jobListings: JobListing[] = [
  * report can cite a real official source. Registry universities carry no
  * demonstration figures — their eligibility/cost fields stay "not verified".
  */
-export const allSources: SourceRecord[] = [...sources, MEXT_REGISTRY_SOURCE];
+export const allSources: SourceRecord[] = [
+  ...sources,
+  MEXT_REGISTRY_SOURCE,
+  SCHOLARSHIP_VERIFICATION_SOURCE,
+];
 
 export const dataset: Dataset = {
   sources: allSources,
