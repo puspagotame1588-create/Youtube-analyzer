@@ -106,6 +106,25 @@ function analyse(query: string): { words: string[]; runs: string[]; grams: strin
   return { words, runs: [...new Set(runs)], grams: [...new Set(grams)] };
 }
 
+/**
+ * Word sets per claim, so a Latin token is matched on word boundaries rather
+ * than as a substring. Naive substring matching silently retrieves nonsense:
+ * the token "rent" from an apartment question matches inside "diffe(rent)",
+ * which is enough to make an off-topic query look supported.
+ */
+const WORDS = new WeakMap<ScholarshipClaim, { statement: Set<string>; excerpt: Set<string> }>();
+
+function wordsOf(claim: ScholarshipClaim): { statement: Set<string>; excerpt: Set<string> } {
+  let w = WORDS.get(claim);
+  if (!w) {
+    const split = (t: string): Set<string> =>
+      new Set(norm(t).split(/[^a-z0-9]+/).filter(Boolean));
+    w = { statement: split(claim.statement), excerpt: split(claim.excerpt) };
+    WORDS.set(claim, w);
+  }
+  return w;
+}
+
 function scoreClaim(claim: ScholarshipClaim, query: string): number {
   const q = norm(query.trim());
   if (q === '') return 1; // empty query: everything is equally eligible
@@ -120,11 +139,14 @@ function scoreClaim(claim: ScholarshipClaim, query: string): number {
     `${claim.program} ${PROGRAM_LABELS[claim.program]?.en ?? ''} ${PROGRAM_LABELS[claim.program]?.ja ?? ''}`,
   );
 
+  const claimWords = wordsOf(claim);
+  const labelWords = new Set(label.split(/[^a-z0-9]+/).filter(Boolean));
+
   let score = 0;
   for (const w of words) {
-    if (label.includes(w)) score += 5;
-    if (statement.includes(w)) score += 3;
-    if (excerpt.includes(w)) score += 1;
+    if (labelWords.has(w)) score += 5;
+    if (claimWords.statement.has(w)) score += 3;
+    if (claimWords.excerpt.has(w)) score += 1;
   }
   // Whole-phrase matches dominate; trigram+ matches only refine the ranking.
   for (const r of runs) {

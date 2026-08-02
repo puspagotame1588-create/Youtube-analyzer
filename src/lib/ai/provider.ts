@@ -25,6 +25,35 @@ export const aiTaskSchema = z.discriminatedUnion('task', [
     goalText: z.string().min(1).max(500),
   }),
   z.object({
+    task: z.literal('scholarship-chat'),
+    locale: z.enum(['en', 'ja']),
+    message: z.string().min(1).max(1000),
+    /** Prior turns, for pronoun/follow-up resolution only — never a fact source. */
+    conversation: z
+      .array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().max(4000) }))
+      .max(10)
+      .optional(),
+    /**
+     * The ONLY factual material the model may use. Assembled server-side by
+     * buildScholarshipContext() from the audited corpus.
+     */
+    context: z.object({
+      programmes: z.array(
+        z.object({
+          key: z.string(),
+          labelEn: z.string(),
+          labelJa: z.string(),
+          confirmed: z.array(
+            z.object({ id: z.string(), statement: z.string(), excerpt: z.string() }),
+          ),
+          unpublished: z.array(
+            z.object({ id: z.string(), statement: z.string(), excerpt: z.string() }),
+          ),
+        }),
+      ),
+    }),
+  }),
+  z.object({
     task: z.literal('support-triage'),
     locale: z.enum(['en', 'ja']),
     message: z.string().min(1).max(2000),
@@ -42,6 +71,25 @@ export const intentResultSchema = z.object({
 });
 
 export const explainResultSchema = z.object({ explanation: z.string().min(1).max(4000) });
+
+/**
+ * The scholarship bot's reply. Deliberately id-only: the model never emits a
+ * URL or an excerpt, so it cannot fabricate a citation. Ids are resolved
+ * server-side against the exact context the model was handed.
+ */
+export const scholarshipChatResultSchema = z.object({
+  refused: z.boolean().optional(),
+  sections: z
+    .array(
+      z.object({
+        programme: z.string().max(40),
+        answer: z.string().min(1).max(1500),
+        claimIds: z.array(z.string().max(12)).max(12),
+        unpublishedIds: z.array(z.string().max(12)).max(12).optional(),
+      }),
+    )
+    .max(3),
+});
 
 export const triageResultSchema = z.object({
   category: z.enum(['onboarding', 'schools', 'careers', 'documents', 'technical', 'feedback', 'legal-referral', 'other']),

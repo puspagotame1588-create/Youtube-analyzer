@@ -7,6 +7,7 @@ import { dataset } from '@/lib/data/seed';
 import { realScholarships } from '@/lib/data/real';
 import { Badge } from '@/components/ui/Badge';
 import { yen } from '@/lib/i18n/bi';
+import { ScholarshipChat } from '@/components/scholarships/ScholarshipChat';
 
 export default function ScholarshipsPage(): React.JSX.Element {
   const locale = useLocale();
@@ -20,6 +21,8 @@ export default function ScholarshipsPage(): React.JSX.Element {
           ? 'ベータ版の奨学金データはデモです。通知はプロフィール情報が十分な場合にのみ行われます。'
           : 'Beta scholarship data is demonstrational. Match alerts are only sent when your profile has enough information.'}
       </p>
+
+      <ScholarshipChat />
 
       {/* Real programs — official links checked */}
       <section className="mt-6 rounded-panel border border-emerald2/25 bg-emerald2/5 p-5" aria-labelledby="real-schol-title">

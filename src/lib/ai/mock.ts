@@ -6,6 +6,7 @@
 import {
   explainResultSchema,
   intentResultSchema,
+  scholarshipChatResultSchema,
   triageResultSchema,
   type AIProvider,
   type AiResponse,
@@ -63,6 +64,45 @@ export class MockAIProvider implements AIProvider {
             ? `「${task.routeName}」の評価で最も強かった要素は「${top?.factor ?? ''}」（${top?.score ?? 0}/100）です。${top?.reason ?? ''} 一方、最も弱かった要素は「${weak?.factor ?? ''}」（${weak?.score ?? 0}/100）でした。${weak?.reason ?? ''} 実現性は「${task.feasibility}」、根拠の強さは「${task.evidence}」です。${task.closeCall ? '上位ルートとの差が小さいため、どちらかが明確に優れているとは言えません。' : ''}スコアは検証済みデータと明示的なルールから計算されており、AIが数値を作ることはありません。`
             : `The strongest factor for "${task.routeName}" was ${top?.factor ?? ''} (${top?.score ?? 0}/100). ${top?.reason ?? ''} The weakest factor was ${weak?.factor ?? ''} (${weak?.score ?? 0}/100). ${weak?.reason ?? ''} Feasibility is ${task.feasibility} and evidence strength is ${task.evidence}. ${task.closeCall ? 'The top routes are close, so neither is clearly superior. ' : ''}Scores come from verified data and explicit rules — the AI never invents the numbers.`;
         return done(explainResultSchema.parse({ explanation }));
+      }
+      case 'scholarship-chat': {
+        // Deterministic and strictly grounded: the mock quotes the audited
+        // statements it was handed and cites their ids. It never paraphrases
+        // beyond the retrieved text and never invents a claim id, so the
+        // development path exercises the same resolution and citation rules as
+        // the live path rather than a laxer one.
+        const ja = task.locale === 'ja';
+        const usable = task.context.programmes.filter(
+          (p) => p.confirmed.length > 0 || p.unpublished.length > 0,
+        );
+        if (usable.length === 0) {
+          return done(scholarshipChatResultSchema.parse({ refused: true, sections: [] }));
+        }
+        const sections = usable.slice(0, 3).map((p) => {
+          const lines = p.confirmed.map((c) => `・${c.statement}（${c.id}）`);
+          const gaps = p.unpublished.map((c) => `・${c.statement}（${c.id}）`);
+          const body = [
+            ja ? `${p.labelJa}について、検証済みの記載は次のとおりです：` : `Verified statements on record for ${p.labelEn}:`,
+            ...lines,
+            gaps.length
+              ? ja
+                ? `公式ソースに記載がない項目（事実として扱えません）：\n${gaps.join('\n')}`
+                : `Not published by any official source — cannot be treated as fact:\n${gaps.join('\n')}`
+              : '',
+            ja
+              ? '出願前に必ず公式ページで最新情報をご確認ください。'
+              : 'Always confirm the latest details on the official page before applying.',
+          ]
+            .filter(Boolean)
+            .join('\n');
+          return {
+            programme: p.key,
+            answer: body.slice(0, 1500),
+            claimIds: p.confirmed.map((c) => c.id).slice(0, 12),
+            unpublishedIds: p.unpublished.map((c) => c.id).slice(0, 12),
+          };
+        });
+        return done(scholarshipChatResultSchema.parse({ refused: false, sections }));
       }
       case 'support-triage': {
         const legal = /visa|permanent|residence|immigration|在留|永住|ビザ|入管/i.test(task.message);
