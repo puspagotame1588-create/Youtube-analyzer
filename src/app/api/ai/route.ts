@@ -5,21 +5,13 @@
  */
 
 import { NextResponse, type NextRequest } from 'next/server';
-import { aiTaskSchema, type AIProvider } from '@/lib/ai/provider';
+import { aiTaskSchema } from '@/lib/ai/provider';
 import { MockAIProvider } from '@/lib/ai/mock';
+import { getProvider } from '@/lib/ai/select';
 import { safeRateLimit } from '@/lib/storage/kv';
 import { clientIp } from '@/lib/net/ip';
 
 export const runtime = 'nodejs';
-
-async function getProvider(): Promise<{ provider: AIProvider; live: boolean }> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (key) {
-    const { AnthropicProvider } = await import('@/lib/ai/anthropic');
-    return { provider: new AnthropicProvider(key), live: true };
-  }
-  return { provider: new MockAIProvider(), live: false };
-}
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const ip = clientIp(request);

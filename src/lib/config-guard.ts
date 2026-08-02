@@ -53,8 +53,8 @@ export interface ConfigStatus {
   adminReason?: SecretCheck['reason'];
   kvMode: 'upstash' | 'supabase' | 'memory';
   supportDelivery: 'webhook' | 'resend' | 'postmark' | 'none';
-  /** whether a live AI key is present — never reveals the key itself */
-  aiProvider: 'anthropic-configured' | 'not-configured';
+  /** which live AI provider is configured — never reveals the key itself */
+  aiProvider: 'openai-configured' | 'anthropic-configured' | 'not-configured';
   /** true when any production requirement is unmet (deployment is developer mode) */
   developerMode: boolean;
   issues: string[];
@@ -98,12 +98,15 @@ export function getConfigStatus(): ConfigStatus {
     issues.push('No support delivery provider configured — tickets cannot be delivered to a team inbox.');
   }
 
-  // Presence check only — the key's value is never read here or exposed anywhere.
-  const aiProvider = process.env.ANTHROPIC_API_KEY?.trim()
-    ? 'anthropic-configured'
-    : 'not-configured';
+  // Presence check only — no key value is read here or exposed anywhere. Order
+  // matches selectProvider() in lib/ai/select, so this reports who will answer.
+  const aiProvider = process.env.OPENAI_API_KEY?.trim()
+    ? 'openai-configured'
+    : process.env.ANTHROPIC_API_KEY?.trim()
+      ? 'anthropic-configured'
+      : 'not-configured';
   if (aiProvider === 'not-configured') {
-    issues.push('No ANTHROPIC_API_KEY configured — AI features use the labeled mock provider, not a live model.');
+    issues.push('No OPENAI_API_KEY or ANTHROPIC_API_KEY configured — AI features use the labeled mock provider, not a live model.');
   }
 
   return {

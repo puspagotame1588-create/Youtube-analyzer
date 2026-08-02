@@ -1,9 +1,11 @@
 /**
  * AI provider interface. Models are called only server-side (/api/ai,
- * /api/chat/scholarships). Without ANTHROPIC_API_KEY the MockAIProvider
- * answers, and every mock response is tagged provider:'mock' so the UI can
- * label development mode — mock output is never presented as a live model
- * response.
+ * /api/chat/scholarships). Provider choice is resolved by `selectProvider()`
+ * in ./select: OpenAI when OPENAI_API_KEY is present, Anthropic when only
+ * ANTHROPIC_API_KEY is, and the MockAIProvider only when no real key exists or
+ * a test selects it explicitly. Every mock response is tagged provider:'mock'
+ * so the UI can label development mode — mock output is never presented as a
+ * live model response.
  */
 
 import { z } from 'zod';
@@ -117,7 +119,7 @@ export const triageResultSchema = z.object({
   reply: z.string().max(2000),
 });
 
-export type ProviderName = 'anthropic' | 'mock';
+export type ProviderName = 'openai' | 'anthropic' | 'mock';
 
 export interface AiResponse<T = unknown> {
   provider: ProviderName;

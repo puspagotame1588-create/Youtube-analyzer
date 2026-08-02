@@ -29,6 +29,8 @@ export default defineConfig({
       // the fail-closed gate and admin login are exercised end to end.
       INVITE_CODE_HASHES: '80925b7e2edafa2ef1994d29b620cf533b41f703b24b609d089bb01b69187a80',
       ADMIN_ACCESS_CODE: 'cv-e2e-Admin-Secret-2026',
+      // Deterministic, offline AI: browser tests must never make a paid call.
+      AI_PROVIDER: 'mock',
     },
   },
 });

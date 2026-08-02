@@ -13,9 +13,8 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import type { AIProvider } from '@/lib/ai/provider';
 import { scholarshipChatResultSchema } from '@/lib/ai/provider';
-import { MockAIProvider } from '@/lib/ai/mock';
+import { getProvider } from '@/lib/ai/select';
 import { safeRateLimit } from '@/lib/storage/kv';
 import { clientIp } from '@/lib/net/ip';
 import {
@@ -34,15 +33,6 @@ const requestSchema = z.object({
     .max(10)
     .optional(),
 });
-
-async function getProvider(): Promise<{ provider: AIProvider; live: boolean }> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (key) {
-    const { AnthropicProvider } = await import('@/lib/ai/anthropic');
-    return { provider: new AnthropicProvider(key), live: true };
-  }
-  return { provider: new MockAIProvider(), live: false };
-}
 
 const refusal = (
   reason: ResolvedAnswer['refusalReason'],
@@ -90,6 +80,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const { provider, live } = await getProvider();
+  // `live` and the provider name are the only provider facts that leave this
+  // route. The API key is never read here and never appears in a response.
 
   try {
     const result = await provider.run({
