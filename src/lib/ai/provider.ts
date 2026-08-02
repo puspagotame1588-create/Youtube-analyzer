@@ -1,8 +1,9 @@
 /**
- * AI provider interface. Claude is called only server-side (/api/ai).
- * Without ANTHROPIC_API_KEY the MockAIProvider answers, and every mock
- * response is tagged provider:'mock' so the UI can label development mode —
- * mock output is never presented as a live model response.
+ * AI provider interface. Models are called only server-side (/api/ai,
+ * /api/chat/scholarships). Without ANTHROPIC_API_KEY the MockAIProvider
+ * answers, and every mock response is tagged provider:'mock' so the UI can
+ * label development mode — mock output is never presented as a live model
+ * response.
  */
 
 import { z } from 'zod';
@@ -73,9 +74,28 @@ export const intentResultSchema = z.object({
 export const explainResultSchema = z.object({ explanation: z.string().min(1).max(4000) });
 
 /**
- * The scholarship bot's reply. Deliberately id-only: the model never emits a
- * URL or an excerpt, so it cannot fabricate a citation. Ids are resolved
- * server-side against the exact context the model was handed.
+ * Non-factual connective phrases the model may choose between. This is the
+ * model's ENTIRE control over wording. Each key maps, server-side, to a fixed
+ * locale-specific sentence in `./scholarship-answer`; none of them can carry an
+ * amount, a date, an eligibility rule, a deadline, a status or a programme
+ * name, because the model supplies the key and never the sentence.
+ */
+export const SCHOLARSHIP_LEADS = ['direct', 'partial', 'related-only', 'conflict'] as const;
+export type ScholarshipLead = (typeof SCHOLARSHIP_LEADS)[number];
+
+/** Structured limits, applied per section and per claim — never a character cut. */
+export const MAX_CLAIM_IDS_PER_SECTION = 8;
+export const MAX_SECTIONS_PER_ANSWER = 3;
+
+/**
+ * The scholarship bot's reply.
+ *
+ * There is no free-text field. The model selects, groups and orders claim ids
+ * and picks one connective key; every word the user is shown is then composed
+ * server-side from the audited corpus. A model cannot state a wrong amount or a
+ * wrong date here because this schema gives it nowhere to write one — and zod
+ * strips unknown keys, so a model that emits an `answer` string anyway has it
+ * discarded before the resolver ever runs.
  */
 export const scholarshipChatResultSchema = z.object({
   refused: z.boolean().optional(),
@@ -83,12 +103,12 @@ export const scholarshipChatResultSchema = z.object({
     .array(
       z.object({
         programme: z.string().max(40),
-        answer: z.string().min(1).max(1500),
-        claimIds: z.array(z.string().max(12)).max(12),
-        unpublishedIds: z.array(z.string().max(12)).max(12).optional(),
+        lead: z.enum(SCHOLARSHIP_LEADS).optional(),
+        claimIds: z.array(z.string().max(12)).max(MAX_CLAIM_IDS_PER_SECTION),
+        unpublishedIds: z.array(z.string().max(12)).max(MAX_CLAIM_IDS_PER_SECTION).optional(),
       }),
     )
-    .max(3),
+    .max(MAX_SECTIONS_PER_ANSWER),
 });
 
 export const triageResultSchema = z.object({
@@ -97,8 +117,10 @@ export const triageResultSchema = z.object({
   reply: z.string().max(2000),
 });
 
+export type ProviderName = 'anthropic' | 'mock';
+
 export interface AiResponse<T = unknown> {
-  provider: 'anthropic' | 'mock';
+  provider: ProviderName;
   model: string;
   promptVersion: string;
   data: T;

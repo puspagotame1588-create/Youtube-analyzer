@@ -85,9 +85,56 @@ const norm = (s: string): string => s.normalize('NFKC').toLowerCase();
  * so a bigram match is close to meaningless. 在留資格 (residence status) and
  * 大学入学資格 (university-entry qualification) share 資格, and ranking on that
  * shared fragment surfaces claims about an entirely different requirement.
+ *
+ * Runs are cut at hiragana as well as at Latin and punctuation. Hiragana is
+ * Japan's function-word script - particles, inflections, politeness - and
+ * treating a whole sentence as one run makes those grammatical tails rank like
+ * keywords. A question about renting an apartment in Osaka then matches a
+ * scholarship claim through the polite request ending alone, which is the same
+ * failure as matching the English token "rent" inside "different": grammar
+ * masquerading as topic. Cutting at hiragana leaves only the content words, and
+ * an apartment question correctly retrieves nothing.
  */
 const MIN_CJK_GRAM = 3;
-const CJK_RUN = /[\u3000-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]+/g;
+/** A single kanji matches far too much text to be evidence of topic. */
+const MIN_CJK_RUN = 2;
+/** Content scripts only: kanji, katakana and the iteration mark. Hiragana separates. */
+const CJK_RUN = /[\u3005\u30a0-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]+/g;
+
+/**
+ * Question intent → corpus vocabulary.
+ *
+ * The corpus was audited in English, so a Japanese question and an English
+ * paraphrase both fail on pure lexical overlap: "How much is the JASSO Honors
+ * Scholarship?" and 「JASSO学習奨励費の金額は？」 share no token with the claim
+ * that says "Amount is JPY 48,000 monthly...", and the amount claim ranks tenth
+ * — outside the eight-claim window. The user then reads eligibility criteria in
+ * answer to a question about money. Every word of it is true and cited, which
+ * makes it a relevance failure rather than a correctness one, but it is still
+ * the wrong answer.
+ *
+ * Expansion only changes which audited claims are retrieved and in what order.
+ * It cannot introduce a fact: the triggers are question phrasings and the
+ * expansions are words that already appear in the corpus. Expanded tokens score
+ * below tokens the user actually typed, so they break ties rather than
+ * overriding a direct match.
+ */
+const INTENT_EXPANSIONS: Array<{ trigger: RegExp; tokens: string[] }> = [
+  { trigger: /how much|amount|stipend|monthly|金額|いくら|月額|支給額/i, tokens: ['amount', 'jpy', 'monthly'] },
+  { trigger: /deadline|due date|closing date|締切|締め切り|応募期間|申請期限/i, tokens: ['deadline', 'application', 'period'] },
+  { trigger: /how long|duration|how many years|期間|年間/i, tokens: ['duration', 'months', 'year'] },
+  { trigger: /eligib|qualify|who can apply|requirement|条件|要件|対象者/i, tokens: ['eligible', 'must', 'requirement'] },
+  { trigger: /language|jlpt|eju|cefr|語学|日本語能力|英語力/i, tokens: ['japanese', 'jlpt', 'eju', 'cefr', 'english'] },
+  { trigger: /document|paperwork|必要書類|提出書類/i, tokens: ['document', 'submit', 'form'] },
+  { trigger: /how (?:do|can) i apply|application route|how to apply|申請方法|応募方法|出願方法/i, tokens: ['apply', 'application', 'institution'] },
+  { trigger: /renew|extend|継続|更新/i, tokens: ['renewal', 'continue', 'extension'] },
+];
+
+/** Corpus vocabulary implied by the question's intent. Never user-supplied text. */
+function expandIntent(query: string): string[] {
+  const hits = INTENT_EXPANSIONS.filter((e) => e.trigger.test(query)).flatMap((e) => e.tokens);
+  return [...new Set(hits)];
+}
 
 function analyse(query: string): { words: string[]; runs: string[]; grams: string[] } {
   const q = norm(query);
@@ -98,6 +145,7 @@ function analyse(query: string): { words: string[]; runs: string[]; grams: strin
   const runs: string[] = [];
   const grams: string[] = [];
   for (const run of q.match(CJK_RUN) ?? []) {
+    if (run.length < MIN_CJK_RUN) continue;
     runs.push(run);
     for (let n = MIN_CJK_GRAM; n < run.length; n++) {
       for (let i = 0; i + n <= run.length; i++) grams.push(run.slice(i, i + n));
@@ -148,6 +196,12 @@ function scoreClaim(claim: ScholarshipClaim, query: string): number {
     if (claimWords.statement.has(w)) score += 3;
     if (claimWords.excerpt.has(w)) score += 1;
   }
+  // Intent vocabulary ranks below anything the user actually typed.
+  for (const w of expandIntent(query)) {
+    if (words.includes(w)) continue;
+    if (claimWords.statement.has(w)) score += 2;
+    if (claimWords.excerpt.has(w)) score += 1;
+  }
   // Whole-phrase matches dominate; trigram+ matches only refine the ranking.
   for (const r of runs) {
     if (excerpt.includes(r)) score += 8;
@@ -176,6 +230,17 @@ export interface ScholarshipQueryOptions {
 const CONFIRMED: ReadonlySet<ClaimVerdict> = new Set<ClaimVerdict>(['PASS', 'MISMATCH']);
 
 /**
+ * Relevance floor. A score of 1 is exactly one weak signal: a single word that
+ * appears only in a supporting excerpt, never in the statement and never in the
+ * programme name — an incidental mention. "What is the best ramen in Tokyo"
+ * scored 1 against a claim whose excerpt happens to name Tokyo, which was
+ * enough to make an off-corpus question look supported and produce a page of
+ * true but irrelevant scholarship facts. Two signals, or one strong one, is the
+ * minimum for treating a question as in scope; below that, refuse.
+ */
+const MIN_SCORE = 2;
+
+/**
  * Retrieval entry point. Returns confirmed claims and unconfirmable ones in
  * separate arrays, together with each program's audit gate, the verification
  * date and the audit's production decision — so a caller (or the AI explanation
@@ -194,7 +259,7 @@ export function retrieveScholarshipClaims(
 
   const ranked = pool
     .map((claim) => ({ claim, score: scoreClaim(claim, query) }))
-    .filter((r) => r.score > 0)
+    .filter((r) => r.score >= MIN_SCORE)
     .sort((a, b) => b.score - a.score || a.claim.id.localeCompare(b.claim.id));
 
   const claims = ranked

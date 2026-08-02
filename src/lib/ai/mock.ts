@@ -8,6 +8,8 @@ import {
   intentResultSchema,
   scholarshipChatResultSchema,
   triageResultSchema,
+  MAX_CLAIM_IDS_PER_SECTION,
+  MAX_SECTIONS_PER_ANSWER,
   type AIProvider,
   type AiResponse,
   type AiTask,
@@ -66,42 +68,25 @@ export class MockAIProvider implements AIProvider {
         return done(explainResultSchema.parse({ explanation }));
       }
       case 'scholarship-chat': {
-        // Deterministic and strictly grounded: the mock quotes the audited
-        // statements it was handed and cites their ids. It never paraphrases
-        // beyond the retrieved text and never invents a claim id, so the
-        // development path exercises the same resolution and citation rules as
-        // the live path rather than a laxer one.
-        const ja = task.locale === 'ja';
+        // Deterministic and strictly grounded: the mock selects ids from the
+        // claims it was handed and nothing else. Like every other provider it
+        // has no way to author prose — the answer text is composed server-side
+        // from those ids — so the development path exercises exactly the same
+        // grounding rules as the live path rather than a laxer one.
         const usable = task.context.programmes.filter(
           (p) => p.confirmed.length > 0 || p.unpublished.length > 0,
         );
         if (usable.length === 0) {
           return done(scholarshipChatResultSchema.parse({ refused: true, sections: [] }));
         }
-        const sections = usable.slice(0, 3).map((p) => {
-          const lines = p.confirmed.map((c) => `・${c.statement}（${c.id}）`);
-          const gaps = p.unpublished.map((c) => `・${c.statement}（${c.id}）`);
-          const body = [
-            ja ? `${p.labelJa}について、検証済みの記載は次のとおりです：` : `Verified statements on record for ${p.labelEn}:`,
-            ...lines,
-            gaps.length
-              ? ja
-                ? `公式ソースに記載がない項目（事実として扱えません）：\n${gaps.join('\n')}`
-                : `Not published by any official source — cannot be treated as fact:\n${gaps.join('\n')}`
-              : '',
-            ja
-              ? '出願前に必ず公式ページで最新情報をご確認ください。'
-              : 'Always confirm the latest details on the official page before applying.',
-          ]
-            .filter(Boolean)
-            .join('\n');
-          return {
-            programme: p.key,
-            answer: body.slice(0, 1500),
-            claimIds: p.confirmed.map((c) => c.id).slice(0, 12),
-            unpublishedIds: p.unpublished.map((c) => c.id).slice(0, 12),
-          };
-        });
+        const sections = usable.slice(0, MAX_SECTIONS_PER_ANSWER).map((p) => ({
+          programme: p.key,
+          // 'direct' when the question is backed by confirmed claims, otherwise
+          // the honest connective: only unpublished fields were found.
+          lead: p.confirmed.length > 0 ? ('direct' as const) : ('partial' as const),
+          claimIds: p.confirmed.map((c) => c.id).slice(0, MAX_CLAIM_IDS_PER_SECTION),
+          unpublishedIds: p.unpublished.map((c) => c.id).slice(0, MAX_CLAIM_IDS_PER_SECTION),
+        }));
         return done(scholarshipChatResultSchema.parse({ refused: false, sections }));
       }
       case 'support-triage': {

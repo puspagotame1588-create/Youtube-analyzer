@@ -9,14 +9,24 @@
  *     grouped by programme, each tagged with its audit id.
  *
  *  2. resolveScholarshipAnswer() takes the model's reply back. The model emits
- *     claim IDs, never URLs or excerpts; this function resolves those ids
- *     against the context it was given. An id the model invented, or one that
- *     belongs to a different programme than the section citing it, is dropped.
- *     A section left with no supporting claim is dropped; if nothing survives,
- *     the answer is a refusal.
+ *     claim IDs and one connective key — never prose, URLs or excerpts. This
+ *     function resolves those ids against the context it was given. An id the
+ *     model invented, or one that belongs to a different programme than the
+ *     section citing it, is dropped. A section left with no supporting claim is
+ *     dropped; if nothing survives, the answer is a refusal.
  *
- * The consequence is that a fabricated citation is not "unlikely", it is
- * unrepresentable: URLs are only ever produced by this file, from the corpus.
+ *  3. The displayed text is then COMPOSED, not accepted: composeAnswer() builds
+ *     it from the audited statements behind the surviving ids plus fixed
+ *     server-owned connective text, and isComposedFromCorpus() re-derives it
+ *     and fails the section closed on any mismatch.
+ *
+ * Step 3 is the difference between "the model cited something real" and "what
+ * the user reads is real". Without it a model can attach a valid id from the
+ * correct programme to a sentence that contradicts it, and the valid citation
+ * makes the false sentence more convincing, not less. With it there is no field
+ * anywhere in the pipeline through which model-authored wording can reach the
+ * user, so a wrong amount or a wrong date is unrepresentable rather than
+ * unlikely — and the same is now true of the prose, not just the citations.
  */
 
 import {
@@ -26,9 +36,17 @@ import {
   type ScholarshipClaim,
   type ScholarshipGate,
 } from '@/lib/data/scholarships';
+import {
+  composeAnswer,
+  isComposedFromCorpus,
+  renderAnswerText,
+  type AnswerBlock,
+  type AnswerLocale,
+} from './scholarship-answer';
+import { MAX_CLAIM_IDS_PER_SECTION, type ScholarshipLead } from './provider';
 
 /** Max confirmed claims per programme sent to the model. Bounds prompt size. */
-const MAX_CONFIRMED_PER_PROGRAMME = 8;
+const MAX_CONFIRMED_PER_PROGRAMME = MAX_CLAIM_IDS_PER_SECTION;
 /** Max programmes in one answer. Beyond this the question is too broad. */
 const MAX_PROGRAMMES = 3;
 
@@ -137,12 +155,18 @@ export function buildScholarshipContext(message: string): ScholarshipChatContext
 
 // ── Resolving the model's reply back into cited facts ────────────────────────
 
-/** What the model is allowed to return. It emits ids, never URLs or excerpts. */
+/**
+ * What the model is allowed to return.
+ *
+ * Note what is absent: there is no text field. The model selects, groups and
+ * orders ids and picks one connective key from a closed enum. It has no way to
+ * express a factual sentence, so none of its wording needs to be trusted.
+ */
 export interface ModelSection {
   programme: string;
-  answer: string;
   claimIds: string[];
   unpublishedIds?: string[];
+  lead?: ScholarshipLead;
 }
 
 export interface ModelAnswer {
@@ -161,6 +185,9 @@ export interface ResolvedSection {
   programme: string;
   labelEn: string;
   labelJa: string;
+  /** Server-composed display units. Factual text is corpus text, verbatim. */
+  blocks: AnswerBlock[];
+  /** Flattened `blocks`, for clients that want one string. Same provenance. */
   answer: string;
   gate: ScholarshipGate | null;
   scopeWarning: string | null;
@@ -184,7 +211,8 @@ export interface ResolvedAnswer {
 }
 
 /**
- * Resolves ids to citations against the exact context the model was given.
+ * Resolves ids to citations against the exact context the model was given, then
+ * composes the answer text from those citations.
  *
  * A claim id is only honoured inside the section for the programme it belongs
  * to. That is what stops conditions from two programmes being presented as one
@@ -193,6 +221,7 @@ export interface ResolvedAnswer {
 export function resolveScholarshipAnswer(
   context: ScholarshipChatContext,
   model: ModelAnswer,
+  locale: AnswerLocale = 'en',
 ): ResolvedAnswer {
   const base = {
     verifiedAt: context.verifiedAt,
@@ -217,7 +246,7 @@ export function resolveScholarshipAnswer(
     const unpublishedById = new Map(ctx.unpublished.map((c) => [c.id, c]));
 
     const citations: ResolvedCitation[] = [];
-    for (const id of s.claimIds ?? []) {
+    for (const id of dedupe(s.claimIds ?? [])) {
       const hit = confirmedById.get(id);
       if (!hit) {
         // Either invented, or belongs to another programme. Either way it must
@@ -225,28 +254,55 @@ export function resolveScholarshipAnswer(
         dropped.push(id);
         continue;
       }
+      // Structured per-section limit. Extra ids are dropped whole; a completed
+      // statement is never cut mid-sentence to fit a character budget.
+      if (citations.length >= MAX_CLAIM_IDS_PER_SECTION) {
+        dropped.push(id);
+        continue;
+      }
       citations.push({ claimId: hit.id, statement: hit.statement, excerpt: hit.excerpt, sourceUrls: urlsFor(id) });
     }
 
     const unpublished: ResolvedCitation[] = [];
-    for (const id of s.unpublishedIds ?? []) {
+    for (const id of dedupe(s.unpublishedIds ?? [])) {
       const hit = unpublishedById.get(id);
       if (!hit) {
+        dropped.push(id);
+        continue;
+      }
+      if (unpublished.length >= MAX_CLAIM_IDS_PER_SECTION) {
         dropped.push(id);
         continue;
       }
       unpublished.push({ claimId: hit.id, statement: hit.statement, excerpt: hit.excerpt, sourceUrls: urlsFor(id) });
     }
 
-    // Prose with nothing behind it is exactly what this bot must not emit.
+    // A section with nothing behind it is exactly what this bot must not emit.
     if (citations.length === 0 && unpublished.length === 0) continue;
-    if (!s.answer?.trim()) continue;
+
+    // Compose the visible text from the corpus. Nothing the model wrote is
+    // carried through — only which ids it chose, in which order.
+    const composeInput = {
+      locale,
+      lead: s.lead ?? ('direct' as ScholarshipLead),
+      claimIds: citations.map((c) => c.claimId),
+      unpublishedIds: unpublished.map((c) => c.claimId),
+    };
+    const blocks = composeAnswer(composeInput);
+
+    // Fail closed if the composed text is not exactly what the corpus implies.
+    // Deterministic re-derivation, not an entailment judgement.
+    if (!isComposedFromCorpus(blocks, composeInput)) {
+      dropped.push(...citations.map((c) => c.claimId), ...unpublished.map((c) => c.claimId));
+      continue;
+    }
 
     sections.push({
       programme: ctx.key,
       labelEn: ctx.labelEn,
       labelJa: ctx.labelJa,
-      answer: s.answer.trim(),
+      blocks,
+      answer: renderAnswerText(blocks),
       gate: ctx.gate,
       scopeWarning: ctx.scopeWarning,
       citations,
@@ -276,3 +332,6 @@ export function resolveScholarshipAnswer(
 function urlsFor(claimId: string): string[] {
   return getScholarshipClaim(claimId)?.sourceUrls ?? [];
 }
+
+/** A repeated id must not produce a repeated fact line. Order is preserved. */
+const dedupe = (ids: string[]): string[] => [...new Set(ids)];

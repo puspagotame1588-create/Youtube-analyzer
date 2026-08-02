@@ -7,6 +7,11 @@
  * its citations attached to that programme and nowhere else, and anything the
  * audit could not confirm is rendered in a visually distinct block that never
  * reads as an assertion.
+ *
+ * The answer body arrives as typed blocks, not prose. A `fact` block carries an
+ * audited statement verbatim plus the id it came from, so every factual line on
+ * screen is traceable to a claim; the model contributed the selection and the
+ * order, never the words.
  */
 
 import { useRef, useState } from 'react';
@@ -19,10 +24,15 @@ interface Citation {
   sourceUrls: string[];
 }
 
+type AnswerBlock =
+  | { kind: 'lead' | 'unpublished-heading' | 'note' | 'closing'; text: string }
+  | { kind: 'fact' | 'unpublished'; text: string; claimId: string };
+
 interface Section {
   programme: string;
   labelEn: string;
   labelJa: string;
+  blocks: AnswerBlock[];
   answer: string;
   gate: { pass: number; mismatch: number; unconfirmed: number; gate: string } | null;
   scopeWarning: string | null;
@@ -178,6 +188,49 @@ export function ScholarshipChat(): React.JSX.Element {
   );
 }
 
+/**
+ * Renders the server-composed blocks. Factual lines are marked with the claim
+ * id that produced them, so the provenance is visible, not just asserted.
+ */
+function AnswerBody({ blocks }: { blocks: AnswerBlock[] }): React.JSX.Element {
+  return (
+    <div className="mt-2 space-y-1.5 text-sm leading-relaxed text-ink">
+      {blocks.map((b, i) => {
+        if (b.kind === 'fact' || b.kind === 'unpublished') {
+          return (
+            <p key={i} className="flex gap-2 pl-1">
+              <span aria-hidden className={b.kind === 'fact' ? 'text-indigo2' : 'text-amber2'}>
+                •
+              </span>
+              <span className={b.kind === 'unpublished' ? 'text-ink-soft' : undefined}>
+                {b.text}{' '}
+                <span className="rounded bg-ink/5 px-1 py-0.5 align-middle font-mono text-[10px] text-ink-soft">
+                  {b.claimId}
+                </span>
+              </span>
+            </p>
+          );
+        }
+        if (b.kind === 'unpublished-heading') {
+          return (
+            <p key={i} className="pt-1 text-xs font-semibold text-amber2">
+              {b.text}
+            </p>
+          );
+        }
+        if (b.kind === 'note' || b.kind === 'closing') {
+          return (
+            <p key={i} className="pt-1 text-xs text-ink-soft">
+              {b.text}
+            </p>
+          );
+        }
+        return <p key={i}>{b.text}</p>;
+      })}
+    </div>
+  );
+}
+
 function AssistantTurn({ answer, ja }: { answer?: ChatAnswer; ja: boolean }): React.JSX.Element {
   if (!answer) return <></>;
 
@@ -209,7 +262,7 @@ function AssistantTurn({ answer, ja }: { answer?: ChatAnswer; ja: boolean }): Re
               {s.scopeWarning}
             </p>
           )}
-          <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink">{s.answer}</p>
+          <AnswerBody blocks={s.blocks} />
 
           {s.citations.length > 0 && (
             <div className="mt-3">

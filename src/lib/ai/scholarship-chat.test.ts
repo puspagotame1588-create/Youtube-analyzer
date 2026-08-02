@@ -46,7 +46,7 @@ describe('answer resolution — citations cannot be fabricated', () => {
     const real = ctx.programmes[0]!.confirmed[0]!.id;
     const out = resolveScholarshipAnswer(ctx, {
       sections: [
-        { programme: 'jasso', answer: 'The amount is X.', claimIds: [real, 'J-999', 'TOTALLY-FAKE'] },
+        { programme: 'jasso', claimIds: [real, 'J-999', 'TOTALLY-FAKE'] },
       ],
     });
     expect(out.refused).toBe(false);
@@ -58,7 +58,7 @@ describe('answer resolution — citations cannot be fabricated', () => {
     const ctx = ctxFor('JASSO monthly amount');
     const id = ctx.programmes[0]!.confirmed[0]!.id;
     const out = resolveScholarshipAnswer(ctx, {
-      sections: [{ programme: 'jasso', answer: 'a', claimIds: [id] }],
+      sections: [{ programme: 'jasso', claimIds: [id] }],
     });
     expect(out.sections[0]!.citations[0]!.sourceUrls).toEqual(getScholarshipClaim(id)!.sourceUrls);
     expect(out.sections[0]!.citations[0]!.sourceUrls[0]).toMatch(/^https:\/\//);
@@ -67,7 +67,7 @@ describe('answer resolution — citations cannot be fabricated', () => {
   it('refuses when the model produces prose with no supporting claim', () => {
     const ctx = ctxFor('JASSO monthly amount');
     const out = resolveScholarshipAnswer(ctx, {
-      sections: [{ programme: 'jasso', answer: 'Trust me, it is 500,000 yen.', claimIds: [] }],
+      sections: [{ programme: 'jasso', claimIds: [] }],
     });
     expect(out.refused).toBe(true);
     expect(out.refusalReason).toBe('no-supported-sections');
@@ -96,7 +96,6 @@ describe('answer resolution — programmes are never merged', () => {
       sections: [
         {
           programme: a!.key,
-          answer: 'Blended requirements from two programmes.',
           claimIds: [ownId, foreignId],
         },
       ],
@@ -113,7 +112,6 @@ describe('answer resolution — programmes are never merged', () => {
     const out = resolveScholarshipAnswer(ctx, {
       sections: ctx.programmes.map((p) => ({
         programme: p.key,
-        answer: `About ${p.labelEn}.`,
         claimIds: p.confirmed.map((c) => c.id),
         unpublishedIds: p.unpublished.map((c) => c.id),
       })),
@@ -128,7 +126,7 @@ describe('answer resolution — programmes are never merged', () => {
   it('drops a section for a programme that was never retrieved', () => {
     const ctx = ctxFor('Kyoritsu language requirement');
     const out = resolveScholarshipAnswer(ctx, {
-      sections: [{ programme: 'satoyo', answer: 'Unrelated.', claimIds: ['S-01'] }],
+      sections: [{ programme: 'satoyo', claimIds: ['S-01'] }],
     });
     expect(out.refused).toBe(true);
     expect(out.droppedClaimIds).toContain('S-01');
@@ -146,7 +144,6 @@ describe('unpublished fields are reported, never asserted', () => {
       sections: [
         {
           programme: 'jasso',
-          answer: 'The deadline is not published.',
           claimIds: [],
           unpublishedIds: ['J-14'],
         },
@@ -159,7 +156,7 @@ describe('unpublished fields are reported, never asserted', () => {
   it('refuses to let an unpublished id be used as a confirmed citation', () => {
     const ctx = ctxFor('JASSO application deadline');
     const out = resolveScholarshipAnswer(ctx, {
-      sections: [{ programme: 'jasso', answer: 'The deadline is 1 May.', claimIds: ['J-14'] }],
+      sections: [{ programme: 'jasso', claimIds: ['J-14'] }],
     });
     // J-14 is not in the confirmed map, so it cannot become a citation.
     expect(out.refused).toBe(true);

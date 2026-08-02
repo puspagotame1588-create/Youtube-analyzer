@@ -91,6 +91,60 @@ describe('retrieval ranking and citation', () => {
     }
   });
 
+  it('does not retrieve on Japanese grammar alone', () => {
+    // Hiragana carries inflection and politeness, not topic. Before runs were
+    // cut at hiragana, this apartment question matched a JASSO application
+    // claim through the polite request ending — an off-corpus question that
+    // looked supported, which is the precondition for an unsupported answer.
+    for (const q of [
+      '大阪でアパートを借りる方法を教えてください',
+      '天気はどうですか',
+      'これについて教えてください',
+    ]) {
+      const r = retrieveScholarshipClaims(q, { limit: 20 });
+      expect(r.claims, q).toHaveLength(0);
+      expect(r.unverifiable, q).toHaveLength(0);
+    }
+  });
+
+  it('still retrieves Japanese content words after the split', () => {
+    for (const [q, re] of [
+      ['JASSO学習奨励費の金額は？', /学習奨励費|honors scholarship/i],
+      ['共立国際交流奨学財団の語学要件は？', /共立|kyoritsu/i],
+    ] as const) {
+      const r = retrieveScholarshipClaims(q, { limit: 20 });
+      expect(r.claims.length, q).toBeGreaterThan(0);
+      expect(
+        r.claims.some((c) => re.test(`${c.excerpt}${c.statement}${c.program}`)),
+        q,
+      ).toBe(true);
+    }
+  });
+
+  it('ranks the amount claim first for an amount question, in both locales', () => {
+    // Lexical overlap alone ranked J-10 tenth — outside the eight-claim window
+    // — so a question about money was answered with eligibility criteria: true,
+    // cited, and not what was asked. Intent expansion fixes the ranking without
+    // adding any fact, because the expansion terms already occur in the corpus.
+    for (const q of ['How much is the JASSO Honors Scholarship?', 'JASSO amount']) {
+      const r = retrieveScholarshipClaims(q, { programs: ['jasso'], limit: 8 });
+      expect(r.claims[0]?.id, q).toBe('J-10');
+    }
+    const ja = retrieveScholarshipClaims('JASSO学習奨励費の金額は？', {
+      programs: ['jasso'],
+      limit: 8,
+    });
+    expect(ja.claims.map((c) => c.id)).toContain('J-10');
+  });
+
+  it('ignores a single incidental word match', () => {
+    // "tokyo" appears in one selection-timetable excerpt. One weak signal is
+    // not evidence that a ramen question is about scholarships.
+    const r = retrieveScholarshipClaims('what is the best ramen', { limit: 20 });
+    expect(r.claims).toHaveLength(0);
+    expect(r.unverifiable).toHaveLength(0);
+  });
+
   it('resolves an audit id directly', () => {
     const r = retrieveScholarshipClaims('R-11');
     expect(r.claims[0]?.id).toBe('R-11');

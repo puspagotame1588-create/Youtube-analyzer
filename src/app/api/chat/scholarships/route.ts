@@ -112,16 +112,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const modelAnswer = scholarshipChatResultSchema.parse(result.data);
 
     // 3. Resolve ids against the context we actually supplied. Invented or
-    //    cross-programme ids are dropped here.
-    const resolved = resolveScholarshipAnswer(context, {
-      sections: modelAnswer.sections.map((s) => ({
-        programme: s.programme,
-        answer: s.answer,
-        claimIds: s.claimIds,
-        unpublishedIds: s.unpublishedIds,
-      })),
-      refused: modelAnswer.refused,
-    });
+    //    cross-programme ids are dropped here, and the answer text the user
+    //    sees is then composed from the surviving claims — the model supplies
+    //    selection and ordering, never wording.
+    const resolved = resolveScholarshipAnswer(
+      context,
+      {
+        sections: modelAnswer.sections.map((s) => ({
+          programme: s.programme,
+          claimIds: s.claimIds,
+          unpublishedIds: s.unpublishedIds,
+          lead: s.lead,
+        })),
+        refused: modelAnswer.refused,
+      },
+      locale,
+    );
 
     console.info(
       `[scholarship-chat] provider=${result.provider} model=${result.model} live=${live} ` +

@@ -10,7 +10,7 @@ import { expect, test } from '@playwright/test';
 test('complete beta journey (EN)', async ({ page }) => {
   // 1. Cinematic landing
   await page.goto('/en');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('possible futures');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Plan Your Future with Confidence');
   await page.getByRole('link', { name: 'Create Your First Future' }).first().click();
 
   // 1b. Invitation-only gate (app-level, hash-checked server-side, fail-closed)
@@ -92,7 +92,7 @@ test('complete beta journey (EN)', async ({ page }) => {
 
 test('Japanese journey renders localized layout', async ({ page }) => {
   await page.goto('/ja');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('日本での、あなたの未来');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('自信を持って、未来を計画する');
   await page.getByRole('link', { name: 'はじめての未来をつくる' }).first().click();
   await page.waitForURL('**/invite**');
   await expect(page.getByRole('heading', { name: '招待制プライベートベータ' })).toBeVisible();
