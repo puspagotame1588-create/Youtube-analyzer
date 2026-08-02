@@ -3,8 +3,11 @@
  * from content surfaced by web search of official/original sources on the
  * check date. Fields we could NOT confirm are listed in `missing`, and the
  * record state is set accordingly:
- *   record_verified  = all material fields confirmed with sources
- *   field_verified   = some material fields confirmed, others missing
+ *   record_verified      = all material fields confirmed with sources
+ *   field_verified       = some material fields confirmed, others missing
+ *   verification_blocked = audited with no mismatch, but a CRITICAL field is
+ *                          not published by any official source. Never shown as
+ *                          verified. See docs/SCHOLARSHIP_VERIFICATION_2026-08-01.md
  * Only record_verified + non-expired records may ever feed simulation scores
  * (none are wired into the engine yet — see SIMULATION_METHOD.md).
  *
@@ -12,7 +15,7 @@
  * Run `node scripts/check-vacancies.mjs` to re-check vacancy URLs (removal check).
  */
 
-import { REVIEW_CYCLES, nextReview, type DataState } from './real';
+import { REVIEW_CYCLES, isPresentableAsVerified, nextReview, type DataState } from './real';
 
 const CHECKED = '2026-07-11';
 
@@ -141,7 +144,9 @@ export interface VerifiedScholarship {
 export const verifiedScholarships: VerifiedScholarship[] = [
   {
     id: 'vs-jasso-shoreihi',
-    state: 'record_verified',
+    // Audited 2026-08-01: 13 PASS, 0 mismatch, but J-14 (student-facing
+    // deadline) is not published anywhere official. Gated, not verified.
+    state: 'verification_blocked',
     nameJa: '文部科学省外国人留学生学習奨励費（留学生受入れ促進プログラム）',
     nameEn: 'MEXT Honors Scholarship for Privately-Financed International Students (JASSO)',
     provider: '日本学生支援機構（JASSO）',
@@ -159,12 +164,19 @@ export const verifiedScholarships: VerifiedScholarship[] = [
     nationality: '外国人留学生（国籍別の制限は本体制度にはなし）',
     institutionTypes: '大学・大学院・短大・高専・専門学校・日本語教育機関',
     applicationRoute: '在籍校を通じて申請（個人応募不可）',
+    // J-14 (2026-08-01 audit): JASSO publishes NO student-facing opening date or
+    // deadline. The only controlling instruction is to ask your own institution.
+    // The payment window below is published; the application window is not.
     deadlineStatus: {
-      value: '2026年度募集の実施を確認（各校の学内締切による。支給期間は4月〜翌3月、または10月〜3月）',
-      sourceUrl: 'https://www.jasso.go.jp/ryugaku/scholarship_j/shoreihi/index.html',
-      status: 'official',
+      value:
+        '学生向けの募集開始日・締切日は公表されていません（在籍校にご確認ください）。支給期間のみ公表: 4月〜翌3月、または10月〜3月',
+      sourceUrl: 'https://www.jasso.go.jp/ryugaku/scholarship_j/shoreihi/about.html',
+      status: 'unverified',
     },
-    missing: ['Per-school internal deadlines (vary by institution)'],
+    missing: [
+      'Student-facing application opening date and deadline — not published by JASSO; institution-specific (audit J-14)',
+      'Per-school internal deadlines (vary by institution)',
+    ],
     checkedAt: CHECKED,
     nextReviewAt: nextReview(CHECKED, REVIEW_CYCLES.scholarship),
   },
@@ -174,7 +186,7 @@ export const verifiedScholarships: VerifiedScholarship[] = [
     nameJa: 'ロータリー米山記念奨学金（2026学年度）',
     nameEn: 'Rotary Yoneyama Memorial Scholarship (AY2026)',
     provider: '公益財団法人ロータリー米山記念奨学会',
-    academicYear: '2026学年度（公式募集要項PDFを確認）',
+    academicYear: '2026学年度・国内指定校ルート（募集終了）',
     amount: {
       value: '学部課程 月額100,000円／修士・博士課程 月額140,000円',
       sourceUrl: 'https://www.rotary-yoneyama.or.jp/scholarship',
@@ -188,12 +200,18 @@ export const verifiedScholarships: VerifiedScholarship[] = [
     nationality: '日本以外の国籍の留学生',
     institutionTypes: '指定校の大学・大学院',
     applicationRoute: '在籍する指定校を通じて申請（学内選考 8〜10月）。指定校リストは毎年8月上旬に公表',
+    // R-11 (2026-08-01 audit): this round is CLOSED — 「受付を終了しました」.
+    // The earlier text stated a recurring "every year 15 October" deadline and
+    // an open guideline; both were inferences from a single closed round.
     deadlineStatus: {
-      value: '指定校からの推薦締切は毎年10月15日（学内締切は各校で異なる）。2026学年度募集要項PDF公開中',
-      sourceUrl: 'https://www.rotary-yoneyama.or.jp/content/uploads/pdf-data/201.pdf',
+      value:
+        '2026学年度の募集は終了（財団締切 2025年10月15日 23:59、「受付を終了しました」）。学内締切は各指定校がこれより早く設定。次年度の日程は未公表',
+      sourceUrl: 'https://www.rotary-yoneyama.or.jp/blog/news/2025/detail_19985.html',
       status: 'official',
     },
-    missing: [],
+    missing: [
+      'Next-round (AY2027) schedule — not yet published; do not infer from the closed 2026 round',
+    ],
     checkedAt: CHECKED,
     nextReviewAt: nextReview(CHECKED, REVIEW_CYCLES.scholarship),
   },
@@ -476,7 +494,19 @@ export const verifiedVacancies: VerifiedVacancy[] = [
 ];
 
 export const verifiedCounts = {
-  universitiesFullyVerified: verifiedPrograms.filter((p) => p.state === 'record_verified').length,
-  scholarshipsFullyVerified: verifiedScholarships.filter((s) => s.state === 'record_verified').length,
-  vacanciesFullyVerified: verifiedVacancies.filter((v) => v.state === 'record_verified').length,
+  universitiesFullyVerified: verifiedPrograms.filter((p) => isPresentableAsVerified(p.state)).length,
+  scholarshipsFullyVerified: verifiedScholarships.filter((s) => isPresentableAsVerified(s.state)).length,
+  vacanciesFullyVerified: verifiedVacancies.filter((v) => isPresentableAsVerified(v.state)).length,
+  /** Audited, factually clean, but withheld because a critical field is unobtainable. */
+  scholarshipsVerificationBlocked: verifiedScholarships.filter((s) => s.state === 'verification_blocked').length,
 };
+
+/** Scholarships that may be presented to a user as verified fact. */
+export const presentableScholarships = verifiedScholarships.filter((s) =>
+  isPresentableAsVerified(s.state),
+);
+
+/** Audited but gated — shown separately, never as verified. */
+export const blockedScholarships = verifiedScholarships.filter(
+  (s) => s.state === 'verification_blocked',
+);

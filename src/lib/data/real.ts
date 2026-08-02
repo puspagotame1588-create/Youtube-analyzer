@@ -26,10 +26,33 @@ export type DataState =
   | 'official_url_confirmed'
   | 'field_extracted'
   | 'field_verified'
+  /**
+   * Audited against the controlling official source, no factual mismatch found,
+   * but one or more CRITICAL fields are not published anywhere official — so the
+   * record cannot be presented as verified and must never be treated as
+   * decision-grade. This is distinct from `field_verified`: nothing here is
+   * wrong, the source simply does not answer the question. Introduced by the
+   * 2026-08-01 scholarship verification pass
+   * (docs/SCHOLARSHIP_VERIFICATION_2026-08-01.md).
+   */
+  | 'verification_blocked'
   | 'record_verified'
   | 'simulation_eligible'
   | 'outdated'
   | 'archived';
+
+/**
+ * States that may be shown to a user as verified fact. `verification_blocked`
+ * is deliberately excluded: it means an audit ran and could not confirm a
+ * critical field.
+ */
+export const PRESENTABLE_AS_VERIFIED: readonly DataState[] = [
+  'record_verified',
+  'simulation_eligible',
+] as const;
+
+export const isPresentableAsVerified = (s: DataState): boolean =>
+  PRESENTABLE_AS_VERIFIED.includes(s);
 
 /** Entity-specific review cycles (days). Never one uniform date for everything. */
 export const REVIEW_CYCLES = {
@@ -289,9 +312,26 @@ export const realScholarships: RealScholarship[] = [
     provider: '一般財団法人共立国際交流奨学財団',
     officialUrl: 'https://kif-org.com/',
     urlStatus: 'official',
-    noteEn: 'Scholarships for students from Asian countries at universities, junior colleges, and vocational schools.',
-    noteJa: 'アジア諸国からの留学生対象。大学・短大・専門学校の学生に支給。',
-    meta: { ...metaFor(REVIEW_CYCLES.scholarship), missingInfo: SCHOLARSHIP_MISSING },
+    noteEn: 'Scholarships for students from Asian countries at universities, junior colleges, and vocational schools. Applications are school-recommended only — the Foundation does not accept individual applications.',
+    noteJa: 'アジア諸国からの留学生対象。大学・短大・専門学校の学生に支給。応募は学校推薦のみで、個人応募は受け付けていません。',
+    // Audited 2026-08-01 (docs/SCHOLARSHIP_VERIFICATION_2026-08-01.md, K-01…K-14):
+    // 7 PASS, 0 mismatch, but SEVEN critical applicant-facing fields are not
+    // published on any official Kyoritsu page. They are enumerated rather than
+    // summarised so that a later pass cannot quietly fill them in from an older
+    // round or a third-party aggregator — the audit explicitly forbids that.
+    meta: {
+      ...metaFor(REVIEW_CYCLES.scholarship),
+      state: 'verification_blocked',
+      missingInfo: [
+        'Required visa/residence status — not published (audit K-08)',
+        'Applicant-level academic requirements: GPA, year, remaining enrolment, regular-student status — not published (K-09)',
+        'Japanese/English score or interview-language requirement — not published (K-10)',
+        'Student application document list — not published; the site directs students to their school office (K-11)',
+        'Combination rules with other scholarships, fee reductions, loans or employment income — not published (K-12)',
+        'Renewal/continuation conditions after the one-year award — not published (K-13)',
+        'AY2027 amount, headcount, country list, eligibility, exact opening date and route — no detailed 2027 guideline published yet (K-14)',
+      ],
+    },
   },
   {
     id: 'real-mext',

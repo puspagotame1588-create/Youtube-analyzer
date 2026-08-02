@@ -1,7 +1,13 @@
 import { setRequestLocale } from 'next-intl/server';
 import { dataset } from '@/lib/data/seed';
 import { realSchools, realScholarships, realJobLinks, officialLegalSources } from '@/lib/data/real';
-import { verifiedPrograms, verifiedScholarships, verifiedVacancies, verifiedCounts } from '@/lib/data/verified';
+import {
+  verifiedPrograms,
+  verifiedVacancies,
+  verifiedCounts,
+  presentableScholarships,
+  blockedScholarships,
+} from '@/lib/data/verified';
 
 export default function SourcesPage({ params: { locale } }: { params: { locale: string } }): React.JSX.Element {
   setRequestLocale(locale);
@@ -53,8 +59,8 @@ export default function SourcesPage({ params: { locale } }: { params: { locale: 
       <h2 className="mt-8 text-lg font-bold">{ja ? '検証済みレコード（record_verified）' : 'Verified records (record_verified)'}</h2>
       <p className="mt-2 text-ink-soft">
         {ja
-          ? `データ状態モデル: source_discovered → official_url_confirmed → field_extracted → field_verified → record_verified → simulation_eligible（→ outdated / archived）。URLのみ確認したレコードは検証済みレコードではありません。現在の完全検証数 — 大学プログラム: ${verifiedCounts.universitiesFullyVerified} / 奨学金: ${verifiedCounts.scholarshipsFullyVerified} / 求人: ${verifiedCounts.vacanciesFullyVerified}。simulation_eligible のレコードはまだ0件で、シミュレーションは引き続きデモデータのみを使用します。`
-          : `Data-state model: source_discovered → official_url_confirmed → field_extracted → field_verified → record_verified → simulation_eligible (→ outdated / archived). A URL-confirmed record is NOT a verified record. Fully verified today — university programs: ${verifiedCounts.universitiesFullyVerified} / scholarships: ${verifiedCounts.scholarshipsFullyVerified} / vacancies: ${verifiedCounts.vacanciesFullyVerified}. No record is simulation_eligible yet — simulations still use only the demonstration dataset.`}
+          ? `データ状態モデル: source_discovered → official_url_confirmed → field_extracted → field_verified → record_verified → simulation_eligible（→ outdated / archived）。監査の結果、必須項目が公式に非公表のレコードは verification_blocked とし、検証済みとしては表示しません（現在 ${verifiedCounts.scholarshipsVerificationBlocked} 件）。URLのみ確認したレコードは検証済みレコードではありません。現在の完全検証数 — 大学プログラム: ${verifiedCounts.universitiesFullyVerified} / 奨学金: ${verifiedCounts.scholarshipsFullyVerified} / 求人: ${verifiedCounts.vacanciesFullyVerified}。simulation_eligible のレコードはまだ0件で、シミュレーションは引き続きデモデータのみを使用します。`
+          : `Data-state model: source_discovered → official_url_confirmed → field_extracted → field_verified → record_verified → simulation_eligible (→ outdated / archived). A record whose critical field an audit could not confirm from any official source is marked verification_blocked and is never shown as verified (${verifiedCounts.scholarshipsVerificationBlocked} today). A URL-confirmed record is NOT a verified record. Fully verified today — university programs: ${verifiedCounts.universitiesFullyVerified} / scholarships: ${verifiedCounts.scholarshipsFullyVerified} / vacancies: ${verifiedCounts.vacanciesFullyVerified}. No record is simulation_eligible yet — simulations still use only the demonstration dataset.`}
       </p>
 
       <h3 className="mt-4 font-bold">{ja ? '奨学金（検証済み）' : 'Scholarships (verified)'}</h3>
@@ -72,7 +78,7 @@ export default function SourcesPage({ params: { locale } }: { params: { locale: 
             </tr>
           </thead>
           <tbody>
-            {verifiedScholarships.map((v) => (
+            {presentableScholarships.map((v) => (
               <tr key={v.id} className="border-b border-ink/5 align-top">
                 <td className="py-2 pr-3 font-medium">{ja ? v.nameJa : v.nameEn}<span className="block text-ink-soft">{v.provider}</span></td>
                 <td className="py-2 pr-3">{v.academicYear}</td>
@@ -85,6 +91,35 @@ export default function SourcesPage({ params: { locale } }: { params: { locale: 
           </tbody>
         </table>
       </div>
+
+      {blockedScholarships.length > 0 && (
+        <>
+          <h3 className="mt-6 font-bold text-amber2">
+            {ja ? '奨学金（監査済み・保留：検証不能な必須項目あり）' : 'Scholarships (audited — withheld: a critical field is unobtainable)'}
+          </h3>
+          <p className="mt-2 text-xs text-ink-soft">
+            {ja
+              ? 'これらのレコードは公式ソースと照合済みで、事実の相違は見つかっていません。ただし、出願判断に必要な項目が公式には一切公表されていないため、検証済みとしては表示しません。該当項目は在籍校・財団に直接ご確認ください。'
+              : 'These records were checked against the controlling official source and no factual mismatch was found. They are withheld from the verified table because a field you would need in order to apply is not published by any official source. Confirm those fields with your institution or the foundation directly.'}
+          </p>
+          <ul className="mt-2 space-y-2 text-xs">
+            {blockedScholarships.map((v) => (
+              <li key={v.id} className="rounded-xl border border-amber2/30 bg-amber2/5 p-3">
+                <strong className="text-ink">{ja ? v.nameJa : v.nameEn}</strong>
+                <span className="text-ink-soft"> — {v.provider} · state: <code>{v.state}</code></span>
+                <span className="mt-1 block text-ink-soft">
+                  {ja ? '検証できなかった項目:' : 'Could not be verified:'}
+                </span>
+                <ul className="ml-4 list-disc text-ink-soft">
+                  {v.missing.map((m) => (
+                    <li key={m}>{m}</li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       <h3 className="mt-4 font-bold">{ja ? '大学・課程（部分検証）' : 'University programs (partially verified)'}</h3>
       <ul className="mt-2 space-y-2 text-xs text-ink-soft">
