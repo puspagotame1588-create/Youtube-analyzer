@@ -25,7 +25,7 @@ interface Citation {
 }
 
 type AnswerBlock =
-  | { kind: 'lead' | 'unpublished-heading' | 'note' | 'closing'; text: string }
+  | { kind: 'lead' | 'unpublished-heading' | 'note' | 'closing' | 'cycle'; text: string }
   | { kind: 'fact' | 'unpublished'; text: string; claimId: string };
 
 interface Section {
@@ -208,6 +208,16 @@ function AnswerBody({ blocks }: { blocks: AnswerBlock[] }): React.JSX.Element {
                   {b.claimId}
                 </span>
               </span>
+            </p>
+          );
+        }
+        if (b.kind === 'cycle') {
+          return (
+            <p
+              key={i}
+              className="my-1 rounded-lg border border-amber2/40 bg-amber2/10 px-2.5 py-2 text-xs font-medium text-amber2"
+            >
+              {b.text}
             </p>
           );
         }

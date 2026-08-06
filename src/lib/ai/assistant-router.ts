@@ -44,7 +44,7 @@ export type AssistantIntent =
  * it came from; every other kind carries chrome owned by this file.
  */
 export type AssistantBlock =
-  | { kind: 'lead' | 'note' | 'closing' | 'not-verified-heading'; text: string }
+  | { kind: 'lead' | 'note' | 'closing' | 'not-verified-heading' | 'cycle'; text: string }
   | { kind: 'fact'; text: string; ref: string }
   | { kind: 'not-verified'; text: string; ref?: string };
 

@@ -23,7 +23,7 @@
  * involved anywhere in this guarantee.
  */
 
-import { getScholarshipClaim } from '@/lib/data/scholarships';
+import { getScholarshipClaim, type CycleStatus } from '@/lib/data/scholarships';
 import type { ScholarshipLead } from './provider';
 
 export type AnswerLocale = 'en' | 'ja';
@@ -34,6 +34,11 @@ export type AnswerLocale = 'en' | 'ja';
  */
 export type AnswerBlock =
   | { kind: 'lead'; text: string }
+  /**
+   * Cycle warning. Rendered prominently, directly under the lead, so it is read
+   * before any of the facts it qualifies rather than after them.
+   */
+  | { kind: 'cycle'; text: string }
   | { kind: 'fact'; claimId: string; text: string }
   | { kind: 'unpublished-heading'; text: string }
   | { kind: 'unpublished'; claimId: string; text: string }
@@ -60,6 +65,20 @@ const LEADS: Record<ScholarshipLead, Record<AnswerLocale, string>> = {
   },
 };
 
+/**
+ * Cycle warning text.
+ *
+ * Deliberately carries no year, amount, deadline, eligibility rule or route.
+ * Every one of those lives in the audited statements, which name their own
+ * cycle ("Named 2026 award amount is…", "2026 deadline was…"). This sentence
+ * only states the SITUATION — a closed round, unpublished next-round terms —
+ * which is what the audit records and what the facts alone cannot convey.
+ */
+const CYCLE_NOTICE: Record<AnswerLocale, string> = {
+  en: 'The round these published terms belong to has closed, and the next round’s detailed terms are not yet published. Nothing below is confirmed for the next round.',
+  ja: 'ここに示す公表条件が対象とする募集回はすでに終了しており、次回募集の詳細条件は未公表です。以下の内容を次回について確定した情報として扱わないでください。',
+};
+
 const CHROME: Record<AnswerLocale, { unpublished: string; note: string; closing: string }> = {
   en: {
     unpublished: 'Not published by any official source — cannot be treated as fact:',
@@ -81,6 +100,11 @@ export interface ComposeInput {
   claimIds: string[];
   /** Unpublished-field claim ids, already resolved and programme-checked. */
   unpublishedIds: string[];
+  /**
+   * Programme cycle position, from the corpus — never model-selected. The model
+   * has no way to suppress this warning or to cause one to appear.
+   */
+  cycle: CycleStatus;
 }
 
 /**
@@ -91,6 +115,12 @@ export interface ComposeInput {
 export function composeAnswer(input: ComposeInput): AnswerBlock[] {
   const { locale } = input;
   const blocks: AnswerBlock[] = [{ kind: 'lead', text: LEADS[input.lead][locale] }];
+
+  // Before the facts, not after them. A reader who stops halfway must still
+  // have seen that the round these terms belong to is over.
+  if (input.cycle === 'closed-awaiting-next') {
+    blocks.push({ kind: 'cycle', text: CYCLE_NOTICE[locale] });
+  }
 
   for (const id of input.claimIds) {
     const claim = getScholarshipClaim(id);
@@ -152,3 +182,4 @@ export function isComposedFromCorpus(blocks: AnswerBlock[], input: ComposeInput)
 /** Exposed so tests can assert the connective set carries no factual content. */
 export const LEAD_TEXT = LEADS;
 export const CHROME_TEXT = CHROME;
+export const CYCLE_NOTICE_TEXT = CYCLE_NOTICE;

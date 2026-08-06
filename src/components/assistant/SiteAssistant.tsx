@@ -25,7 +25,7 @@ interface Citation {
 }
 
 type Block =
-  | { kind: 'lead' | 'note' | 'closing' | 'not-verified-heading'; text: string }
+  | { kind: 'lead' | 'note' | 'closing' | 'not-verified-heading' | 'cycle'; text: string }
   | { kind: 'fact'; text: string; ref: string }
   | { kind: 'not-verified'; text: string; ref?: string };
 
@@ -386,6 +386,16 @@ function AssistantTurn({
                         </>
                       )}
                     </span>
+                  </p>
+                );
+              }
+              if (b.kind === 'cycle') {
+                return (
+                  <p
+                    key={i}
+                    className="my-1 rounded-lg border border-amber2/40 bg-amber2/10 px-2.5 py-2 text-xs font-medium text-amber2"
+                  >
+                    {b.text}
                   </p>
                 );
               }

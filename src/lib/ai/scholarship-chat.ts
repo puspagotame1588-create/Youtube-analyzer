@@ -32,7 +32,9 @@
 import {
   retrieveScholarshipClaims,
   getScholarshipClaim,
+  programCycle,
   PROGRAM_LABELS,
+  type ProgramCycle,
   type ScholarshipClaim,
   type ScholarshipGate,
 } from '@/lib/data/scholarships';
@@ -80,6 +82,8 @@ export interface ProgrammeContext {
   labelJa: string;
   gate: ScholarshipGate | null;
   scopeWarning: string | null;
+  /** Corpus-supplied, never model-selected. Drives the cycle warning. */
+  cycle: ProgramCycle;
   /** Audit-confirmed. May be quoted as fact, with citation. */
   confirmed: ContextClaim[];
   /** The official source does not publish this. May only be reported as unpublished. */
@@ -122,6 +126,7 @@ export function buildScholarshipContext(message: string): ScholarshipChatContext
         labelJa: PROGRAM_LABELS[key]?.ja ?? key,
         gate: meta?.gate ?? null,
         scopeWarning: meta?.scopeWarning ?? null,
+        cycle: meta?.cycle ?? programCycle(key),
         confirmed: [],
         unpublished: [],
       };
@@ -263,8 +268,19 @@ export function resolveScholarshipAnswer(
       citations.push({ claimId: hit.id, statement: hit.statement, excerpt: hit.excerpt, sourceUrls: urlsFor(id) });
     }
 
+    // When a programme's published round has closed, the audit row recording
+    // what is NOT yet published for the next round is forced to the front of
+    // the unpublished list. The model chooses which claims to cite; it does not
+    // get to choose whether the user is told about this gap.
+    const forced =
+      ctx.cycle.status === 'closed-awaiting-next' &&
+      ctx.cycle.nextCycleUnconfirmedClaimId &&
+      ctx.unpublished.some((u) => u.id === ctx.cycle.nextCycleUnconfirmedClaimId)
+        ? [ctx.cycle.nextCycleUnconfirmedClaimId]
+        : [];
+
     const unpublished: ResolvedCitation[] = [];
-    for (const id of dedupe(s.unpublishedIds ?? [])) {
+    for (const id of dedupe([...forced, ...(s.unpublishedIds ?? [])])) {
       const hit = unpublishedById.get(id);
       if (!hit) {
         dropped.push(id);
@@ -287,6 +303,7 @@ export function resolveScholarshipAnswer(
       lead: s.lead ?? ('direct' as ScholarshipLead),
       claimIds: citations.map((c) => c.claimId),
       unpublishedIds: unpublished.map((c) => c.claimId),
+      cycle: ctx.cycle.status,
     };
     const blocks = composeAnswer(composeInput);
 

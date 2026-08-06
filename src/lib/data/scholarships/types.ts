@@ -33,6 +33,27 @@ export interface ScholarshipClaim {
   sourceUrls: string[];
 }
 
+/**
+ * Where a programme sits in its recruitment cycle.
+ *
+ * `closed-awaiting-next` means the round whose detailed terms the official page
+ * publishes has already closed, and the next round's detailed terms are not out
+ * yet. That combination is dangerous to render plainly: every confirmed claim
+ * is still true of the round it names, but a reader looking ahead will read it
+ * as current unless told otherwise.
+ */
+export type CycleStatus = 'open' | 'closed-awaiting-next';
+
+export interface ProgramCycle {
+  status: CycleStatus;
+  /**
+   * Audit row recording what is NOT published for the next cycle. Forced into
+   * every answer for this programme so the gap cannot be silently omitted.
+   * Null when the audit has no such row.
+   */
+  nextCycleUnconfirmedClaimId: string | null;
+}
+
 export interface ScholarshipGate {
   pass: number;
   mismatch: number;
@@ -55,7 +76,12 @@ export interface ScholarshipRetrieval {
    */
   unverifiable: ScholarshipClaim[];
   /** Programs represented in this result, with their audit gate. */
-  programs: Array<{ key: string; gate: ScholarshipGate | null; scopeWarning: string | null }>;
+  programs: Array<{
+    key: string;
+    gate: ScholarshipGate | null;
+    scopeWarning: string | null;
+    cycle: ProgramCycle;
+  }>;
   /** Date the corpus was verified. */
   verifiedAt: string | null;
   /** The audit's overall production decision. */

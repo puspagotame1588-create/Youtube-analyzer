@@ -23,14 +23,51 @@ import {
 } from './claims.generated';
 import type {
   ClaimVerdict,
+  CycleStatus,
+  ProgramCycle,
   ScholarshipClaim,
   ScholarshipGate,
   ScholarshipRetrieval,
 } from './types';
 import type { SourceRecord } from '@/lib/data/types';
 
-export type { ScholarshipClaim, ScholarshipGate, ScholarshipRetrieval, ClaimVerdict };
+export type {
+  ScholarshipClaim,
+  ScholarshipGate,
+  ScholarshipRetrieval,
+  ClaimVerdict,
+  CycleStatus,
+  ProgramCycle,
+};
 export { VERIFICATION_DATE, PRODUCTION_STATUS };
+
+/**
+ * Recruitment-cycle position per programme.
+ *
+ * Hand-authored from the committed audit, not inferred: see
+ * `data/scholarships/audit.md` ("Kyoritsu | unclear | ... 2027 detailed terms
+ * not yet published; 2026 round closed") and `data/scholarships/manifest.json`
+ * (`"status": "unclear"`). The generated SCOPE_WARNINGS entry says the same
+ * thing in prose; this is the machine-readable form of it.
+ *
+ * Only Kyoritsu is marked here. Yoneyama's 2026 domestic round has also closed,
+ * but the audit records no equivalent "next cycle unpublished" row for it, so
+ * marking it would produce a notice with nothing behind it. Add it here when
+ * such a row exists.
+ */
+const PROGRAM_CYCLES: Record<string, ProgramCycle> = {
+  jasso: { status: 'open', nextCycleUnconfirmedClaimId: null },
+  mext: { status: 'open', nextCycleUnconfirmedClaimId: null },
+  yoneyama: { status: 'open', nextCycleUnconfirmedClaimId: null },
+  satoyo: { status: 'open', nextCycleUnconfirmedClaimId: null },
+  kyoritsu: { status: 'closed-awaiting-next', nextCycleUnconfirmedClaimId: 'K-14' },
+};
+
+const DEFAULT_CYCLE: ProgramCycle = { status: 'open', nextCycleUnconfirmedClaimId: null };
+
+export function programCycle(key: string): ProgramCycle {
+  return PROGRAM_CYCLES[key] ?? DEFAULT_CYCLE;
+}
 
 /**
  * The single source backing every claim in this corpus. Individual claims each
@@ -280,6 +317,7 @@ export function retrieveScholarshipClaims(
       key,
       gate: SCHOLARSHIP_GATES[key] ?? null,
       scopeWarning: SCOPE_WARNINGS[key] ?? null,
+      cycle: programCycle(key),
     })),
     verifiedAt: VERIFICATION_DATE,
     productionStatus: PRODUCTION_STATUS,

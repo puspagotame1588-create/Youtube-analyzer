@@ -70,6 +70,7 @@ describe('2. altered amount attached to a valid id', () => {
       lead: 'direct',
       claimIds: ['J-10'],
       unpublishedIds: [],
+      cycle: 'open',
     });
     const fact = blocks.filter(isCited)[0]!;
     expect(fact.text).toBe(claim.statement);
@@ -83,6 +84,7 @@ describe('2. altered amount attached to a valid id', () => {
       lead: 'direct' as const,
       claimIds: ['J-10'],
       unpublishedIds: [],
+      cycle: 'open' as const,
     };
     const tampered: AnswerBlock[] = composeAnswer(input).map((b) =>
       b.kind === 'fact' ? { ...b, text: b.text.replace(/48,000/, '250,000') } : b,
