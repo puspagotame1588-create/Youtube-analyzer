@@ -16,6 +16,7 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { CAMPUSES, PALETTE, campusPosition } from './data';
+import { GROUND } from './look';
 
 const PLAZA_R = 15.5;
 const RING_ROAD_INNER = 17.6;
@@ -46,14 +47,83 @@ function useInstances(
   };
 }
 
+/**
+ * The instrument grid on the simulation surface.
+ *
+ * Drawn in a shader rather than from a texture: no image asset to ship, one
+ * draw call, and — the part that matters for this scene — it fades out by
+ * radius, so it stops on its own instead of running to the frame edge and
+ * needing a horizon to end against.
+ *
+ * Line width is constant in world units rather than screen-derived, which keeps
+ * it WebGL1-safe (no fwidth). At 6% opacity the aliasing that buys is not
+ * perceptible. Fog is skipped for the same reason: the radial fade takes the
+ * grid to zero alpha well before fog would have anything to contribute.
+ */
+function GroundGrid(): React.JSX.Element {
+  const params = useMemo(
+    () =>
+      ({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        uniforms: {
+          uColor: { value: new THREE.Color(GROUND.grid.color) },
+          uOpacity: { value: GROUND.grid.opacity },
+          uSpacing: { value: GROUND.grid.spacing },
+          uWidth: { value: GROUND.grid.width },
+          uFade: { value: GROUND.grid.fadeRadius },
+        },
+        vertexShader: /* glsl */ `
+          varying vec2 vWorld;
+          void main() {
+            vec4 wp = modelMatrix * vec4(position, 1.0);
+            vWorld = wp.xz;
+            gl_Position = projectionMatrix * viewMatrix * wp;
+          }
+        `,
+        fragmentShader: /* glsl */ `
+          uniform vec3 uColor;
+          uniform float uOpacity;
+          uniform float uSpacing;
+          uniform float uWidth;
+          uniform float uFade;
+          varying vec2 vWorld;
+          void main() {
+            // Distance to the nearest grid line on each axis, in world units.
+            vec2 d = abs(fract(vWorld / uSpacing - 0.5) - 0.5) * uSpacing;
+            float line = 1.0 - smoothstep(0.0, uWidth, min(d.x, d.y));
+            float fade = 1.0 - smoothstep(uFade * 0.45, uFade, length(vWorld));
+            float a = line * uOpacity * fade;
+            if (a < 0.002) discard;
+            gl_FragColor = vec4(uColor, a);
+          }
+        `,
+      }) satisfies THREE.ShaderMaterialParameters,
+    [],
+  );
+
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 0]}>
+      <circleGeometry args={[GROUND.grid.fadeRadius, 64]} />
+      <shaderMaterial args={[params]} />
+    </mesh>
+  );
+}
+
 function Terrain(): React.JSX.Element {
   return (
     <group>
       {/* ground plane — standard material so it takes the key light and shadows */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
         <circleGeometry args={[300, 96]} />
-        <meshStandardMaterial color={PALETTE.ground} roughness={0.94} metalness={0} />
+        <meshStandardMaterial
+          color={PALETTE.ground}
+          roughness={GROUND.roughness}
+          metalness={GROUND.metalness}
+        />
       </mesh>
+      <GroundGrid />
       {/* central plaza the hero card sits over */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]} receiveShadow>
         <circleGeometry args={[PLAZA_R, 72]} />
@@ -160,8 +230,12 @@ function UrbanFabric({ tier }: { tier: 'A' | 'B' }): React.JSX.Element {
         // Per-instance value variation. A single flat tone across a hundred
         // boxes reads as one undifferentiated mass; a few percent of spread
         // reads as separate buildings without introducing any hue.
-        const v = 0.9 + rand() * 0.2;
-        cols.push(c.clone().setRGB(0.66 * v, 0.67 * v, 0.69 * v));
+        //
+        // The spread is narrower than it was (±4% rather than ±10%) and the
+        // base is now warm rather than cool. Wide context contrast is what was
+        // letting the fabric compete with the landmarks for attention.
+        const v = 0.96 + rand() * 0.08;
+        cols.push(c.clone().setRGB(0.73 * v, 0.715 * v, 0.685 * v));
       }
     }
     return { matrices: out, colors: cols };
@@ -185,7 +259,7 @@ function UrbanFabric({ tier }: { tier: 'A' | 'B' }): React.JSX.Element {
       receiveShadow
     >
       <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="#ffffff" roughness={0.88} metalness={0.02} />
+      <meshStandardMaterial color="#ffffff" roughness={0.85} metalness={0} />
     </instancedMesh>
   );
 }

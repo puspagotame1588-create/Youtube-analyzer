@@ -113,32 +113,40 @@ export function campusFacing(c: CampusEntry): number {
 }
 
 /**
- * Architectural-model palette. Hue is deliberately restrained — materials are
- * separated by value and roughness rather than colour, the way a physical
- * presentation model or an architectural render reads. Saturated colour is what
- * makes a massing model look like a toy, so there is almost none here; the
- * warmth in the scene comes from the golden-hour key light, not the albedo.
+ * CONTEXT tier — the district everything else is made of.
+ *
+ * This is background, and it is styled to lose. Hue is near-neutral warm grey
+ * and the whole palette sits inside a narrow value band, because the landmarks
+ * (see ./look) are the only saturated objects in the scene and anything here
+ * with colour or contrast in it competes with them.
+ *
+ * The planting is the case that matters most: real foliage green is the second
+ * most saturated thing a scene like this can contain, and at a hundred instances
+ * it pulls the eye straight off the universities. It is desaturated to a grey-
+ * green that still reads as planting in silhouette.
  */
 export const PALETTE = {
-  stone: '#e6e1d8',
-  stoneDark: '#d2ccc1',
-  stoneShade: '#bdb6aa',
-  brick: '#b28c7d',
-  brickDark: '#9c7768',
-  roof: '#5b6270',
-  roofDark: '#474d59',
-  copper: '#8fae9f',
-  glass: '#b9c9da',
-  glassDark: '#93a8bd',
-  concrete: '#dcdcd9',
-  metal: '#a9adb4',
-  trunk: '#6f6357',
-  foliage: '#7c8f76',
-  foliageDeep: '#68785f',
-  ground: '#bcbbb4',
-  lawn: '#8aa279',
-  paving: '#c6c4be',
-  road: '#9d9e9d',
-  plaza: '#cfccc4',
-  skyline: '#c2c8d2',
+  stone: '#cdc8bf',
+  stoneDark: '#c2bcb2',
+  stoneShade: '#b4aea4',
+  brick: '#bdb2a8',
+  brickDark: '#ada197',
+  roof: '#9a968f',
+  roofDark: '#8b8781',
+  copper: '#b0aca3',
+  glass: '#c4c3bd',
+  glassDark: '#b3b2ac',
+  concrete: '#c8c5bd',
+  metal: '#b0aeaa',
+  trunk: '#7d766c',
+  // Desaturated, but not lightened: taken any paler these read as pale blobs
+  // rather than planting. Value carries the canopy, saturation is what had to go.
+  foliage: '#7e8578',
+  foliageDeep: '#6f7669',
+  ground: '#bfbbb3',
+  lawn: '#b3b5a5',
+  paving: '#c6c3bc',
+  road: '#b0aeaa',
+  plaza: '#cac6be',
+  skyline: '#cdcac4',
 } as const;
