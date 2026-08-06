@@ -59,8 +59,17 @@ export interface BackdropConfig {
 
 /** Lighting used when no plate is present — the golden-hour default. */
 export const DEFAULT_LIGHT: BackdropConfig['light'] = {
-  keyColor: '#ffe2b6',
-  keyIntensity: 3.9,
+  /**
+   * Near-neutral, very slightly warm.
+   *
+   * This was #ffe2b6 — a golden-hour key. It made a handsome archviz sunset,
+   * but the brief for this scene is a museum model under clean light that reads
+   * as an instrument, and a strongly warm key fights that on two fronts: it
+   * pushes the whole frame orange, and it tints the brand indigo off-brand.
+   * Neutralising it is what lets the landmark tier read as the token colour.
+   */
+  keyColor: '#fff6ea',
+  keyIntensity: 3.7,
   /**
    * ~48° above the horizon. The previous [86,34,56] sat at 18°, which threw
    * shadows several building-lengths long — reads as late-afternoon landscape,
@@ -68,7 +77,7 @@ export const DEFAULT_LIGHT: BackdropConfig['light'] = {
    */
   keyPosition: [78, 104, 52],
   fillSky: '#cfe0fa',
-  fillGround: '#a2988a',
+  fillGround: '#a8a49c',
   fillIntensity: 0.55,
   // Slightly over 1: the ACES shoulder pulls midtones down, and a touch of
   // exposure puts the stone back where the palette intends it.

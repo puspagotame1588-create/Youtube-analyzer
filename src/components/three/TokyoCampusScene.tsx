@@ -18,6 +18,7 @@
  * limits are chosen so the camera can never reach a building's footprint.
  */
 
+import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
@@ -27,6 +28,16 @@ import { CAMPUSES, campusFacing, campusPosition, type CampusEntry } from './camp
 import { CampusBuilding, MODEL_HEIGHT } from './campus/Buildings';
 import { District } from './campus/District';
 import { BACKDROP, Backdrop, backdropEnabled } from './campus/Backdrop';
+import { Beacon, LandmarkEdges } from './campus/Accents';
+import { ACCENTS } from './campus/look';
+
+/**
+ * Post-processing is code-split: tier B and below never download it. `ssr:false`
+ * because it touches WebGL on import.
+ */
+const HeroEffects = dynamic(() => import('./campus/Effects').then((m) => m.HeroEffects), {
+  ssr: false,
+});
 
 /**
  * Framing: a model on a table, not a street.
@@ -168,16 +179,32 @@ function CampusLabel({
   );
 }
 
-function Campus({ campus, withLabel }: { campus: CampusEntry; withLabel: boolean }): React.JSX.Element {
+function Campus({
+  campus,
+  withLabel,
+  accents,
+}: {
+  campus: CampusEntry;
+  withLabel: boolean;
+  accents: boolean;
+}): React.JSX.Element {
   const pos = campusPosition(campus);
   const facing = campusFacing(campus);
-  const labelY = MODEL_HEIGHT[campus.model] * campus.scale + 1.8;
+  const roofY = MODEL_HEIGHT[campus.model] * campus.scale;
+  const labelY = roofY + 1.8;
 
   return (
     <group>
       <group position={pos} rotation={[0, facing, 0]} scale={campus.scale}>
-        <CampusBuilding model={campus.model} />
+        {accents ? (
+          <LandmarkEdges>
+            <CampusBuilding model={campus.model} />
+          </LandmarkEdges>
+        ) : (
+          <CampusBuilding model={campus.model} />
+        )}
       </group>
+      {accents && <Beacon position={[pos[0], roofY + 0.6, pos[2]]} height={26} />}
       {withLabel && <CampusLabel campus={campus} position={[pos[0], labelY, pos[2]]} />}
     </group>
   );
@@ -256,6 +283,9 @@ function KeyLight({ tier }: { tier: 'A' | 'B' }): React.JSX.Element {
 export function TokyoCampusScene({ showLabels }: { showLabels: boolean }): React.JSX.Element {
   const { tier, reducedMotion } = useQuality();
   const t: 'A' | 'B' = tier === 'A' ? 'A' : 'B';
+  // Both accent families are tier-A only and individually switchable in ./look.
+  const accents = t === 'A' && ACCENTS.beacons;
+  const bloom = t === 'A' && ACCENTS.bloom;
   // With a photographic plate the procedural skyline is redundant — it would
   // sit in front of a better horizon and read as a second, worse one.
   const plate = backdropEnabled(BACKDROP);
@@ -296,7 +326,7 @@ export function TokyoCampusScene({ showLabels }: { showLabels: boolean }): React
       <District tier={t} plate={plate} />
 
       {CAMPUSES.map((c) => (
-        <Campus key={c.id} campus={c} withLabel={showLabels} />
+        <Campus key={c.id} campus={c} withLabel={showLabels} accents={accents} />
       ))}
 
       {/* Ambient grounding. frames={1} bakes it once — the geometry never moves,
@@ -315,6 +345,8 @@ export function TokyoCampusScene({ showLabels }: { showLabels: boolean }): React
       )}
 
       <CameraRig reducedMotion={reducedMotion} />
+
+      {bloom && <HeroEffects />}
     </group>
   );
 }
