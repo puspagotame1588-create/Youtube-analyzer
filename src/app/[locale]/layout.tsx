@@ -7,6 +7,7 @@ import { SiteHeader } from '@/components/ui/SiteHeader';
 import { SiteFooter } from '@/components/ui/SiteFooter';
 import { QualityBoot } from '@/components/ui/QualityBoot';
 import { PrototypeBanner } from '@/components/ui/PrototypeBanner';
+import { SiteAssistant } from '@/components/assistant/SiteAssistant';
 import '../globals.css';
 
 export const metadata: Metadata = {
@@ -61,6 +62,9 @@ export default async function LocaleLayout({
           <PrototypeBanner />
           <main id="main">{children}</main>
           <SiteFooter />
+          {/* Mounted in the layout, not per page: present everywhere, and its
+              conversation survives navigation between routes. */}
+          <SiteAssistant />
         </NextIntlClientProvider>
       </body>
     </html>
