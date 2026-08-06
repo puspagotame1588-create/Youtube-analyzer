@@ -27,6 +27,11 @@ export function HeroEffects(): React.JSX.Element {
         luminanceSmoothing={0.05}
         intensity={0.15}
         mipmapBlur
+        /* Half-res bloom. At threshold 0.9 and intensity 0.15 the pass is a
+           faint halo around a handful of pixels — there is nothing in it that
+           full resolution resolves and half does not, and bloom is pure fill
+           rate, which is the most expensive thing in this scene. */
+        resolutionScale={0.5}
       />
       <SMAA />
       {/* Deliberately weak. At darkness 0.42 the corners read as a lens effect,

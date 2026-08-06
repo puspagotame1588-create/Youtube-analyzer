@@ -28,7 +28,7 @@ import { CAMPUSES, campusFacing, campusPosition, type CampusEntry } from './camp
 import { CampusBuilding, MODEL_HEIGHT } from './campus/Buildings';
 import { District } from './campus/District';
 import { BACKDROP, Backdrop, backdropEnabled } from './campus/Backdrop';
-import { Beacon, LandmarkEdges } from './campus/Accents';
+import { LandmarkBeacons, LandmarkEdges, type BeaconSpec } from './campus/Accents';
 import { ACCENTS } from './campus/look';
 
 /**
@@ -179,33 +179,28 @@ function CampusLabel({
   );
 }
 
-function Campus({
-  campus,
-  withLabel,
-  accents,
-}: {
-  campus: CampusEntry;
-  withLabel: boolean;
-  accents: boolean;
-}): React.JSX.Element {
-  const pos = campusPosition(campus);
-  const facing = campusFacing(campus);
-  const roofY = MODEL_HEIGHT[campus.model] * campus.scale;
-  const labelY = roofY + 1.8;
+const roofHeight = (c: CampusEntry): number => MODEL_HEIGHT[c.model] * c.scale;
 
+/** Column bases, computed once — the campuses never move. */
+const BEACONS: BeaconSpec[] = CAMPUSES.map((c) => {
+  const [x, , z] = campusPosition(c);
+  return { position: [x, roofHeight(c) + 0.6, z] as [number, number, number], height: 26 };
+});
+
+/** Every campus's massing, in one group so their edges can be merged as one. */
+function CampusMassing(): React.JSX.Element {
   return (
     <group>
-      <group position={pos} rotation={[0, facing, 0]} scale={campus.scale}>
-        {accents ? (
-          <LandmarkEdges>
-            <CampusBuilding model={campus.model} />
-          </LandmarkEdges>
-        ) : (
-          <CampusBuilding model={campus.model} />
-        )}
-      </group>
-      {accents && <Beacon position={[pos[0], roofY + 0.6, pos[2]]} height={26} />}
-      {withLabel && <CampusLabel campus={campus} position={[pos[0], labelY, pos[2]]} />}
+      {CAMPUSES.map((c) => (
+        <group
+          key={c.id}
+          position={campusPosition(c)}
+          rotation={[0, campusFacing(c), 0]}
+          scale={c.scale}
+        >
+          <CampusBuilding model={c.model} />
+        </group>
+      ))}
     </group>
   );
 }
@@ -325,9 +320,23 @@ export function TokyoCampusScene({ showLabels }: { showLabels: boolean }): React
       <Backdrop />
       <District tier={t} plate={plate} />
 
-      {CAMPUSES.map((c) => (
-        <Campus key={c.id} campus={c} withLabel={showLabels} accents={accents} />
-      ))}
+      {accents ? (
+        <LandmarkEdges>
+          <CampusMassing />
+        </LandmarkEdges>
+      ) : (
+        <CampusMassing />
+      )}
+
+      {accents && <LandmarkBeacons beacons={BEACONS} />}
+
+      {showLabels &&
+        CAMPUSES.map((c) => {
+          const [x, , z] = campusPosition(c);
+          return (
+            <CampusLabel key={c.id} campus={c} position={[x, roofHeight(c) + 1.8, z]} />
+          );
+        })}
 
       {/* Ambient grounding. frames={1} bakes it once — the geometry never moves,
           so this is a one-off cost that reads like soft ambient occlusion. */}
