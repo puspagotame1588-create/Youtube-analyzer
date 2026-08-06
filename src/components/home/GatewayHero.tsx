@@ -113,7 +113,10 @@ export function GatewayHero(): React.JSX.Element {
           label={sceneLabel}
           fallback={<StaticDistrict />}
           className="h-full w-full"
-          camera={{ position: [0, 19, 70], fov: 45 }}
+          /* ~29° elevation at ~115 units on a 32° lens — see the framing note in
+             TokyoCampusScene. The old [0,19,70]/45° sat 15° up and inside the
+             fabric, which is why the district read as a street rather than a model. */
+          camera={{ position: [0, 62, 104], fov: 32 }}
           onModeChange={handleModeChange}
           shadows={tier === 'A'}
           filmic

@@ -61,7 +61,12 @@ export interface BackdropConfig {
 export const DEFAULT_LIGHT: BackdropConfig['light'] = {
   keyColor: '#ffe2b6',
   keyIntensity: 3.9,
-  keyPosition: [86, 34, 56],
+  /**
+   * ~48° above the horizon. The previous [86,34,56] sat at 18°, which threw
+   * shadows several building-lengths long — reads as late-afternoon landscape,
+   * not as a lit model. Raising the sun shortens them without touching contrast.
+   */
+  keyPosition: [78, 104, 52],
   fillSky: '#cfe0fa',
   fillGround: '#a2988a',
   fillIntensity: 0.55,

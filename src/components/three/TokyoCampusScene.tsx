@@ -28,11 +28,26 @@ import { CampusBuilding, MODEL_HEIGHT } from './campus/Buildings';
 import { District } from './campus/District';
 import { BACKDROP, Backdrop, backdropEnabled } from './campus/Backdrop';
 
-const TARGET = new THREE.Vector3(0, 6, 0);
-const MIN_DISTANCE = 54;
-const MAX_DISTANCE = 104;
-const MAX_POLAR = 1.45; // still leaves the camera outside every footprint
-const MIN_POLAR = 0.78;
+/**
+ * Framing: a model on a table, not a street.
+ *
+ * The district reads to a radius of about 55 world units (campus ring at ~34,
+ * urban fabric to 52, transit viaduct at 45). At a 32° vertical FOV the frame's
+ * half-extent is d·tan(16°), and a disc of radius R seen at elevation θ projects
+ * to a vertical half-extent of R·sin(θ). Solving R·sin(30°)/tan(16°) for R = 55
+ * puts the whole district in frame at roughly 96 units, so the default distance
+ * of ~115 leaves real margin on every side.
+ *
+ * MAX_POLAR is the constraint that keeps this a planning table: at 1.2 rad the
+ * camera is still 21° above the ground, so it can never drop to street level.
+ * At MIN_DISTANCE the camera's ground radius is 95·cos(21°) ≈ 89 — well outside
+ * the outermost footprint, so no orbit can put it inside a building.
+ */
+const TARGET = new THREE.Vector3(0, 5, 0);
+const MIN_DISTANCE = 96;
+const MAX_DISTANCE = 175;
+const MAX_POLAR = 1.2; // ≥21° above the horizon at all times
+const MIN_POLAR = 0.5; // ≤62°, short of a plan view
 const IDLE_BEFORE_AUTOROTATE_MS = 4000;
 
 /**
@@ -97,7 +112,13 @@ function CampusLabel({
     ndc.copy(world).project(camera);
     // The hero card occupies roughly the middle of the viewport; fade any label
     // that would sit on top of it rather than letting the two collide.
-    const behindCard = Math.abs(ndc.x) < 0.56 && Math.abs(ndc.y) < 0.52 && ndc.z < 1;
+    //
+    // The box is deliberately a little tighter than the card's true footprint
+    // (~0.53 x ~0.75 in NDC at the default framing). A label whose leader line
+    // clears the card edge is worth showing even if its anchor is close to it —
+    // erring the other way suppressed almost every label once the camera pulled
+    // back and the campus ring moved inward.
+    const behindCard = Math.abs(ndc.x) < 0.44 && Math.abs(ndc.y) < 0.6 && ndc.z < 1;
     const next = !behindCard;
     if (next !== shown.current) {
       shown.current = next;
@@ -206,12 +227,14 @@ function KeyLight({ tier }: { tier: 'A' | 'B' }): React.JSX.Element {
   useEffect(() => {
     const l = ref.current;
     if (!l) return;
-    l.shadow.camera.left = -70;
-    l.shadow.camera.right = 70;
-    l.shadow.camera.top = 70;
-    l.shadow.camera.bottom = -70;
+    // Frustum covers the district disc (radius ~55) with headroom; `far` clears
+    // the light's own distance from origin (~140) plus the far side of the disc.
+    l.shadow.camera.left = -82;
+    l.shadow.camera.right = 82;
+    l.shadow.camera.top = 82;
+    l.shadow.camera.bottom = -82;
     l.shadow.camera.near = 10;
-    l.shadow.camera.far = 220;
+    l.shadow.camera.far = 260;
     l.shadow.bias = -0.0006;
     l.shadow.normalBias = 0.035;
     l.shadow.camera.updateProjectionMatrix();
@@ -243,7 +266,12 @@ export function TokyoCampusScene({ showLabels }: { showLabels: boolean }): React
       {/* Graded haze does the depth separation a depth-of-field pass would, at no
           per-frame cost — and the hero card's own backdrop blur already supplies
           the near-field focus effect DoF would be bought for. */}
-      <fog attach="fog" args={[BACKDROP.skyColor, 95, plate ? 232 : 280]} />
+      {/* Far plane extended for the pulled-back camera. The skyline ring ends at
+          radius 320, which from the new camera distance is ~418 away — past the
+          far plane, so it has already dissolved into the background colour and
+          leaves no hard edge. The district's back rows pick up ~30% haze on the
+          way, which is the aerial perspective that separates fore from back. */}
+      <fog attach="fog" args={[BACKDROP.skyColor, 95, plate ? 232 : 330]} />
 
       <RenderPipeline />
 
@@ -276,11 +304,11 @@ export function TokyoCampusScene({ showLabels }: { showLabels: boolean }): React
       {!reducedMotion && (
         <ContactShadows
           position={[0, 0.06, 0]}
-          scale={130}
+          scale={150}
           resolution={t === 'A' ? 1024 : 512}
           far={16}
-          blur={2.8}
-          opacity={0.45}
+          blur={2.5}
+          opacity={0.35}
           color="#2b3350"
           frames={1}
         />
