@@ -65,7 +65,9 @@ export const DEFAULT_LIGHT: BackdropConfig['light'] = {
   fillSky: '#cfe0fa',
   fillGround: '#a2988a',
   fillIntensity: 0.55,
-  exposure: 1.0,
+  // Slightly over 1: the ACES shoulder pulls midtones down, and a touch of
+  // exposure puts the stone back where the palette intends it.
+  exposure: 1.05,
 };
 
 export const BACKDROP: BackdropConfig = {

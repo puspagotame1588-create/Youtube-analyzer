@@ -55,11 +55,21 @@ function useModifierGatedZoom(domElement: HTMLElement): void {
   }, [domElement]);
 }
 
-/** Slightly lifted exposure so the filmic curve lands warm rather than muddy. */
-function ToneMapping(): null {
+/**
+ * Pins the colour pipeline for this scene.
+ *
+ * react-three-fiber already applies ACES + sRGB when `flat` is false, so this is
+ * belt-and-braces rather than new behaviour — but the hero's whole look is
+ * calibrated against this curve, and inheriting it from a library default means
+ * an r3f upgrade could regrade the scene silently. Setting it here makes the
+ * dependency explicit and greppable.
+ */
+function RenderPipeline(): null {
   const { gl } = useThree();
   useEffect(() => {
+    gl.toneMapping = THREE.ACESFilmicToneMapping;
     gl.toneMappingExposure = BACKDROP.light.exposure;
+    gl.outputColorSpace = THREE.SRGBColorSpace;
   }, [gl]);
   return null;
 }
@@ -235,7 +245,7 @@ export function TokyoCampusScene({ showLabels }: { showLabels: boolean }): React
           the near-field focus effect DoF would be bought for. */}
       <fog attach="fog" args={[BACKDROP.skyColor, 95, plate ? 232 : 280]} />
 
-      <ToneMapping />
+      <RenderPipeline />
 
       {/* Sky/ground bounce, a warm low key, and a cool counter-fill. */}
       <hemisphereLight

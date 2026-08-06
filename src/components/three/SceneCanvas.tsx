@@ -145,7 +145,12 @@ export function SceneCanvas({
           shadows={shadows ? 'soft' : false}
           dpr={tier === 'A' ? [1, 2] : [1, 1.5]}
           gl={{
-            antialias: tier === 'A',
+            // On for both live tiers: the hero is mostly long straight edges,
+            // which is the worst case for aliasing and the cheapest case for
+            // MSAA to resolve. dpr stays tier-aware — that is the lever that
+            // actually costs fill rate on a weak GPU. (Tier C never reaches
+            // here; it returned the 2D fallback above.)
+            antialias: true,
             powerPreference: tier === 'A' ? 'high-performance' : 'low-power',
             alpha: true,
           }}
