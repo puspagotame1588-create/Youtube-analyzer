@@ -31,12 +31,39 @@ function StaticDistrict(): React.JSX.Element {
         {/* distant skyline */}
         <g fill="#c8d5ea" opacity="0.55">
           {[
-            [40, 150], [96, 96], [150, 200], [214, 130], [268, 170], [330, 84],
-            [382, 220], [446, 118], [500, 160], [560, 92], [612, 186], [676, 128],
-            [742, 208], [806, 104], [858, 168], [920, 132], [984, 196], [1046, 88],
-            [1100, 176], [1164, 122], [1226, 204], [1288, 110], [1348, 158], [1402, 190],
+            [40, 150],
+            [96, 96],
+            [150, 200],
+            [214, 130],
+            [268, 170],
+            [330, 84],
+            [382, 220],
+            [446, 118],
+            [500, 160],
+            [560, 92],
+            [612, 186],
+            [676, 128],
+            [742, 208],
+            [806, 104],
+            [858, 168],
+            [920, 132],
+            [984, 196],
+            [1046, 88],
+            [1100, 176],
+            [1164, 122],
+            [1226, 204],
+            [1288, 110],
+            [1348, 158],
+            [1402, 190],
           ].map(([x, h], i) => (
-            <rect key={i} x={x} y={300 - (h ?? 0)} width={i % 3 === 0 ? 38 : 28} height={h} rx="2" />
+            <rect
+              key={i}
+              x={x}
+              y={300 - (h ?? 0)}
+              width={i % 3 === 0 ? 38 : 28}
+              height={h}
+              rx="2"
+            />
           ))}
         </g>
         {/* ground + campus lawn */}
@@ -74,25 +101,35 @@ function StaticDistrict(): React.JSX.Element {
   );
 }
 
+/** Tracks a media query without tripping hydration — false until mounted. */
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const sync = (): void => setMatches(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, [query]);
+  return matches;
+}
+
 export function GatewayHero(): React.JSX.Element {
   const t = useTranslations('home');
   const locale = useLocale();
   const { tier } = useQuality();
 
-  // Labels are DOM overlays; on narrow viewports they crowd the card, so the
-  // scene renders without them and the district reads as pure atmosphere.
   // The hint only makes sense while the interactive canvas is actually on screen.
   const [sceneLive, setSceneLive] = useState(false);
   const handleModeChange = useCallback((mode: '2d' | '3d') => setSceneLive(mode === '3d'), []);
 
-  const [wideEnoughForLabels, setWideEnoughForLabels] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 768px)');
-    const sync = (): void => setWideEnoughForLabels(mq.matches);
-    sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
-  }, []);
+  /**
+   * Below 768px the canvas is skipped entirely — not merely swapped for a
+   * fallback by SceneCanvas's own tier logic, which is device-capability based
+   * and would happily run WebGL on a capable phone. A static SVG on a phone is
+   * the right call regardless of what the GPU could manage.
+   */
+  const wideEnoughFor3D = useMediaQuery('(min-width: 768px)');
 
   const ja = locale === 'ja';
   const campusList = CAMPUSES.map((c) => (ja ? c.nameJa : c.nameEn)).join(ja ? '、' : ', ');
@@ -107,87 +144,114 @@ export function GatewayHero(): React.JSX.Element {
   ];
 
   return (
-    <section className="relative overflow-hidden" aria-labelledby="hero-title">
-      <div className="absolute inset-0">
-        <SceneCanvas
-          label={sceneLabel}
-          fallback={<StaticDistrict />}
-          className="h-full w-full"
-          /* ~29° elevation at ~115 units on a 32° lens — see the framing note in
-             TokyoCampusScene. The old [0,19,70]/45° sat 15° up and inside the
-             fabric, which is why the district read as a street rather than a model. */
-          camera={{ position: [0, 62, 104], fov: 32 }}
-          onModeChange={handleModeChange}
-          shadows={tier === 'A'}
-          filmic
-        >
-          <TokyoCampusScene showLabels={wideEnoughForLabels} />
-        </SceneCanvas>
-        {tier !== 'C' && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-base" />
-        )}
-      </div>
-
-      {/* pointer-events-none lets drag-to-rotate reach the canvas everywhere the
-          card and its controls aren't. */}
-      <div className="pointer-events-none relative z-10 mx-auto flex min-h-[32rem] max-w-7xl flex-col items-center justify-center px-4 py-12 text-center sm:min-h-[36rem] sm:py-16">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: 'easeOut' }}
-          className="cv-glass pointer-events-auto w-full max-w-3xl rounded-panel px-6 py-8 shadow-panel sm:px-12 sm:py-10"
-        >
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-violet2 sm:text-sm">
-            CareerVerse
-          </p>
-          <h1
-            id="hero-title"
-            className="text-balance text-[2rem] font-bold leading-[1.15] tracking-tight text-ink sm:text-5xl lg:text-[3.5rem]"
+    <section className="relative overflow-hidden bg-base" aria-labelledby="hero-title">
+      {/*
+        Two columns on desktop: copy at 44%, canvas full-bleed to the right edge
+        at 56%. Below 1024px they stack, copy first. The canvas is a grid cell
+        rather than an absolutely-positioned backdrop, which is what lets the
+        copy sit on the page background with no glass panel and no
+        backdrop-filter behind it.
+      */}
+      <div className="grid grid-cols-1 lg:min-h-[40rem] lg:grid-cols-[44fr_56fr]">
+        <div className="flex flex-col justify-center px-6 py-12 text-center sm:px-10 sm:py-16 lg:py-20 lg:pl-12 lg:pr-10 lg:text-left xl:pl-20">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: 'easeOut' }}
+            className="mx-auto w-full max-w-xl lg:mx-0"
           >
-            {t('tagline')}
-          </h1>
-          <p className="mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-ink-soft sm:text-lg">
-            {t('sub')}
-          </p>
-
-          <ul className="mt-7 grid gap-4 border-y border-ink/10 py-5 text-left sm:grid-cols-3">
-            {trustPoints.map((p) => (
-              <li key={p.key}>
-                <p className="text-sm font-semibold text-ink">{p.title}</p>
-                <p className="mt-1 text-xs leading-relaxed text-ink-soft">{p.body}</p>
-              </li>
-            ))}
-          </ul>
-
-          <p className="mt-5 text-sm text-ink-soft">{t('audience')}</p>
-
-          <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href="/create"
-              className="inline-flex min-h-[48px] w-full max-w-xs items-center justify-center rounded-full bg-gradient-to-r from-cyan2 to-violet2 px-8 py-3 text-base font-semibold text-white shadow-glow transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:w-auto"
-            >
-              {t('cta')}
-            </Link>
-            <Link
-              href="/universe"
-              className="inline-flex min-h-[48px] w-full max-w-xs items-center justify-center rounded-full border border-ink/10 bg-white/70 px-8 py-3 text-base font-semibold text-ink transition-all hover:border-cyan2/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan2 sm:w-auto"
-            >
-              {t('secondaryCta')}
-            </Link>
-          </div>
-
-          <p className="mt-6 text-xs text-ink-soft">{t('heroNote')}</p>
-        </motion.div>
-
-        {/* Interaction hint — only meaningful when the live scene is on screen. */}
-        {sceneLive && (
-          <div className="pointer-events-none mt-6 flex flex-col items-center gap-1.5">
-            <p className="rounded-full bg-ink/75 px-4 py-1.5 text-xs font-medium text-white backdrop-blur">
-              {t('sceneHint')}
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-violet2 sm:text-sm">
+              CareerVerse
             </p>
-            <p className="text-[11px] text-ink-soft">{t('sceneDisclaimer')}</p>
+            <h1
+              id="hero-title"
+              className="text-balance text-[2rem] font-bold leading-[1.15] tracking-tight text-ink sm:text-5xl lg:text-[3.25rem]"
+            >
+              {t('tagline')}
+            </h1>
+            <p className="mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-ink-soft sm:text-lg lg:mx-0">
+              {t('sub')}
+            </p>
+
+            {/* Three across while the column is full width; stacked once it
+                narrows to 44%, where three columns would be ~150px each. */}
+            <ul className="mt-7 grid gap-4 border-y border-ink/10 py-5 text-left sm:grid-cols-3 lg:grid-cols-1 lg:gap-3">
+              {trustPoints.map((p) => (
+                <li key={p.key}>
+                  <p className="text-sm font-semibold text-ink">{p.title}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-ink-soft">{p.body}</p>
+                </li>
+              ))}
+            </ul>
+
+            <p className="mt-5 text-sm text-ink-soft">{t('audience')}</p>
+
+            <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
+              <Link
+                href="/create"
+                className="inline-flex min-h-[48px] w-full max-w-xs items-center justify-center rounded-full bg-gradient-to-r from-cyan2 to-violet2 px-8 py-3 text-base font-semibold text-white shadow-glow transition-all hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink sm:w-auto"
+              >
+                {t('cta')}
+              </Link>
+              <Link
+                href="/universe"
+                className="inline-flex min-h-[48px] w-full max-w-xs items-center justify-center rounded-full border border-ink/10 bg-white/70 px-8 py-3 text-base font-semibold text-ink transition-all hover:border-cyan2/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan2 sm:w-auto"
+              >
+                {t('secondaryCta')}
+              </Link>
+            </div>
+
+            <p className="mt-6 text-xs text-ink-soft">{t('heroNote')}</p>
+          </motion.div>
+        </div>
+
+        <div className="relative h-[45vh] w-full lg:h-auto">
+          {/* SceneCanvas's own wrapper is `relative`, so it cannot also be the
+              absolutely-positioned box — the two position utilities collide and
+              it collapses to zero height. The absolute layer goes here instead,
+              giving its `h-full` a definite height to resolve against. */}
+          <div className="absolute inset-0">
+            {wideEnoughFor3D ? (
+              <SceneCanvas
+                label={sceneLabel}
+                fallback={<StaticDistrict />}
+                className="h-full w-full"
+                /* Reframed for the 56%-wide canvas — see the framing note in
+                 TokyoCampusScene. */
+                camera={{ position: [0, 134, 148], fov: 32 }}
+                onModeChange={handleModeChange}
+                shadows={tier === 'A'}
+                filmic
+              >
+                <TokyoCampusScene showLabels />
+              </SceneCanvas>
+            ) : (
+              <StaticDistrict />
+            )}
           </div>
-        )}
+
+          {/* Softens the column boundary. Wider on desktop, where it is the
+              actual seam; on the stacked layout the seam is horizontal, so the
+              bottom fade does the work instead. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-base via-base/70 to-transparent lg:w-40"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-base lg:hidden"
+          />
+
+          {/* Interaction hint — only meaningful when the live scene is on screen. */}
+          {sceneLive && (
+            <div className="pointer-events-none absolute bottom-4 right-4 z-10 flex flex-col items-end gap-1.5 text-right">
+              <p className="rounded-full bg-ink/75 px-4 py-1.5 text-xs font-medium text-white backdrop-blur">
+                {t('sceneHint')}
+              </p>
+              <p className="max-w-[18rem] text-[11px] text-ink-soft">{t('sceneDisclaimer')}</p>
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );

@@ -40,23 +40,43 @@ const HeroEffects = dynamic(() => import('./campus/Effects').then((m) => m.HeroE
 });
 
 /**
- * Framing: a model on a table, not a street.
+ * Framing: a model on a table, not a street — now inside a 56%-wide canvas.
  *
  * The district reads to a radius of about 55 world units (campus ring at ~34,
  * urban fabric to 52, transit viaduct at 45). At a 32° vertical FOV the frame's
  * half-extent is d·tan(16°), and a disc of radius R seen at elevation θ projects
- * to a vertical half-extent of R·sin(θ). Solving R·sin(30°)/tan(16°) for R = 55
- * puts the whole district in frame at roughly 96 units, so the default distance
- * of ~115 leaves real margin on every side.
+ * to a vertical half-extent of R·sin(θ).
+ *
+ * The canvas is 56% of the viewport but full hero height, so its aspect is only
+ * about 1.06 — nearly square. A circular footprint in a near-square frame is
+ * WIDTH-limited, which sets the distance:
+ *
+ *   horizontal  d·tan(16°)·aspect > R
+ *   vertical    fill = R·sin(θ) / (d·tan(16°))
+ *
+ * Substituting the horizontal limit into the vertical expression collapses R
+ * out of it entirely:
+ *
+ *   fill = aspect · sin(θ)
+ *
+ * So at the tightest horizontal fit the vertical fill depends only on elevation,
+ * and the ~70% target lands at θ ≈ 41°, independent of how big the district is.
+ * d = 196 backs off from that limit far enough to leave ~8% horizontal margin,
+ * which costs a few points of fill (~64%).
+ *
+ * R is taken as the district disc (~55). The transit viaduct reaches ~74 and is
+ * allowed to run off one corner: it is context scenery routed deliberately
+ * outside the district, and framing for it would push the camera past 260 units
+ * and shrink the landmarks for no gain.
  *
  * MAX_POLAR is the constraint that keeps this a planning table: at 1.2 rad the
  * camera is still 21° above the ground, so it can never drop to street level.
- * At MIN_DISTANCE the camera's ground radius is 95·cos(21°) ≈ 89 — well outside
- * the outermost footprint, so no orbit can put it inside a building.
+ * At MIN_DISTANCE the camera's ground radius is 120·cos(21°) ≈ 112 — well
+ * outside the outermost footprint, so no orbit can put it inside a building.
  */
 const TARGET = new THREE.Vector3(0, 5, 0);
-const MIN_DISTANCE = 96;
-const MAX_DISTANCE = 175;
+const MIN_DISTANCE = 140;
+const MAX_DISTANCE = 260;
 const MAX_POLAR = 1.2; // ≥21° above the horizon at all times
 const MIN_POLAR = 0.5; // ≤62°, short of a plan view
 const IDLE_BEFORE_AUTOROTATE_MS = 4000;
@@ -121,16 +141,14 @@ function CampusLabel({
     const el = ref.current;
     if (!el) return;
     ndc.copy(world).project(camera);
-    // The hero card occupies roughly the middle of the viewport; fade any label
-    // that would sit on top of it rather than letting the two collide.
-    //
-    // The box is deliberately a little tighter than the card's true footprint
-    // (~0.53 x ~0.75 in NDC at the default framing). A label whose leader line
-    // clears the card edge is worth showing even if its anchor is close to it —
-    // erring the other way suppressed almost every label once the camera pulled
-    // back and the campus ring moved inward.
-    const behindCard = Math.abs(ndc.x) < 0.44 && Math.abs(ndc.y) < 0.6 && ndc.z < 1;
-    const next = !behindCard;
+    // There is no longer a glass card over the canvas, so a label only needs to
+    // stay inside the canvas. The margins are generous because the label is a
+    // DOM box centred on this point and roughly 190x54px — anchoring it at the
+    // very edge would push half of it outside the canvas and let it overlap the
+    // copy column.
+    const inFrame =
+      ndc.z < 1 && Math.abs(ndc.x) < 0.82 && ndc.y < 0.84 && ndc.y > -0.78;
+    const next = inFrame;
     if (next !== shown.current) {
       shown.current = next;
       el.style.opacity = next ? '1' : '0';
@@ -256,7 +274,8 @@ function KeyLight({ tier }: { tier: 'A' | 'B' }): React.JSX.Element {
     l.shadow.camera.top = 82;
     l.shadow.camera.bottom = -82;
     l.shadow.camera.near = 10;
-    l.shadow.camera.far = 260;
+    // Clears the light's own distance from origin (~188) plus the far side.
+    l.shadow.camera.far = 300;
     l.shadow.bias = -0.0006;
     l.shadow.normalBias = 0.035;
     l.shadow.camera.updateProjectionMatrix();

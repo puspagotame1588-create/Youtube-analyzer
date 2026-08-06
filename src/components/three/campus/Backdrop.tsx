@@ -71,11 +71,12 @@ export const DEFAULT_LIGHT: BackdropConfig['light'] = {
   keyColor: '#fff6ea',
   keyIntensity: 3.7,
   /**
-   * ~48° above the horizon. The previous [86,34,56] sat at 18°, which threw
-   * shadows several building-lengths long — reads as late-afternoon landscape,
-   * not as a lit model. Raising the sun shortens them without touching contrast.
+   * ~63° above the horizon, up from 48° (and from 18° before that). A shadow's
+   * length is the caster's height / tan(elevation): at 18° that was 3.1x the
+   * building height, at 48° 0.9x, and here 0.51x. Short enough to ground the
+   * massing without the district reading as late afternoon.
    */
-  keyPosition: [78, 104, 52],
+  keyPosition: [70, 168, 47],
   fillSky: '#cfe0fa',
   fillGround: '#a8a49c',
   fillIntensity: 0.55,
