@@ -1,0 +1,130 @@
+{
+  "retrievedAt": "2026-08-01T12:28:10+09:00",
+  "retrievalTimezone": "Asia/Tokyo",
+  "scholarships": [
+    {
+      "id": "jasso-honors",
+      "englishName": "JASSO / MEXT Honors Scholarship for Privately Financed International Students",
+      "japaneseName": "留学生受入れ促進プログラム（文部科学省外国人留学生学習奨励費）",
+      "organization": "独立行政法人日本学生支援機構（JASSO）",
+      "officialDomains": [
+        "jasso.go.jp"
+      ],
+      "sourceUrls": [
+        "https://www.jasso.go.jp/ryugaku/scholarship_j/shoreihi/about.html",
+        "https://www.jasso.go.jp/ryugaku/scholarship_j/shoreihi/index.html"
+      ],
+      "retrievedAt": "2026-08-01T12:28:10+09:00",
+      "lastUpdatedDate": null,
+      "language": "ja",
+      "status": "active",
+      "sourceFilePath": "data/scholarships/jasso-honors.md",
+      "rawSourceFiles": [
+        "data/scholarships/raw/jasso-about.txt",
+        "data/scholarships/raw/jasso-index.txt"
+      ]
+    },
+    {
+      "id": "mext-government",
+      "englishName": "Japanese Government (MEXT) Scholarship",
+      "japaneseName": "日本政府（文部科学省）奨学金 / 国費外国人留学生制度",
+      "organization": "文部科学省（MEXT）",
+      "officialDomains": [
+        "mext.go.jp"
+      ],
+      "sourceUrls": [
+        "https://www.mext.go.jp/a_menu/koutou/ryugaku/06032818.htm",
+        "https://www.mext.go.jp/a_menu/koutou/ryugaku/boshu/1415354_00011.htm",
+        "https://www.mext.go.jp/content/20260420-mxt-kotokoku01-000049232_01.pdf",
+        "https://www.mext.go.jp/a_menu/koutou/ryugaku/boshu/1415352_00008.htm",
+        "https://www.mext.go.jp/content/20260420-mxt-kotokoku01-000049243_01.pdf"
+      ],
+      "retrievedAt": "2026-08-01T12:28:10+09:00",
+      "lastUpdatedDate": null,
+      "language": "ja",
+      "status": "active",
+      "sourceFilePath": "data/scholarships/mext-government.md",
+      "rawSourceFiles": [
+        "data/scholarships/raw/mext-overview.txt",
+        "data/scholarships/raw/mext-undergrad-2027-landing.txt",
+        "data/scholarships/raw/mext-undergrad-2027-guidelines.txt",
+        "data/scholarships/raw/mext-research-2027-landing.txt",
+        "data/scholarships/raw/mext-research-2027-guidelines.txt"
+      ]
+    },
+    {
+      "id": "rotary-yoneyama",
+      "englishName": "Rotary Yoneyama Memorial Foundation Scholarship",
+      "japaneseName": "ロータリー米山記念奨学金（学部・修士・博士課程）",
+      "organization": "公益財団法人ロータリー米山記念奨学会",
+      "officialDomains": [
+        "rotary-yoneyama.or.jp"
+      ],
+      "sourceUrls": [
+        "https://www.rotary-yoneyama.or.jp/content/uploads/pdf-data/201.pdf",
+        "https://www.rotary-yoneyama.or.jp/download",
+        "https://www.rotary-yoneyama.or.jp/blog/news/2025/detail_19985.html"
+      ],
+      "retrievedAt": "2026-08-01T12:28:10+09:00",
+      "lastUpdatedDate": "2025-08-05",
+      "language": "ja",
+      "status": "active",
+      "sourceFilePath": "data/scholarships/rotary-yoneyama.md",
+      "rawSourceFiles": [
+        "data/scholarships/raw/rotary-2026-guidelines.txt",
+        "data/scholarships/raw/rotary-download.txt",
+        "data/scholarships/raw/rotary-2026-news.txt"
+      ]
+    },
+    {
+      "id": "sato-yo",
+      "englishName": "Sato Yo International Scholarship Foundation Scholarship",
+      "japaneseName": "公益財団法人佐藤陽国際奨学財団 私費留学奨学生",
+      "organization": "公益財団法人佐藤陽国際奨学財団",
+      "officialDomains": [
+        "sisf.or.jp"
+      ],
+      "sourceUrls": [
+        "https://sisf.or.jp/ja/about_application_autumn/",
+        "https://sisf.or.jp/download/%E7%A7%8B%EF%BC%BF%E5%8B%9F%E9%9B%86%E8%A6%81%E9%A0%85/?refresh=6a437fab58fa21782808491&wpdmdl=7069",
+        "https://sisf.or.jp/ja/info_type/notice-ja/"
+      ],
+      "retrievedAt": "2026-08-01T12:28:10+09:00",
+      "lastUpdatedDate": "2026-06-15",
+      "language": "ja",
+      "status": "active",
+      "sourceFilePath": "data/scholarships/sato-yo.md",
+      "rawSourceFiles": [
+        "data/scholarships/raw/sato-autumn-2026.txt",
+        "data/scholarships/raw/sato-autumn-2026-guidelines.txt",
+        "data/scholarships/raw/sato-notices.txt"
+      ]
+    },
+    {
+      "id": "kyoritsu",
+      "englishName": "Kyoritsu International Foundation Scholarship",
+      "japaneseName": "一般財団法人共立国際交流奨学財団奨学金",
+      "organization": "一般財団法人共立国際交流奨学財団",
+      "officialDomains": [
+        "kif-org.com"
+      ],
+      "sourceUrls": [
+        "https://kif-org.com/scholarship/application.html",
+        "https://kif-org.com/scholarship/outline.html",
+        "https://kif-org.com/scholarship/list.html",
+        "https://kif-org.com/about/schedule.html"
+      ],
+      "retrievedAt": "2026-08-01T12:28:10+09:00",
+      "lastUpdatedDate": null,
+      "language": "ja",
+      "status": "unclear",
+      "sourceFilePath": "data/scholarships/kyoritsu.md",
+      "rawSourceFiles": [
+        "data/scholarships/raw/kyoritsu-application.txt",
+        "data/scholarships/raw/kyoritsu-outline.txt",
+        "data/scholarships/raw/kyoritsu-school-list.txt",
+        "data/scholarships/raw/kyoritsu-schedule.txt"
+      ]
+    }
+  ]
+}
