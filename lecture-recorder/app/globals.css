@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f6f6f4;
+  --surface: #ffffff;
+  --surface-2: #f0f0ee;
+  --ink: #16181d;
+  --ink-soft: #5c6373;
+  --line: #e3e4e8;
+  --accent: #4f46e5;
+  --accent-ink: #ffffff;
+  --accent-soft: #eef0ff;
+  --ok: #15803d;
+  --warn: #b45309;
+  --warn-soft: #fff4e5;
+  --danger: #b91c1c;
+  --danger-soft: #fee2e2;
+  --ja: #0f766e;
+  --ja-soft: #e6f5f3;
+  --en: #4338ca;
+  --en-soft: #eceefe;
+  --rec: #dc2626;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115;
+    --surface: #171a21;
+    --surface-2: #1f232c;
+    --ink: #eceef3;
+    --ink-soft: #9aa1b1;
+    --line: #2a2f3a;
+    --accent: #818cf8;
+    --accent-ink: #0f1115;
+    --accent-soft: #24274a;
+    --ok: #4ade80;
+    --warn: #fbbf24;
+    --warn-soft: #3a2a10;
+    --danger: #f87171;
+    --danger-soft: #3f1d1d;
+    --ja: #2dd4bf;
+    --ja-soft: #123330;
+    --en: #a5b4fc;
+    --en-soft: #23264a;
+    --rec: #f87171;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-ja: var(--ja);
+  --color-ja-soft: var(--ja-soft);
+  --color-en: var(--en);
+  --color-en-soft: var(--en-soft);
+  --color-rec: var(--rec);
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic",
+    Meiryo, sans-serif;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Small reusable pieces */
+.btn,
+.btn-primary,
+.btn-ghost,
+.btn-danger {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
+}
+.btn-primary {
+  @apply bg-accent text-accent-ink hover:opacity-90;
+}
+.btn-ghost {
+  @apply border border-line bg-surface text-ink hover:bg-surface-2;
+}
+.btn-danger {
+  @apply border border-danger/40 bg-surface text-danger hover:bg-danger-soft;
+}
+.input {
+  @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent;
+}
+.card {
+  @apply rounded-xl border border-line bg-surface;
+}
+.pill {
+  @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+}
+
+@keyframes pulse-rec {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.rec-dot {
+  animation: pulse-rec 1.2s ease-in-out infinite;
+}

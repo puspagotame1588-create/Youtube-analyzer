@@ -6,6 +6,11 @@ A premium one-page job-hunting portfolio for AI/DX consulting, AI solutions, and
 
 ---
 
+> **Other apps in this repository**
+>
+> - [`miraipath/`](miraipath/README.md) — MiraiPath Japan, education-route marketplace MVP (Next.js + Supabase)
+> - [`lecture-recorder/`](lecture-recorder/README.md) — 講義レコーダー: records Japanese lectures with live JA/EN transcription, then produces a full transcript, summary and main points (Next.js, local-first)
+
 ## 1. Run it locally
 
 ```bash
