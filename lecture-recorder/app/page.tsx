@@ -1,7 +1,7 @@
-import Library from "@/components/Library";
+import { LibraryClient } from "@/components/ClientOnly";
 
 export const dynamic = "force-dynamic";
 
 export default function HomePage() {
-  return <Library />;
+  return <LibraryClient />;
 }

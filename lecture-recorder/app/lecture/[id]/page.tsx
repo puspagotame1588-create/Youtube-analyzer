@@ -1,4 +1,4 @@
-import LectureView from "@/components/LectureView";
+import LectureViewClient from "@/components/LectureViewClient";
 
 export const dynamic = "force-dynamic";
 
@@ -8,5 +8,5 @@ export default async function LecturePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <LectureView id={id} />;
+  return <LectureViewClient id={id} />;
 }

@@ -50,6 +50,11 @@ export default function Recorder() {
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
 
+  // Microphone support can only be known in the browser. Checking it during
+  // render makes the server send one page and the browser render another,
+  // which breaks hydration; it is read after mount instead.
+  const [supported, setSupported] = useState(true);
+
   const [scheduleAt, setScheduleAt] = useState("");
   const [autoStopMin, setAutoStopMin] = useState(95);
 
@@ -66,6 +71,7 @@ export default function Recorder() {
   /* --------------------------------------------------------------- setup -- */
 
   useEffect(() => {
+    setSupported(isSupported());
     void api.health().then(setHealth).catch(() => undefined);
     void api
       .courses()
@@ -336,7 +342,7 @@ export default function Recorder() {
 
   /* ---------------------------------------------------------------- view -- */
 
-  if (!isSupported()) {
+  if (!supported) {
     return (
       <Notice tone="error">
         このブラウザは録音に対応していません。Chrome または Edge で開いてください。
