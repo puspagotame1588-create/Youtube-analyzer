@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { toFile } from "openai";
 import { CONFIG } from "./config";
+import OpenAI from "openai";
 import { openai, withRetry } from "./openai";
 import { speechPrompt } from "./prompts";
 import type { LectureLanguage } from "@/lib/types";
@@ -15,7 +16,12 @@ export interface RawSegment {
 export interface TranscribeResult {
   text: string;
   segments: RawSegment[];
+  /** True when the configured model was unavailable and Whisper was used. */
+  fallback: boolean;
 }
+
+/** Available on every account, and the safety net when a newer model is not. */
+export const FALLBACK_MODEL = "whisper-1";
 
 const MIME_BY_EXT: Record<string, string> = {
   webm: "audio/webm",
@@ -77,6 +83,7 @@ export async function transcribeFile(
     type: MIME_BY_EXT[ext] ?? "application/octet-stream",
   });
 
+  let usedFallback = false;
   const supportsKeywords = opts.model.startsWith("gpt-transcribe");
   const supportsVerbose = opts.model === "whisper-1" || supportsKeywords;
   const wantVerbose = opts.timestamps && supportsVerbose;
@@ -96,16 +103,37 @@ export async function transcribeFile(
   // microphone in the middle of a 300-seat hall usable.
   if (opts.timestamps) body.chunking_strategy = "auto";
 
-  const result = await withRetry(`文字起こし (${path.basename(file)})`, async () => {
-    // The SDK's overloads are keyed to a literal response_format, which we pick
-    // at runtime, so the request object is assembled untyped and narrowed here.
+  const run = async (model: string, verbose: boolean) => {
     const client = openai();
+    const attemptBody = { ...body, model } as Record<string, unknown>;
+    if (!verbose) {
+      attemptBody.response_format = "json";
+      delete attemptBody.timestamp_granularities;
+    }
+    if (!model.startsWith("gpt-transcribe")) delete attemptBody.keywords;
+    // The SDK overloads are keyed to a literal response_format, which is chosen
+    // at runtime here, so the request is assembled untyped and narrowed after.
     return (await client.audio.transcriptions.create(
-      body as never,
+      attemptBody as never,
     )) as unknown as {
       text?: string;
       segments?: { start: number; end: number; text: string }[];
     };
+  };
+
+  const result = await withRetry(`文字起こし (${path.basename(file)})`, async () => {
+    try {
+      return await run(opts.model, wantVerbose);
+    } catch (err) {
+      // A model the account cannot use, or a response format it rejects, must
+      // not cost the lecture: retry on the long-standing Whisper endpoint.
+      const status = err instanceof OpenAI.APIError ? err.status : undefined;
+      if (status === 400 || status === 403 || status === 404) {
+        usedFallback = true;
+        return run(FALLBACK_MODEL, opts.timestamps);
+      }
+      throw err;
+    }
   });
 
   const text = (result.text ?? "").trim();
@@ -118,5 +146,5 @@ export async function transcribeFile(
     }))
     .filter((s) => s.text.length > 0 && !isFiller(s.text));
 
-  return { text, segments };
+  return { text, segments, fallback: usedFallback };
 }

@@ -172,6 +172,11 @@ export default function LectureView({ id }: { id: string }) {
             </button>
           </div>
         )}
+        {lecture.note && (
+          <div className="mt-3">
+            <Notice tone="warn">{lecture.note}</Notice>
+          </div>
+        )}
         {lecture.status === "error" && lecture.error && (
           <div className="mt-3">
             <Notice tone="error">{lecture.error}</Notice>

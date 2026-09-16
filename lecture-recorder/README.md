@@ -138,7 +138,22 @@ C:\Users\<ユーザー名>\LectureRecorder\
 
 ---
 
-## 6. 困ったとき
+## 6. モデルが使えないとき
+
+設定画面に「このアカウントでは次のモデルが使えないようです」と出た場合でも、そのまま使えます。文字起こしは自動的に `whisper-1` に、要約は使える別のモデルに切り替わります（講義ページに切り替えた旨が表示されます）。
+
+切り替えなしで動かすには、`.env.local` に自分のアカウントで使えるモデル名を書いてください。
+
+```
+OPENAI_TRANSCRIBE_MODEL=whisper-1
+OPENAI_LIVE_TRANSCRIBE_MODEL=whisper-1
+OPENAI_LLM_MODEL=gpt-5
+OPENAI_FAST_LLM_MODEL=gpt-5-mini
+```
+
+---
+
+## 7. 困ったとき
 
 | 症状 | 対処 |
 | --- | --- |
@@ -151,7 +166,7 @@ C:\Users\<ユーザー名>\LectureRecorder\
 
 ---
 
-## 7. 開発者向け
+## 8. 開発者向け
 
 ```bash
 npm install

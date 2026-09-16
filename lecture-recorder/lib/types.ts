@@ -72,6 +72,8 @@ export interface Lecture {
   /** Progress of the finalize pipeline, shown in the UI. */
   progress?: { step: string; done: number; total: number } | null;
   error?: string | null;
+  /** Informational message about how the lecture was processed. Not a failure. */
+  note?: string | null;
   /** Number of live chunks that failed to transcribe and are awaiting retry. */
   pendingChunks?: number;
 }

@@ -36,6 +36,15 @@ export default function Settings() {
         </Notice>
       )}
 
+      {health.modelCheck.checked && health.modelCheck.missing.length > 0 && (
+        <Notice tone="warn">
+          このアカウントでは次のモデルが使えないようです:{" "}
+          <span className="font-mono">{health.modelCheck.missing.join(", ")}</span>
+          。そのまま使えますが、自動的に別のモデル（whisper-1 など）に切り替わります。
+          .env.local で使えるモデル名を指定すると、切り替えなしで動きます。
+        </Notice>
+      )}
+
       <section className="card p-5">
         <h2 className="section-title mb-3">API キーの設定</h2>
         <ol className="list-decimal space-y-2 pl-5 text-sm leading-relaxed">

@@ -209,6 +209,7 @@ async function runFinalize(lectureId: string): Promise<void> {
   let segments: TranscriptSegment[] = [];
   let refined = false;
 
+  let usedFallbackModel = false;
   if (passFiles.length > 0) {
     const raw: RawSegment[] = [];
     const passIndex = await readPassIndex(lectureId);
@@ -236,6 +237,7 @@ async function runFinalize(lectureId: string): Promise<void> {
         });
       }
       carry = result.text.slice(-200);
+      if (result.fallback) usedFallbackModel = true;
     }
     segments = raw.map((s) => ({
       startSec: Math.round(s.startSec * 10) / 10,
@@ -304,6 +306,9 @@ async function runFinalize(lectureId: string): Promise<void> {
     status: "done",
     progress: null,
     error: null,
+    note: usedFallbackModel
+      ? "設定されたモデルが使えなかったため、whisper-1 で文字起こししました。設定画面のモデル名をご確認ください。"
+      : null,
     title: lecture.title.trim() || notes.title,
   });
 }

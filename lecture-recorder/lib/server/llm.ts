@@ -1,7 +1,38 @@
+import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import type { z } from "zod";
 import { CONFIG } from "./config";
 import { openai, withRetry } from "./openai";
+
+/** Tried in order when the configured model is not available to the account. */
+const FALLBACK_MODELS = ["gpt-5", "gpt-4.1"];
+
+function unavailable(err: unknown): boolean {
+  if (!(err instanceof OpenAI.APIError)) return false;
+  const status = err.status ?? 0;
+  if (status === 403 || status === 404) return true;
+  // A 400 naming the model means this account cannot use it; other 400s are
+  // genuine request errors and must not silently change model.
+  return status === 400 && /model/i.test(err.message);
+}
+
+/** Runs `attempt` against the configured model, then each fallback in turn. */
+async function withModelFallback<T>(
+  model: string,
+  attempt: (model: string) => Promise<T>,
+): Promise<T> {
+  const chain = [model, ...FALLBACK_MODELS.filter((m) => m !== model)];
+  let lastError: unknown;
+  for (const candidate of chain) {
+    try {
+      return await attempt(candidate);
+    } catch (err) {
+      lastError = err;
+      if (!unavailable(err)) throw err;
+    }
+  }
+  throw lastError;
+}
 
 interface JsonOptions {
   model?: string;
@@ -19,18 +50,20 @@ export async function llmJson<S extends z.ZodType>(
   opts: JsonOptions,
 ): Promise<z.infer<S>> {
   const model = opts.model ?? CONFIG.llmModel;
-  const response = await withRetry(opts.label ?? "AI 生成", async () => {
-    const client = openai();
-    return client.responses.parse({
-      model,
-      instructions: opts.instructions,
-      input: opts.input,
-      max_output_tokens: opts.maxOutputTokens ?? 16000,
-      reasoning: opts.effort ? { effort: opts.effort } : undefined,
-      text: { format: zodTextFormat(schema as never, opts.schemaName) },
-      store: false,
-    });
-  });
+  const response = await withRetry(opts.label ?? "AI 生成", async () =>
+    withModelFallback(model, (activeModel) => {
+      const client = openai();
+      return client.responses.parse({
+        model: activeModel,
+        instructions: opts.instructions,
+        input: opts.input,
+        max_output_tokens: opts.maxOutputTokens ?? 16000,
+        reasoning: opts.effort ? { effort: opts.effort } : undefined,
+        text: { format: zodTextFormat(schema as never, opts.schemaName) },
+        store: false,
+      });
+    }),
+  );
 
   if (response.status === "incomplete") {
     throw new Error(
@@ -69,16 +102,18 @@ export async function llmText(opts: {
   effort?: "none" | "minimal" | "low" | "medium" | "high";
   label?: string;
 }): Promise<string> {
-  const response = await withRetry(opts.label ?? "AI 生成", async () => {
-    const client = openai();
-    return client.responses.create({
-      model: opts.model ?? CONFIG.fastModel,
-      instructions: opts.instructions,
-      input: opts.input,
-      max_output_tokens: opts.maxOutputTokens ?? 1200,
-      reasoning: opts.effort ? { effort: opts.effort } : undefined,
-      store: false,
-    });
-  });
+  const response = await withRetry(opts.label ?? "AI 生成", async () =>
+    withModelFallback(opts.model ?? CONFIG.fastModel, (activeModel) => {
+      const client = openai();
+      return client.responses.create({
+        model: activeModel,
+        instructions: opts.instructions,
+        input: opts.input,
+        max_output_tokens: opts.maxOutputTokens ?? 1200,
+        reasoning: opts.effort ? { effort: opts.effort } : undefined,
+        store: false,
+      });
+    }),
+  );
   return (response.output_text ?? "").trim();
 }

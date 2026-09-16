@@ -36,6 +36,7 @@ const json = (value: unknown): RequestInit => ({
 
 export interface Health {
   ready: boolean;
+  modelCheck: { missing: string[]; checked: boolean };
   dataDir: string;
   models: { live: string; transcribe: string; notes: string; fast: string };
   recording: { liveChunkSec: number; passChunkSec: number; audioBitsPerSecond: number };
