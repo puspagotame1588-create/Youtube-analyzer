@@ -12,6 +12,7 @@ import type {
   ChatTurn,
   Course,
   Flashcards,
+  Highlights,
   Lecture,
   LiveSegment,
   MaterialIndex,
@@ -174,6 +175,14 @@ export function readFlashcards(id: string): Promise<Flashcards | null> {
 
 export function writeFlashcards(id: string, value: Flashcards): Promise<void> {
   return writeJson(lecturePaths(id).flashcards, value);
+}
+
+export function readHighlights(id: string): Promise<Highlights | null> {
+  return readJson<Highlights | null>(lecturePaths(id).highlights, null);
+}
+
+export function writeHighlights(id: string, value: Highlights): Promise<void> {
+  return writeJson(lecturePaths(id).highlights, value);
 }
 
 export function readChat(id: string): Promise<ChatTurn[]> {

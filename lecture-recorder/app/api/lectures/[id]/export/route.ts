@@ -3,6 +3,7 @@ import { buildMarkdown } from "@/lib/export";
 import {
   readCourses,
   readFlashcards,
+  readHighlights,
   readLecture,
   readNotes,
   readTranscript,
@@ -17,14 +18,22 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     const { id } = await ctx.params;
     const lecture = await readLecture(id);
     if (!lecture) return new Response("講義が見つかりません", { status: 404 });
-    const [courses, transcript, notes, flashcards] = await Promise.all([
+    const [courses, transcript, notes, flashcards, highlights] = await Promise.all([
       readCourses(),
       readTranscript(id),
       readNotes(id),
       readFlashcards(id),
+      readHighlights(id),
     ]);
     const course = courses.find((c) => c.id === lecture.courseId);
-    const markdown = buildMarkdown({ lecture, course, transcript, notes, flashcards });
+    const markdown = buildMarkdown({
+      lecture,
+      course,
+      transcript,
+      notes,
+      highlights,
+      flashcards,
+    });
     const name = `${(course?.name ?? "lecture").replace(/[\\/:*?"<>|]+/g, "_")}_第${lecture.number}回_${lecture.date}.md`;
     return new Response(markdown, {
       headers: {

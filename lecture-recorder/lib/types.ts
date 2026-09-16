@@ -123,6 +123,27 @@ export interface Notes {
   model: string;
 }
 
+/** One passage the teacher flagged as worth studying. */
+export interface Highlight {
+  startSec: number;
+  endSec: number;
+  /** The teacher's own words, verbatim from the transcript. */
+  quote: string;
+  /** The cue phrase that drew attention to it, e.g. 試験. */
+  cue: string;
+  category: "exam" | "important" | "memorize" | "assignment" | "caution";
+  /** What to actually study, written from the surrounding explanation. */
+  point: string;
+}
+
+export interface Highlights {
+  items: Highlight[];
+  /** Lines the keyword scan flagged, before the AI removed false positives. */
+  scanned: number;
+  createdAt: number;
+  model: string;
+}
+
 export interface Flashcards {
   cards: { front: string; back: string; hint: string }[];
   createdAt: number;

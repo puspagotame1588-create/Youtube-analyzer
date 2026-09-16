@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, type Health } from "@/lib/api";
 import { fmtBytes, fmtSec, todayISO } from "@/lib/export";
+import { findCues, CATEGORY_LABEL } from "@/lib/highlight";
 import {
   DEFAULT_SETTINGS,
   LectureRecorder,
@@ -583,12 +584,27 @@ export default function Recorder() {
                 : "録音を開始すると、ここに日本語と英語が同時に表示されます。"}
             </p>
           ) : (
-            spoken.map((s) => (
-              <div key={s.idx} className="grid grid-cols-2 border-b border-line/60 last:border-0">
+            spoken.map((s) => {
+              const cues = s.source ? findCues(s.source, language) : [];
+              return (
+              <div
+                key={s.idx}
+                className={`grid grid-cols-2 border-b border-line/60 last:border-0 ${
+                  cues.length ? "bg-warn-soft/50" : ""
+                }`}
+              >
                 <div className="px-4 py-2.5 text-sm leading-relaxed">
                   <span className="mr-2 font-mono text-[11px] text-ink-soft">
                     {fmtSec(s.startSec)}
                   </span>
+                  {cues.length > 0 && (
+                    <span
+                      className="mr-1.5 align-middle text-warn"
+                      title={`${cues.map((c) => CATEGORY_LABEL[c.category]).join("・")}（録音後に「重要ポイント」へ整理されます）`}
+                    >
+                      ★
+                    </span>
+                  )}
                   {s.status === "error" ? (
                     <span className="text-warn">
                       この区間は文字起こしできませんでした（音声は保存済み。終了後の精密処理で復元されます）
@@ -601,7 +617,8 @@ export default function Recorder() {
                   {s.translation || (s.status === "done" ? "" : "…")}
                 </div>
               </div>
-            ))
+              );
+            })
           )}
           <div ref={bottomRef} />
         </div>

@@ -5,10 +5,12 @@ import { materialsContext } from "./materials";
 import {
   CHAT_SYSTEM,
   FLASHCARDS_SYSTEM,
+  HIGHLIGHTS_SYSTEM,
   LIVE_TRANSLATE_SYSTEM,
   NOTES_SYSTEM,
   PROOFREAD_SYSTEM,
 } from "./prompts";
+import { contextWindows, findCues, normalize } from "@/lib/highlight";
 import {
   appendLiveSegment,
   listChunks,
@@ -21,6 +23,7 @@ import {
   readTranscript,
   removeWorkingChunks,
   writeFlashcards,
+  writeHighlights,
   writeNotes,
   writeTranscript,
 } from "./store";
@@ -29,6 +32,7 @@ import { describe } from "./openai";
 import {
   ChatAnswerSchema,
   FlashcardsSchema,
+  HighlightsSchema,
   NotesSchema,
   ProofreadSchema,
   TranslateSchema,
@@ -37,6 +41,9 @@ import {
 import type {
   Course,
   Flashcards,
+  Highlight,
+  Highlights,
+  LectureLanguage,
   LiveSegment,
   Notes,
   TranscriptSegment,
@@ -299,7 +306,15 @@ async function runFinalize(lectureId: string): Promise<void> {
   });
   await writeNotes(lectureId, notes);
 
-  /* 5. The working chunks have served their purpose; the master stays. */
+  /* 5. Passages the teacher flagged as worth studying. */
+  await progress("重要ポイントを抽出中", 0, 1);
+  try {
+    await extractHighlights(lectureId, segments, lecture.language);
+  } catch {
+    // A lecture with notes is still useful; this section can be rebuilt later.
+  }
+
+  /* 6. The working chunks have served their purpose; the master stays. */
   if (refined) await removeWorkingChunks(lectureId).catch(() => undefined);
 
   await patchLecture(lectureId, {
@@ -444,6 +459,125 @@ async function buildNotes(
   });
 
   return { ...result, createdAt: Date.now(), model: CONFIG.llmModel };
+}
+
+/* --------------------------------------------------------- highlights ----- */
+
+/** Windows examined per request. Keeps each call small enough to stay accurate. */
+const WINDOWS_PER_CALL = 6;
+
+/**
+ * Finds the passages where the teacher flagged something to study.
+ *
+ * A keyword scan proposes candidates, which is cheap and catches everything;
+ * the model then decides which are real and writes what the passage is actually
+ * about, reading the lines around it. Anything it cannot quote verbatim from
+ * the transcript is discarded, so nothing invented reaches the study list.
+ */
+export async function extractHighlights(
+  lectureId: string,
+  segments: TranscriptSegment[],
+  language: LectureLanguage,
+): Promise<Highlights> {
+  const candidates = segments
+    .map((segment, index) => ({ index, cues: findCues(segment.source, language) }))
+    .filter((entry) => entry.cues.length > 0)
+    .map((entry) => entry.index);
+
+  const empty: Highlights = {
+    items: [],
+    scanned: candidates.length,
+    createdAt: Date.now(),
+    model: CONFIG.llmModel,
+  };
+  if (candidates.length === 0) {
+    await writeHighlights(lectureId, empty);
+    return empty;
+  }
+
+  const windows = contextWindows(candidates, segments.length);
+  const collected: Highlight[] = [];
+
+  for (let i = 0; i < windows.length; i += WINDOWS_PER_CALL) {
+    const batch = windows.slice(i, i + WINDOWS_PER_CALL);
+    const input = batch
+      .map((window) => {
+        const lines = [];
+        for (let line = window.start; line <= window.end; line++) {
+          const mark = window.cueLines.includes(line) ? " ←合図の語あり" : "";
+          lines.push(`${line}\t[${formatSec(segments[line].startSec)}] ${segments[line].source}${mark}`);
+        }
+        return lines.join("\n");
+      })
+      .join("\n-----\n");
+
+    try {
+      const result = await llmJson(HighlightsSchema, {
+        instructions: HIGHLIGHTS_SYSTEM(language),
+        input: `次の抜粋から、勉強すべき箇所を拾ってください。\n\n${input}`,
+        schemaName: "lecture_highlights",
+        maxOutputTokens: 8000,
+        effort: "low",
+        label: "重要ポイントの抽出",
+      });
+      collected.push(...verifyHighlights(result.items, segments));
+    } catch {
+      // One failed batch must not discard the ones that worked.
+    }
+  }
+
+  const highlights: Highlights = {
+    items: dedupeHighlights(collected),
+    scanned: candidates.length,
+    createdAt: Date.now(),
+    model: CONFIG.llmModel,
+  };
+  await writeHighlights(lectureId, highlights);
+  return highlights;
+}
+
+/**
+ * Keeps only the items whose quote really appears in the line they cite. A
+ * paraphrased or invented quote is dropped rather than shown as the teacher's
+ * words.
+ */
+function verifyHighlights(
+  items: { line: number; quote: string; cue: string; category: Highlight["category"]; point: string }[],
+  segments: TranscriptSegment[],
+): Highlight[] {
+  const kept: Highlight[] = [];
+  for (const item of items) {
+    const segment = segments[item.line];
+    if (!segment) continue;
+    const quote = item.quote.trim();
+    if (!quote || !item.point.trim()) continue;
+    if (!normalize(segment.source).includes(normalize(quote))) continue;
+    kept.push({
+      startSec: segment.startSec,
+      endSec: segment.endSec,
+      quote,
+      cue: item.cue.trim(),
+      category: item.category,
+      point: item.point.trim(),
+    });
+  }
+  return kept;
+}
+
+function dedupeHighlights(items: Highlight[]): Highlight[] {
+  const byKey = new Map<string, Highlight>();
+  for (const item of items) {
+    const key = `${item.startSec}|${item.category}`;
+    if (!byKey.has(key)) byKey.set(key, item);
+  }
+  return [...byKey.values()].sort((a, b) => a.startSec - b.startSec);
+}
+
+/** Rebuilds the study list on demand, from the transcript already on disk. */
+export async function rebuildHighlights(lectureId: string): Promise<Highlights> {
+  const transcript = await readTranscript(lectureId);
+  if (!transcript) throw new Error("先に文字起こしを完了してください。");
+  return extractHighlights(lectureId, transcript.segments, transcript.language);
 }
 
 /* ------------------------------------------------------- on-demand tools -- */

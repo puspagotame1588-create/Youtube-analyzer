@@ -1,6 +1,8 @@
+import { CATEGORY_LABEL, CATEGORY_ORDER } from "./highlight";
 import type {
   Course,
   Flashcards,
+  Highlights,
   Lecture,
   Notes,
   TranscriptFile,
@@ -38,6 +40,7 @@ interface ExportInput {
   course?: Course;
   transcript: TranscriptFile | null;
   notes: Notes | null;
+  highlights: Highlights | null;
   flashcards: Flashcards | null;
 }
 
@@ -47,6 +50,7 @@ export function buildMarkdown({
   course,
   transcript,
   notes,
+  highlights,
   flashcards,
 }: ExportInput): string {
   const out: string[] = [];
@@ -61,6 +65,22 @@ export function buildMarkdown({
     out.push("- 注意: 精密文字起こしが未完了のため、ライブ字幕をそのまま収録しています。");
   }
   out.push("");
+
+  if (highlights && highlights.items.length > 0) {
+    out.push("## 重要ポイント（先生が強調した箇所）");
+    out.push("");
+    for (const category of CATEGORY_ORDER) {
+      const items = highlights.items.filter((i) => i.category === category);
+      if (items.length === 0) continue;
+      out.push(`### ${CATEGORY_LABEL[category]}`);
+      out.push("");
+      for (const item of items) {
+        out.push(`- **[${fmtSec(item.startSec)}]** ${item.point}`);
+        out.push(`  - 先生の発言:「${item.quote}」`);
+      }
+      out.push("");
+    }
+  }
 
   if (notes) {
     out.push("## 概要");

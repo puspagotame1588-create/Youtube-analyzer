@@ -5,6 +5,7 @@ import {
   deleteLecture,
   patchLecture,
   readLecture,
+  readHighlights,
   readMaterials,
   readNotes,
   readTranscript,
@@ -25,15 +26,17 @@ export async function GET(_req: Request, ctx: Ctx) {
     const { id } = await ctx.params;
     const lecture = await readLecture(id);
     if (!lecture) return fail("講義が見つかりません", 404);
-    const [transcript, notes, materials] = await Promise.all([
+    const [transcript, notes, materials, highlights] = await Promise.all([
       readTranscript(id),
       readNotes(id),
       readMaterials(id),
+      readHighlights(id),
     ]);
     return ok({
       lecture: { ...lecture, finalizing: isFinalizing(id) },
       transcript,
       notes,
+      highlights,
       materials: materials.files,
     });
   } catch (err) {

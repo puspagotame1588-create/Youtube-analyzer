@@ -4,6 +4,7 @@ import type {
   ChatTurn,
   Course,
   Flashcards,
+  Highlights,
   Lecture,
   LiveSegment,
   MaterialFile,
@@ -46,6 +47,7 @@ export interface LectureBundle {
   lecture: Lecture & { finalizing?: boolean };
   transcript: TranscriptFile | null;
   notes: Notes | null;
+  highlights: Highlights | null;
   materials: MaterialFile[];
 }
 
@@ -99,6 +101,10 @@ export const api = {
 
   transcript: (id: string) => request<TranscriptFile>(`/api/lectures/${id}/transcript`),
   notes: (id: string) => request<Notes | null>(`/api/lectures/${id}/notes`),
+
+  highlights: (id: string) => request<Highlights | null>(`/api/lectures/${id}/highlights`),
+  rebuildHighlights: (id: string) =>
+    request<Highlights>(`/api/lectures/${id}/highlights`, { method: "POST" }),
 
   flashcards: (id: string) => request<Flashcards | null>(`/api/lectures/${id}/flashcards`),
   makeFlashcards: (id: string) =>

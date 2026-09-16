@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { attemptLadder, isFiller } from "@/lib/server/transcribe";
+import { contextWindows, findCues, normalize } from "@/lib/highlight";
 import { safeId } from "@/lib/server/paths";
 import { speechPrompt } from "@/lib/server/prompts";
 import { NotesSchema } from "@/lib/schemas";
@@ -123,5 +124,53 @@ describe("attemptLadder", () => {
     const ladder = attemptLadder("whisper-1", { timestamps: false, hasKeywords: false });
     const keys = ladder.map((a) => `${a.model}|${a.verbose}|${a.keywords}`);
     expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+describe("cue detection", () => {
+  it("finds exam, deadline and memorisation cues in Japanese speech", () => {
+    expect(findCues("ここは試験に出しますから覚えておいてください", "ja").map((c) => c.category))
+      .toEqual(expect.arrayContaining(["exam", "memorize"]));
+    expect(findCues("レポートの締め切りは来週の金曜です", "ja")[0].category).toBe("assignment");
+    expect(findCues("ここは間違えやすいので注意してください", "ja")[0].category).toBe("caution");
+  });
+
+  it("finds the same cues in an English lecture, regardless of case", () => {
+    expect(findCues("This WILL be on the final EXAM", "en")[0].category).toBe("exam");
+    expect(findCues("A common mistake here", "en")[0].category).toBe("caution");
+  });
+
+  it("leaves ordinary explanation alone", () => {
+    expect(findCues("マーケティングとは顧客のニーズを理解する活動です", "ja")).toEqual([]);
+    expect(findCues("The demand curve slopes downward", "en")).toEqual([]);
+  });
+
+  it("reports one cue per category, not one per matching word", () => {
+    const cues = findCues("試験でもテストでも期末でも問われます", "ja");
+    expect(cues.filter((c) => c.category === "exam")).toHaveLength(1);
+  });
+});
+
+describe("contextWindows", () => {
+  it("surrounds each candidate with the lines around it", () => {
+    expect(contextWindows([10], 100)).toEqual([{ start: 7, end: 13, cueLines: [10] }]);
+  });
+
+  it("merges candidates that sit close together into one window", () => {
+    const windows = contextWindows([10, 12, 40], 100);
+    expect(windows).toHaveLength(2);
+    expect(windows[0]).toEqual({ start: 7, end: 15, cueLines: [10, 12] });
+    expect(windows[1].cueLines).toEqual([40]);
+  });
+
+  it("never runs past the start or end of the transcript", () => {
+    expect(contextWindows([0], 5)[0]).toEqual({ start: 0, end: 3, cueLines: [0] });
+    expect(contextWindows([4], 5)[0]).toEqual({ start: 1, end: 4, cueLines: [4] });
+  });
+});
+
+describe("normalize", () => {
+  it("ignores whitespace so a quote can be matched against its line", () => {
+    expect(normalize("ここは 試験に  出します")).toBe(normalize("ここは試験に出します"));
   });
 });

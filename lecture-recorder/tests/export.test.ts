@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { buildMarkdown, fmtDuration, fmtSec, todayISO } from "@/lib/export";
-import type { Course, Flashcards, Lecture, Notes, TranscriptFile } from "@/lib/types";
+import type {
+  Course,
+  Flashcards,
+  Highlights,
+  Lecture,
+  Notes,
+  TranscriptFile,
+} from "@/lib/types";
 
 const course: Course = {
   id: "c1",
@@ -60,6 +67,30 @@ const flashcards: Flashcards = {
   model: "test",
 };
 
+const highlights: Highlights = {
+  items: [
+    {
+      startSec: 620,
+      endSec: 630,
+      quote: "ここは試験に出します",
+      cue: "試験",
+      category: "exam",
+      point: "4Pのうち価格の決まり方（知覚価値との関係）が試験範囲です。",
+    },
+    {
+      startSec: 900,
+      endSec: 910,
+      quote: "締め切りは来週の金曜です",
+      cue: "締切",
+      category: "assignment",
+      point: "レポートの締切は来週金曜日です。",
+    },
+  ],
+  scanned: 7,
+  createdAt: 0,
+  model: "test",
+};
+
 describe("fmtSec", () => {
   it("formats minutes and hours", () => {
     expect(fmtSec(0)).toBe("0:00");
@@ -82,7 +113,7 @@ describe("todayISO", () => {
 });
 
 describe("buildMarkdown", () => {
-  const md = buildMarkdown({ lecture, course, transcript, notes, flashcards });
+  const md = buildMarkdown({ lecture, course, transcript, notes, highlights, flashcards });
 
   it("includes the lecture heading and metadata", () => {
     expect(md).toContain("# マーケティング論 第3回 4Pの基礎");
@@ -114,9 +145,30 @@ describe("buildMarkdown", () => {
       course,
       transcript: { ...transcript, refined: false },
       notes: null,
+      highlights: null,
       flashcards: null,
     });
     expect(rough).toContain("精密文字起こしが未完了");
+  });
+
+  it("writes the flagged passages with their timestamps and the teacher's words", () => {
+    expect(md).toContain("## 重要ポイント（先生が強調した箇所）");
+    expect(md).toContain("### 試験に出る");
+    expect(md).toContain("**[10:20]** 4Pのうち価格の決まり方");
+    expect(md).toContain("先生の発言:「ここは試験に出します」");
+    expect(md).toContain("### 課題・締切");
+  });
+
+  it("omits the section entirely when nothing was flagged", () => {
+    const none = buildMarkdown({
+      lecture,
+      course,
+      transcript,
+      notes,
+      highlights: { items: [], scanned: 3, createdAt: 0, model: "t" },
+      flashcards: null,
+    });
+    expect(none).not.toContain("重要ポイント（先生が強調した箇所）");
   });
 
   it("escapes a pipe so the term table stays valid", () => {
@@ -125,6 +177,7 @@ describe("buildMarkdown", () => {
       course,
       transcript,
       notes: { ...notes, terms: [{ term: "A|B", reading: "", meaning: "", example: "" }] },
+      highlights: null,
       flashcards: null,
     });
     expect(md2).toContain("| A\\|B |");

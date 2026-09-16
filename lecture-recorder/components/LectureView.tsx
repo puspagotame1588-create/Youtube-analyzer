@@ -5,11 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, type Health, type LectureBundle } from "@/lib/api";
 import { fmtDuration, fmtSec } from "@/lib/export";
-import type { ChatTurn, Flashcards, MaterialFile } from "@/lib/types";
+import { CATEGORY_LABEL, CATEGORY_ORDER, type HighlightCategory } from "@/lib/highlight";
+import type { ChatTurn, Flashcards, Highlights, MaterialFile } from "@/lib/types";
 import { Empty, Field, Notice, Spinner, StatusPill } from "./ui";
 
 type Tab =
   | "summary"
+  | "highlights"
   | "points"
   | "terms"
   | "exam"
@@ -20,6 +22,7 @@ type Tab =
 
 const TABS: [Tab, string][] = [
   ["summary", "概要・要約"],
+  ["highlights", "重要ポイント"],
   ["points", "要点"],
   ["terms", "用語"],
   ["exam", "課題・試験"],
@@ -73,7 +76,7 @@ export default function LectureView({ id }: { id: string }) {
     );
   }
 
-  const { lecture, transcript, notes, materials } = data;
+  const { lecture, transcript, notes, highlights, materials } = data;
 
   const seek = (sec: number) => {
     const el = audioRef.current;
@@ -246,6 +249,17 @@ export default function LectureView({ id }: { id: string }) {
         ) : (
           <NotYet status={lecture.status} />
         ))}
+
+      {tab === "highlights" && (
+        <HighlightsPanel
+          id={id}
+          highlights={highlights}
+          ready={Boolean(transcript?.segments.length)}
+          canSeek={lecture.masterBytes > 0}
+          onSeek={seek}
+          onChanged={load}
+        />
+      )}
 
       {tab === "points" &&
         (notes ? (
@@ -560,6 +574,131 @@ function TranscriptPanel({
         ))}
       </ul>
     </section>
+  );
+}
+
+const CATEGORY_STYLE: Record<HighlightCategory, string> = {
+  exam: "bg-danger-soft text-danger",
+  assignment: "bg-warn-soft text-warn",
+  memorize: "bg-accent-soft text-accent",
+  important: "bg-ok-soft text-ok",
+  caution: "bg-surface-2 text-ink-soft",
+};
+
+function HighlightsPanel({
+  id,
+  highlights,
+  ready,
+  canSeek,
+  onSeek,
+  onChanged,
+}: {
+  id: string;
+  highlights: Highlights | null;
+  ready: boolean;
+  canSeek: boolean;
+  onSeek: (sec: number) => void;
+  onChanged: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<HighlightCategory | "all">("all");
+
+  async function rebuild() {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.rebuildHighlights(id);
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const items = highlights?.items ?? [];
+  const counts = CATEGORY_ORDER.map((category) => ({
+    category,
+    count: items.filter((i) => i.category === category).length,
+  })).filter((c) => c.count > 0);
+  const shown = filter === "all" ? items : items.filter((i) => i.category === filter);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-ink-soft">
+          先生が「試験に出る」「重要」「覚えて」「締切」などと言った箇所だけを集めています。
+          先生の発言をそのまま引用できたものだけを載せています。
+        </p>
+        <button className="btn-ghost text-xs" onClick={rebuild} disabled={busy || !ready}>
+          {busy && <Spinner />} {items.length ? "作り直す" : "抽出する"}
+        </button>
+      </div>
+
+      {!ready && <Notice tone="warn">先に文字起こしを完了してください。</Notice>}
+      {error && <Notice tone="error">{error}</Notice>}
+
+      {counts.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            onClick={() => setFilter("all")}
+            className={`pill border border-line ${filter === "all" ? "bg-ink text-bg" : "bg-surface text-ink-soft"}`}
+          >
+            すべて {items.length}
+          </button>
+          {counts.map(({ category, count }) => (
+            <button
+              key={category}
+              onClick={() => setFilter(category)}
+              className={`pill border ${
+                filter === category ? "border-ink" : "border-transparent"
+              } ${CATEGORY_STYLE[category]}`}
+            >
+              {CATEGORY_LABEL[category]} {count}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {items.length === 0 ? (
+        <Empty
+          title={ready ? "該当する発言はありませんでした" : "まだ抽出していません"}
+          body={
+            ready
+              ? `合図になる言葉が見つからなかったか、勉強の指示ではないと判断されました。${
+                  highlights ? `（候補 ${highlights.scanned} 件を確認）` : ""
+                }`
+              : "文字起こしが終わると自動で作成されます。"
+          }
+        />
+      ) : (
+        <ul className="space-y-3">
+          {shown.map((item, i) => (
+            <li key={`${item.startSec}-${item.category}-${i}`} className="card p-4">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <span className={`pill ${CATEGORY_STYLE[item.category]}`}>
+                  {CATEGORY_LABEL[item.category]}
+                </span>
+                <button
+                  className="font-mono text-[11px] text-ink-soft hover:text-accent disabled:hover:text-ink-soft"
+                  onClick={() => onSeek(item.startSec)}
+                  disabled={!canSeek}
+                >
+                  {canSeek ? "▶ " : ""}
+                  {fmtSec(item.startSec)}
+                </button>
+                {item.cue && <span className="text-[11px] text-ink-soft">合図:「{item.cue}」</span>}
+              </div>
+              <p className="font-medium leading-relaxed">{item.point}</p>
+              <p className="mt-2 border-l-2 border-line pl-3 text-sm leading-relaxed text-ink-soft">
+                先生の発言:「{item.quote}」
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

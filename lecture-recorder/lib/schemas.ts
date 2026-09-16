@@ -57,6 +57,19 @@ export const TranslateSchema = z.object({
   lines: z.array(z.object({ i: z.number(), text: z.string() })),
 });
 
+export const HighlightsSchema = z.object({
+  items: z.array(
+    z.object({
+      /** Index of the transcript line the quote comes from. */
+      line: z.number(),
+      quote: z.string(),
+      cue: z.string(),
+      category: z.enum(["exam", "important", "memorize", "assignment", "caution"]),
+      point: z.string(),
+    }),
+  ),
+});
+
 export const ChatAnswerSchema = z.object({
   answer: z.string(),
   citations: z.array(z.number()),
@@ -64,5 +77,6 @@ export const ChatAnswerSchema = z.object({
 });
 
 export type NotesOutput = z.infer<typeof NotesSchema>;
+export type HighlightsOutput = z.infer<typeof HighlightsSchema>;
 export type FlashcardsOutput = z.infer<typeof FlashcardsSchema>;
 export type ChatAnswer = z.infer<typeof ChatAnswerSchema>;

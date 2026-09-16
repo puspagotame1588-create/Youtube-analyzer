@@ -36,6 +36,7 @@ export const lecturePaths = (id: string) => {
     transcript: path.join(base, "transcript.json"),
     notes: path.join(base, "notes.json"),
     flashcards: path.join(base, "flashcards.json"),
+    highlights: path.join(base, "highlights.json"),
     chat: path.join(base, "chat.jsonl"),
     materials: path.join(base, "materials"),
     materialsIndex: path.join(base, "materials", "index.json"),
