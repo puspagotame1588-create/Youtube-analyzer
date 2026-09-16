@@ -5,8 +5,8 @@ cd /d "%~dp0"
 
 rem Running from inside a ZIP puts the files in a read-only temp folder, where
 rem npm cannot install anything. Stop with a clear message instead of failing.
-echo %~dp0 | findstr /i "\\AppData\\Local\\Temp\\" >nul
-if not errorlevel 1 (
+set "HERE=%~dp0"
+if /i not "%HERE:AppData\Local\Temp=%"=="%HERE%" (
   echo.
   echo ZIP ファイルの中から実行しています。
   echo 先に ZIP を右クリックして「すべて展開」してから、
