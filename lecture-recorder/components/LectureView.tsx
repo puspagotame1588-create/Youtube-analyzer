@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { api, type LectureBundle } from "@/lib/api";
+import { api, type Health, type LectureBundle } from "@/lib/api";
 import { fmtDuration, fmtSec } from "@/lib/export";
 import type { ChatTurn, Flashcards, MaterialFile } from "@/lib/types";
 import { Empty, Field, Notice, Spinner, StatusPill } from "./ui";
@@ -32,6 +32,7 @@ const TABS: [Tab, string][] = [
 export default function LectureView({ id }: { id: string }) {
   const router = useRouter();
   const [data, setData] = useState<LectureBundle | null>(null);
+  const [health, setHealth] = useState<Health | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("summary");
   const [busy, setBusy] = useState(false);
@@ -48,16 +49,20 @@ export default function LectureView({ id }: { id: string }) {
 
   useEffect(() => {
     void load();
+    void api.health().then(setHealth).catch(() => undefined);
   }, [load]);
 
   // While the pipeline is running the page follows its progress.
-  const working =
-    data?.lecture.status === "transcribing" || data?.lecture.status === "analyzing";
+  const status = data?.lecture.status;
+  const working = status === "transcribing" || status === "analyzing";
+  // "recorded" is included because the page opens in that state the moment a
+  // recording stops, a step before the pipeline flips it to "transcribing".
+  const pending = working || status === "recorded" || Boolean(data?.lecture.finalizing);
   useEffect(() => {
-    if (!working) return;
+    if (!pending) return;
     const timer = window.setInterval(() => void load(), 3000);
     return () => window.clearInterval(timer);
-  }, [working, load]);
+  }, [pending, load]);
 
   if (error && !data) return <Notice tone="error">{error}</Notice>;
   if (!data) {
@@ -97,6 +102,16 @@ export default function LectureView({ id }: { id: string }) {
 
   return (
     <div className="space-y-4">
+      {health && !health.ready && (
+        <Notice tone="warn">
+          OPENAI_API_KEY が設定されていないため、文字起こしとノートは作成できません。録音した音声は保存されています。
+          キーを設定して再起動したあと、下の「文字起こしを実行」を押してください。
+          <Link href="/settings" className="ml-1 underline">
+            設定手順
+          </Link>
+        </Notice>
+      )}
+
       <header className="card p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
