@@ -92,12 +92,13 @@ export function attemptLadder(
   model: string,
   opts: { timestamps: boolean; hasKeywords: boolean },
 ): Attempt[] {
+  const verbose = opts.timestamps && VERBOSE_MODELS.test(model);
   const ladder: Attempt[] = [
-    {
-      model,
-      verbose: opts.timestamps && VERBOSE_MODELS.test(model),
-      keywords: opts.hasKeywords && KEYWORD_MODELS.test(model),
-    },
+    { model, verbose, keywords: opts.hasKeywords && KEYWORD_MODELS.test(model) },
+    // Terminology hints are the cheapest thing to lose. Timestamps are not:
+    // without them a whole chunk collapses into one undivided block, so they
+    // are given up only after the hints have already gone.
+    { model, verbose, keywords: false },
     // Same model, nothing optional attached.
     { model, verbose: false, keywords: false },
     // Whisper still returns segment timestamps, which the accurate pass wants.

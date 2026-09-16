@@ -98,12 +98,19 @@ describe("attemptLadder", () => {
     expect(ladder.every((a) => !a.keywords || a.model.startsWith("gpt-transcribe"))).toBe(true);
   });
 
+  it("gives up terminology hints before timestamps", () => {
+    // Losing timestamps collapses a ten minute chunk into one block, so it must
+    // cost more than losing the recognition hints.
+    const ladder = attemptLadder("gpt-transcribe", { timestamps: true, hasKeywords: true });
+    expect(ladder[1]).toEqual({ model: "gpt-transcribe", verbose: true, keywords: false });
+    expect(ladder[2]).toEqual({ model: "gpt-transcribe", verbose: false, keywords: false });
+  });
+
   it("gives up optional parameters before giving up the model", () => {
     const ladder = attemptLadder("gpt-transcribe", { timestamps: true, hasKeywords: true });
-    const second = ladder[1];
-    expect(second.model).toBe("gpt-transcribe");
-    expect(second.keywords).toBe(false);
-    expect(second.verbose).toBe(false);
+    const beforeFallback = ladder.slice(0, ladder.findIndex((a) => a.model === "whisper-1"));
+    expect(beforeFallback.length).toBeGreaterThan(1);
+    expect(beforeFallback.every((a) => a.model === "gpt-transcribe")).toBe(true);
   });
 
   it("ends on whisper, which every account can use", () => {
