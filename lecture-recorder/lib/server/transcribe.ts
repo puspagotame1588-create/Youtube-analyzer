@@ -67,6 +67,60 @@ interface TranscribeOptions {
   timestamps: boolean;
 }
 
+/**
+ * One request shape to try. Optional parameters are the usual reason a model
+ * rejects a request, so they are dropped one group at a time rather than
+ * resent unchanged.
+ */
+export interface Attempt {
+  model: string;
+  /** Ask for verbose_json with per-segment timestamps. */
+  verbose: boolean;
+  /** Send the course terminology as recognition hints. */
+  keywords: boolean;
+}
+
+const KEYWORD_MODELS = /^gpt-transcribe/;
+const VERBOSE_MODELS = /^(whisper-1|gpt-transcribe)/;
+
+/**
+ * The ladder of requests to try, most capable first. Every rung after the first
+ * gives something up, so a model that rejects one option still produces a
+ * transcript rather than costing the lecture.
+ */
+export function attemptLadder(
+  model: string,
+  opts: { timestamps: boolean; hasKeywords: boolean },
+): Attempt[] {
+  const ladder: Attempt[] = [
+    {
+      model,
+      verbose: opts.timestamps && VERBOSE_MODELS.test(model),
+      keywords: opts.hasKeywords && KEYWORD_MODELS.test(model),
+    },
+    // Same model, nothing optional attached.
+    { model, verbose: false, keywords: false },
+    // Whisper still returns segment timestamps, which the accurate pass wants.
+    { model: FALLBACK_MODEL, verbose: opts.timestamps, keywords: false },
+    { model: FALLBACK_MODEL, verbose: false, keywords: false },
+  ];
+
+  const seen = new Set<string>();
+  return ladder.filter((a) => {
+    const key = `${a.model}|${a.verbose}|${a.keywords}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/** A rejection of the request itself, where a simpler request may still work. */
+function rejectsRequest(err: unknown): boolean {
+  if (!(err instanceof OpenAI.APIError)) return false;
+  const status = err.status ?? 0;
+  return status === 400 || status === 403 || status === 404 || status === 422;
+}
+
 /** Transcribes one audio file on disk. */
 export async function transcribeFile(
   file: string,
@@ -82,58 +136,49 @@ export async function transcribeFile(
   const uploadable = await toFile(bytes, path.basename(file), {
     type: MIME_BY_EXT[ext] ?? "application/octet-stream",
   });
+  const prompt = speechPrompt(opts.language, opts.keywords, opts.previousText);
 
+  const ladder = attemptLadder(opts.model, {
+    timestamps: opts.timestamps,
+    hasKeywords: opts.keywords.length > 0,
+  });
   let usedFallback = false;
-  const supportsKeywords = opts.model.startsWith("gpt-transcribe");
-  const supportsVerbose = opts.model === "whisper-1" || supportsKeywords;
-  const wantVerbose = opts.timestamps && supportsVerbose;
 
-  const body: Record<string, unknown> = {
-    file: uploadable,
-    model: opts.model,
-    language: opts.language,
-    prompt: speechPrompt(opts.language, opts.keywords, opts.previousText),
-    response_format: wantVerbose ? "verbose_json" : "json",
-  };
-  if (wantVerbose) body.timestamp_granularities = ["segment"];
-  if (supportsKeywords && opts.keywords.length) {
-    body.keywords = opts.keywords.slice(0, 100);
-  }
-  // Loudness normalisation plus voice-activity chunking. This is what makes a
-  // microphone in the middle of a 300-seat hall usable.
-  if (opts.timestamps) body.chunking_strategy = "auto";
+  const run = async (attempt: Attempt) => {
+    const body: Record<string, unknown> = {
+      file: uploadable,
+      model: attempt.model,
+      language: opts.language,
+      prompt,
+      response_format: attempt.verbose ? "verbose_json" : "json",
+    };
+    if (attempt.verbose) body.timestamp_granularities = ["segment"];
+    if (attempt.keywords) body.keywords = opts.keywords.slice(0, 100);
 
-  const run = async (model: string, verbose: boolean) => {
-    const client = openai();
-    const attemptBody = { ...body, model } as Record<string, unknown>;
-    if (!verbose) {
-      attemptBody.response_format = "json";
-      delete attemptBody.timestamp_granularities;
-    }
-    if (!model.startsWith("gpt-transcribe")) delete attemptBody.keywords;
     // The SDK overloads are keyed to a literal response_format, which is chosen
     // at runtime here, so the request is assembled untyped and narrowed after.
-    return (await client.audio.transcriptions.create(
-      attemptBody as never,
-    )) as unknown as {
+    const client = openai();
+    return (await client.audio.transcriptions.create(body as never)) as unknown as {
       text?: string;
       segments?: { start: number; end: number; text: string }[];
     };
   };
 
   const result = await withRetry(`文字起こし (${path.basename(file)})`, async () => {
-    try {
-      return await run(opts.model, wantVerbose);
-    } catch (err) {
-      // A model the account cannot use, or a response format it rejects, must
-      // not cost the lecture: retry on the long-standing Whisper endpoint.
-      const status = err instanceof OpenAI.APIError ? err.status : undefined;
-      if (status === 400 || status === 403 || status === 404) {
-        usedFallback = true;
-        return run(FALLBACK_MODEL, opts.timestamps);
+    let lastError: unknown;
+    for (const attempt of ladder) {
+      try {
+        const response = await run(attempt);
+        usedFallback = attempt.model !== opts.model;
+        return response;
+      } catch (err) {
+        lastError = err;
+        // A network or rate-limit failure is worth waiting out, so hand it back
+        // to the retry wrapper instead of degrading the request.
+        if (!rejectsRequest(err)) throw err;
       }
-      throw err;
     }
+    throw lastError;
   });
 
   const text = (result.text ?? "").trim();

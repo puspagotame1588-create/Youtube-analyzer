@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isFiller } from "@/lib/server/transcribe";
+import { attemptLadder, isFiller } from "@/lib/server/transcribe";
 import { safeId } from "@/lib/server/paths";
 import { speechPrompt } from "@/lib/server/prompts";
 import { NotesSchema } from "@/lib/schemas";
@@ -75,5 +75,46 @@ describe("pass chunk offsets", () => {
     expect(resolve(2)).toBeCloseTo(1203.1);
     // Falls back to the configured length when the position was never recorded.
     expect(resolve(3)).toBe(1800);
+  });
+});
+
+
+describe("attemptLadder", () => {
+  it("asks the newest model for everything it supports", () => {
+    const [first] = attemptLadder("gpt-transcribe", { timestamps: true, hasKeywords: true });
+    expect(first).toEqual({ model: "gpt-transcribe", verbose: true, keywords: true });
+  });
+
+  it("never sends keywords or verbose output to a model that lacks them", () => {
+    const ladder = attemptLadder("gpt-4o-mini-transcribe", {
+      timestamps: true,
+      hasKeywords: true,
+    });
+    expect(ladder[0]).toEqual({
+      model: "gpt-4o-mini-transcribe",
+      verbose: false,
+      keywords: false,
+    });
+    expect(ladder.every((a) => !a.keywords || a.model.startsWith("gpt-transcribe"))).toBe(true);
+  });
+
+  it("gives up optional parameters before giving up the model", () => {
+    const ladder = attemptLadder("gpt-transcribe", { timestamps: true, hasKeywords: true });
+    const second = ladder[1];
+    expect(second.model).toBe("gpt-transcribe");
+    expect(second.keywords).toBe(false);
+    expect(second.verbose).toBe(false);
+  });
+
+  it("ends on whisper, which every account can use", () => {
+    const ladder = attemptLadder("gpt-transcribe", { timestamps: true, hasKeywords: true });
+    expect(ladder.at(-1)).toEqual({ model: "whisper-1", verbose: false, keywords: false });
+    expect(ladder.some((a) => a.model === "whisper-1" && a.verbose)).toBe(true);
+  });
+
+  it("does not repeat an identical request when the model is already whisper", () => {
+    const ladder = attemptLadder("whisper-1", { timestamps: false, hasKeywords: false });
+    const keys = ladder.map((a) => `${a.model}|${a.verbose}|${a.keywords}`);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 });
