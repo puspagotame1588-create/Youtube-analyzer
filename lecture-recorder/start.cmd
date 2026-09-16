@@ -3,6 +3,19 @@ rem 講義レコーダー: ダブルクリックで起動します。
 setlocal
 cd /d "%~dp0"
 
+rem Running from inside a ZIP puts the files in a read-only temp folder, where
+rem npm cannot install anything. Stop with a clear message instead of failing.
+echo %~dp0 | findstr /i "\\AppData\\Local\\Temp\\" >nul
+if not errorlevel 1 (
+  echo.
+  echo ZIP ファイルの中から実行しています。
+  echo 先に ZIP を右クリックして「すべて展開」してから、
+  echo 展開先のフォルダにある start.cmd を実行してください。
+  echo.
+  pause
+  exit /b 1
+)
+
 where node >nul 2>nul
 if errorlevel 1 (
   echo Node.js が見つかりません。https://nodejs.org/ から LTS 版をインストールしてください。
