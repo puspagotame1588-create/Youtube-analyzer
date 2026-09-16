@@ -21,6 +21,17 @@ if /i not "%HERE:AppData\Local\Temp=%"=="%HERE%" (
   exit /b 1
 )
 
+rem Already running? Just bring up the browser. Double-clicking the shortcut a
+rem second time should not start a second server and fail on a taken port.
+powershell -NoProfile -Command "$c=New-Object Net.Sockets.TcpClient; try{$c.Connect('127.0.0.1',3939); exit 0}catch{exit 1}finally{$c.Dispose()}" >nul 2>nul
+if not errorlevel 1 (
+  echo.
+  echo すでに起動しています。ブラウザを開きます。
+  echo Already running. Opening the browser.
+  start "" http://localhost:3939
+  exit /b 0
+)
+
 where node >nul 2>nul
 if errorlevel 1 (
   echo.
