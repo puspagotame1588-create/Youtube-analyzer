@@ -1,101 +1,187 @@
-# 講義レコーダー — Lecture Recorder
+# 講義レコーダー
 
-Record your Japanese university lectures on a phone or laptop, see **Japanese and English side by side while the teacher is talking**, and get a **full transcript, a summary and the main points** (in both languages) as soon as you press stop. Everything is filed by course and lecture number (第1回, 第2回, …).
+日本語の大学講義を Windows のノートパソコンで録音し、**話している最中に日本語と英語を並べて表示**しながら、終了後に**全文・概要・詳細要約・トピック別の要点・用語集・課題と締切・試験に出そうな項目・フラッシュカード・質問応答**までまとめて作るアプリです。
 
-**Stack:** Next.js 15 (App Router) · React 19 · Tailwind CSS v4 · Dexie (IndexedDB) · OpenAI speech-to-text · Claude (translation, summary, main points)
+- 録音・音声・書き起こし・ノートは**すべて自分のパソコンの中**に保存されます。
+- 文字起こしと AI 生成のときだけ、音声とテキストが OpenAI に送信されます。
+- **Wi-Fi が切れても録音は止まりません。** 音声はパソコンに書き込まれ続け、字幕だけが接続回復後に追いつきます。
 
 ---
 
-## 1. Run it
+## 1. 最初の準備（10 分）
+
+1. **Node.js** をインストールします（<https://nodejs.org/> の LTS 版、「Windows Installer」）。
+2. このフォルダ（`lecture-recorder`）をパソコンの好きな場所に置きます。
+3. **`start.cmd` をダブルクリック**します。
+   - 初回は `.env.local` がメモ帳で開きます。`OPENAI_API_KEY=` の右に自分のキーを貼り付けて保存し、メモ帳を閉じてください。
+   - 必要なファイルの準備に数分かかります。終わるとブラウザが開きます。
+4. 2 回目以降も `start.cmd` をダブルクリックするだけです（<http://localhost:3939>）。
+
+> 黒いウィンドウ（コマンドプロンプト）は**閉じないでください**。これがアプリ本体です。録音が終わり、ノートができてから閉じます。
+
+### 授業の前に確認すること
+
+- 外部マイクを**先に挿してから**「録音する」画面を開き、「マイク」欄で選び直す。
+- 設定 → システム → 電源とバッテリー →「画面とスリープ」で、**電源接続時のスリープを「なし」**にする。画面が暗くなるだけなら録音は続きますが、スリープに入ると止まります。
+- AC アダプターをつなぐ。
+- 「録音を開始」を押したら、**録音タブは開いたまま**にする（他のタブを見るのは問題ありません）。
+
+---
+
+## 2. 使い方
+
+### 科目を作る
+
+ライブラリ →「＋ 科目を追加」。科目名・担当教員・講義の言語（日本語／英語）を入れます。
+
+**専門用語**の欄が精度の要です。`知覚価値、STP、限界効用` のように、その授業で出る用語を入れておくと、音声認識のヒントとして使われ、表記も統一されます。シラバスや教科書の目次から写しておくのがおすすめです。
+
+### 録音する
+
+「録音する」→ 科目を選ぶ →「録音を開始」。
+
+- 画面左に**先生の日本語**、右に**英語のライブ翻訳**が約 10 秒ごとに増えていきます。
+- 入力レベルのバーが動いているか確認してください。ほとんど動かない場合はマイクの選択が違います。
+- **予約開始**に時刻（例 `13:00`）を入れておくと、その時刻に自動で録音が始まります（この画面を開いたままにしてください）。
+- **自動停止**（既定 95 分）で、止め忘れても勝手に終わります。
+
+終わったら「**停止して書き起こす**」。ここから先は閉じても大丈夫です。処理はパソコンの中で続きます。
+
+### 録音のあと
+
+講義のページに 8 つのタブができます。
+
+| タブ | 内容 |
+| --- | --- |
+| 概要・要約 | 3〜4 文の概要と、段落ごとの詳細要約 |
+| 要点 | トピック別の要点（音声の該当箇所へ再生ジャンプ）と復習問題 |
+| 用語 | 用語・読み・意味・講義での使われ方の表 |
+| 課題・試験 | 課題と締切／**先生が明言した試験範囲**と**AI の推測**を分けて表示 |
+| 全文 | 時刻つきの全文。日本語のみ・英語のみ・両方を切り替え、検索も可能 |
+| フラッシュカード | ボタンを押したときだけ作成 |
+| 質問する | この講義の内容について質問。講義にないことは「触れられていません」と答えます |
+| 資料 | 講義スライド（PDF）やメモを追加すると、要約・用語・質問応答の根拠になります |
+
+「テキストで保存」で、全部入りの 1 ファイル（Markdown）を書き出せます。
+
+---
+
+## 3. なぜ 90 分でも落ちないのか
+
+録音中、マイクの音は**同時に 3 つの経路**に流れます。
+
+```
+マイク ─┬─ master : 連続録音。5 秒ごとにディスクへ追記（これが永久保存の音源）
+        ├─ live   : 10 秒ごとの独立ファイル → すぐ文字起こし → ライブ字幕
+        └─ pass   : 10 分ごとの独立ファイル → 録音後の「精密文字起こし」用
+```
+
+- **メモリに溜めません。** master は 5 秒ごとにファイルへ追記されるので、90 分でも 3 時間でもメモリ使用量は変わりません。強制終了しても失うのは最後の数秒だけです。
+- **アップロード先は自分のパソコン**（localhost）です。大学の Wi-Fi が切れても、録音とディスクへの保存は影響を受けません。
+- **精度は 2 段構え**です。ライブ字幕は 10 秒ごとに切るので速い代わりに、区切りで単語が割れます。録音後の精密文字起こしは 10 分単位でやり直すため、区切りが 1/60 に減り、前後の文脈も使えます。**最終的な全文・要約は、必ず精密側から作られます。**
+- 文字起こしのあと、AI が**校正**します（同音異義語や専門用語の誤変換、句読点、「えー」などの除去）。内容の追加・要約はしません。聞き取れていない箇所は `［不明］` と残します。
+
+### 音質と容量
+
+既定は**モノラル 32 kbps（Opus）**。音声にはこれで十分で、90 分で約 **21 MB** です。10 回分でも 220 MB 程度。
+
+「詳細設定」で 48 / 64 kbps に上げられますが、ファイルが大きくなるだけで文字起こしの精度はほぼ変わりません。大教室で後方に座る場合は、ビットレートより**マイクの位置**と**自動音量調整**のほうが効きます。
+
+### 大教室（100〜300 人）向けの設定
+
+- **ノイズ抑制はオフ**が既定です。通話向けの処理で、遠くの先生の声を環境音と判断して削ることがあるためです。
+- **自動音量調整はオン**が既定。後方の席や小さな声に効きます。
+- 指向性のある外部マイクを、できるだけ教壇の方向に向けてください。
+- 精密文字起こしでは音量の正規化と音声区間の検出が行われるため、多少小さくても拾えます。
+
+---
+
+## 4. ハルシネーション（作り話）対策
+
+「わからないことは、わからないと言う」ことを優先しています。
+
+- 要約・要点・用語は、**書き起こしに根拠がある内容だけ**から作ります。一般常識での補完を禁止しています。
+- **課題と締切**、**先生が明言した試験範囲**には、書き起こしからの**引用**が必要です。引用できないものは載せません。
+- 試験に出そうな項目は「**先生が明言**」と「**AI の推測**」を別の欄に分けています。推測を先生の発言として書くことはありません。
+- 聞き取れなかった箇所は消さずに「聞き取れなかった箇所」として一覧にします。
+- 質問応答は書き起こしと資料だけを根拠にし、該当がなければ「この講義では触れられていません」と答えます。根拠にした時刻も表示します。
+
+それでも音声認識の誤りは残ります。**重要な数字・締切・固有名詞は、全文タブの再生ボタンで実際の音声を確認してください。**
+
+---
+
+## 5. 保存場所とバックアップ
+
+既定の保存先:
+
+```
+C:\Users\<ユーザー名>\LectureRecorder\
+  courses.json
+  lectures\<講義ID>\
+    lecture.json      講義の情報
+    audio\master.webm 音声（永久保存）
+    live.jsonl        ライブ字幕
+    transcript.json   精密な全文
+    notes.json        ノート
+    flashcards.json   フラッシュカード
+    chat.jsonl        質問の履歴
+    materials\        アップロードした資料
+```
+
+- **クラウドに残したい場合**は、`.env.local` に保存先を OneDrive のフォルダにすると自動で同期されます。
+
+  ```
+  LECTURE_DATA_DIR=C:\Users\<ユーザー名>\OneDrive\LectureRecorder
+  ```
+
+- 精密文字起こしが終わると、字幕用と精密用の作業ファイルは自動で消えます。残るのは `master.webm` だけです。
+
+---
+
+## 6. 困ったとき
+
+| 症状 | 対処 |
+| --- | --- |
+| 字幕が出ない | 設定画面で API キーが読み込まれているか確認。キーを入れたら `start.cmd` を再起動 |
+| 入力レベルが動かない | Windows のサウンド設定で入力デバイスと音量を確認 → 録音画面でマイクを選び直す |
+| 途中で止まった | 音声は保存されています。講義ページの「文字起こしを実行」でやり直せます |
+| 録音がスリープで切れた | 電源設定のスリープを「なし」に。それまでの音声は保存されています |
+| 字幕が遅れる | 通信が遅いときは字幕が後追いになります。録音と最終的な精度には影響しません |
+| PDF を読み取れない | 画像だけの PDF は文字を取り出せません。テキスト付きの PDF を使ってください |
+
+---
+
+## 7. 開発者向け
 
 ```bash
-cd lecture-recorder
 npm install
-cp .env.example .env.local     # then paste your keys (see below)
-npm run dev                    # http://localhost:3000
+npm run dev        # http://localhost:3939
+npm run build && npm start
+npm run lint
+npm run typecheck
+npm test           # Vitest
 ```
 
-Other commands:
-
-```bash
-npm run build && npm start     # production build + server
-npm run lint                   # ESLint
-npm run typecheck              # TypeScript
-npm test                       # Vitest (formatting, export, schemas, hallucination filter)
-```
-
-### Keys
-
-| Variable | What it is for | Without it |
-| --- | --- | --- |
-| `OPENAI_API_KEY` | Japanese speech-to-text (`gpt-4o-transcribe` by default) | Demo mode: sample Japanese sentences |
-| `ANTHROPIC_API_KEY` | Live English translation and the post-lecture summary / main points (`claude-opus-5` by default) | Demo mode: sample English and a placeholder summary |
-
-With no keys at all the app still runs end to end in **demo mode** so you can try the UI first. A yellow banner tells you which key is missing.
-
-Optional overrides live in `.env.example`: `OPENAI_TRANSCRIBE_MODEL` (e.g. `gpt-4o-mini-transcribe` is cheaper), `ANTHROPIC_TRANSLATE_MODEL` (set `claude-haiku-4-5` to make the live translation cheaper), `ANTHROPIC_ANALYSIS_MODEL`.
-
-### Use it on your phone
-
-1. Run `npm run dev -- -H 0.0.0.0` on your laptop and open `http://<laptop-ip>:3000` on the phone (same Wi-Fi), **or** deploy to Vercel and open the URL.
-2. Microphone access needs HTTPS or `localhost`. A Vercel deployment is HTTPS by default. On a LAN IP, Chrome on Android needs `chrome://flags/#unsafely-treat-insecure-origin-as-secure` for that origin.
-3. "Add to Home Screen" makes it a standalone app (the manifest is included).
-4. Keep the screen on while recording. The app requests a screen wake lock, but if the phone locks, browsers pause the microphone.
-
----
-
-## 2. How a lecture flows through the app
-
-```
-mic ──► MediaRecorder (full take, kept for playback)
-    └─► MediaRecorder restarted every 8–15 s ──► /api/transcribe (OpenAI, ja)
-                                                     └─► /api/translate (Claude) ──► live JA | EN columns
-stop ──► audio + segments saved to IndexedDB
-     └─► /api/analyze (Claude, structured JSON) ──► title · summary · main points · topics (JA + EN)
-```
-
-- **Live chunks** are self-contained audio files (the recorder is restarted, not time-sliced) so each one can be transcribed independently. The previous Japanese text is passed as a prompt to keep terminology consistent across chunks.
-- **Silence** is skipped client-side (level meter), and known speech-to-text hallucinations on quiet audio (e.g. ご視聴ありがとうございました) are dropped.
-- **Analysis** sends the full transcript once and asks for a fixed JSON shape (`lib/analysis-schema.ts`) validated with Zod on both ends.
-- **Storage** is local only: `courses`, `lectures` (segments + analysis) and `audio` (Blob) tables in IndexedDB. Nothing is uploaded except the audio chunks and text sent to the two APIs. Use **⤓ Markdown** on a lecture page to export it.
-
-## 3. Folder structure
+構成:
 
 ```
 app/
-  page.tsx                 # library (courses → lectures)
-  record/page.tsx          # live recording screen
-  lecture/[id]/page.tsx    # transcript / summary / main points
-  api/transcribe/route.ts  # OpenAI speech-to-text
-  api/translate/route.ts   # Claude live translation
-  api/analyze/route.ts     # Claude summary + main points (structured output)
-  api/status/route.ts      # which keys are configured (demo banner)
-components/
-  LiveRecorder.tsx         # recording UI + chunk pipeline
-  LectureDetail.tsx        # tabs, language toggle, audio player, export
-  Library.tsx              # courses, add/delete, lecture list
+  page.tsx                    ライブラリ
+  record/page.tsx             録音画面
+  lecture/[id]/page.tsx       講義ページ（8 タブ）
+  settings/page.tsx           設定
+  api/…                       すべてローカルサーバー上の処理
+components/                   画面
 lib/
-  recorder.ts              # ChunkedRecorder (two MediaRecorders + level meter)
-  db.ts                    # Dexie schema and helpers
-  analysis-schema.ts       # Zod schemas shared by client and server
-  analyze-client.ts        # runs /api/analyze and stores the result
-  format.ts                # time formatting, Markdown export, hallucination filter
-  demo.ts                  # demo-mode data
-tests/                     # Vitest unit tests
+  recorder.ts                 3 本の MediaRecorder
+  uploader.ts                 順序を保つアップロード
+  api.ts                      ブラウザ側 API クライアント
+  schemas.ts / export.ts      共通スキーマとテキスト書き出し
+  server/
+    paths.ts store.ts         ファイル保存（原子的書き込み・追記ログ）
+    openai.ts transcribe.ts   API 呼び出しと再試行
+    llm.ts prompts.ts         生成とプロンプト
+    pipeline.ts               ライブ字幕と精密処理の全工程
 ```
 
-## 4. Cost (rough, per 90-minute lecture)
-
-| Step | Model | Estimate |
-| --- | --- | --- |
-| Speech-to-text | `gpt-4o-transcribe` | about 0.5 USD (`gpt-4o-mini-transcribe`: about half) |
-| Live translation | `claude-opus-5`, ~500 short calls | about 1–2 USD (`claude-haiku-4-5`: well under 0.5 USD) |
-| Summary + main points | `claude-opus-5`, one call | about 0.2–0.5 USD |
-
-## 5. Known limits
-
-- Chunk boundaries can split a word; the summary step reads the whole transcript so it recovers, but a live line may end mid-word.
-- Live English lags the speech by roughly one chunk length plus API time (about 10–15 s).
-- Safari records `audio/mp4`; Chrome/Edge/Firefox record `audio/webm`. Both are accepted by the transcription API.
-- Data lives in one browser profile. Clearing site data deletes recordings; export lectures you want to keep.
-- Recording a teacher is personal data. Ask for permission first.
+設定は `.env.example` にすべて載っています（モデル名、チャンク長、ビットレート、保存先）。

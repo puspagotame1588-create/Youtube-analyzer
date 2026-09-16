@@ -2,11 +2,11 @@
   "name": "lecture-recorder",
   "version": "0.1.0",
   "private": true,
-  "description": "Japanese lecture recorder with live JA/EN transcription, summaries and main points",
+  "description": "日本語の大学講義を録音し、ライブ字幕・全文・要約・要点・用語・課題・試験予想・フラッシュカード・質問応答を作成するローカルアプリ",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3939",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3939",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
@@ -18,6 +18,7 @@
     "lucide-react": "^0.487.0",
     "next": "^15.5.4",
     "openai": "latest",
+    "pdfjs-dist": "^6.3.289",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "zod": "^4.6.5"

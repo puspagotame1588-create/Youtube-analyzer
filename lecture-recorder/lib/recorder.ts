@@ -1,44 +1,62 @@
 "use client";
 
 /**
- * ChunkedRecorder
+ * Captures the microphone into three recorders that share one input stream:
  *
- * Captures the microphone into two MediaRecorders on the same stream:
- *   1. `full`   — one continuous recording, kept for playback after the lecture.
- *   2. `chunker` — restarted every `chunkMs`; each stop yields a standalone,
- *      independently decodable audio file that can be sent for transcription
- *      while the lecture is still going on.
+ *   master — one continuous recording, flushed to disk every few seconds. This
+ *            is the permanent archive and the only one that is gapless.
+ *   live   — restarted every ~10 s; each stop yields a standalone file that can
+ *            be transcribed immediately for live captions.
+ *   pass   — restarted every ~10 min; standalone files for the accurate pass
+ *            after the lecture, where long context means far better Japanese.
  *
- * MediaRecorder's own `timeslice` cannot be used for the live chunks because
- * only the first slice carries the container header; the later slices are not
- * decodable on their own. Restarting the recorder is the reliable way to get
- * self-contained chunks in every browser.
- *
- * A lightweight level meter (Web Audio AnalyserNode) runs alongside so the UI
- * can show input level and so near-silent chunks can be skipped.
+ * MediaRecorder's own timeslice cannot be used for the standalone files: only
+ * the first slice carries the container header, so later slices are not
+ * decodable alone. Restarting the recorder is what makes each file complete.
  */
 
-export interface ChunkInfo {
+export interface ChunkPayload {
   blob: Blob;
-  mime: string;
+  idx: number;
   startSec: number;
   endSec: number;
-  /** Peak input amplitude during the chunk, 0..1 */
   peak: number;
 }
 
-export interface RecorderOptions {
-  chunkMs: number;
-  onChunk: (chunk: ChunkInfo) => void;
-  onLevel?: (level: number) => void;
-  onError?: (error: Error) => void;
+export interface RecorderCallbacks {
+  onMaster: (bytes: Blob, elapsedSec: number) => void;
+  onLiveChunk: (chunk: ChunkPayload) => void;
+  onPassChunk: (chunk: ChunkPayload) => void;
+  onLevel: (level: number) => void;
+  onError: (error: Error) => void;
 }
+
+export interface RecorderSettings {
+  deviceId?: string;
+  liveChunkSec: number;
+  passChunkSec: number;
+  audioBitsPerSecond: number;
+  /** Browser voice processing. Off by default: it is tuned for phone calls and
+   *  can swallow a lecturer speaking from across a large hall. */
+  noiseSuppression: boolean;
+  echoCancellation: boolean;
+  autoGainControl: boolean;
+}
+
+export const DEFAULT_SETTINGS: RecorderSettings = {
+  liveChunkSec: 10,
+  passChunkSec: 600,
+  audioBitsPerSecond: 32000,
+  noiseSuppression: false,
+  echoCancellation: false,
+  autoGainControl: true,
+};
 
 const CANDIDATE_TYPES = [
   "audio/webm;codecs=opus",
   "audio/webm",
-  "audio/mp4",
   "audio/ogg;codecs=opus",
+  "audio/mp4",
 ];
 
 export function pickMimeType(): string {
@@ -48,13 +66,12 @@ export function pickMimeType(): string {
 
 export function extensionFor(mime: string): string {
   if (mime.includes("webm")) return "webm";
-  if (mime.includes("mp4")) return "mp4";
   if (mime.includes("ogg")) return "ogg";
-  if (mime.includes("wav")) return "wav";
+  if (mime.includes("mp4")) return "mp4";
   return "webm";
 }
 
-export function isRecordingSupported(): boolean {
+export function isSupported(): boolean {
   return (
     typeof navigator !== "undefined" &&
     !!navigator.mediaDevices?.getUserMedia &&
@@ -62,96 +79,130 @@ export function isRecordingSupported(): boolean {
   );
 }
 
-export class ChunkedRecorder {
-  readonly opts: RecorderOptions;
-  mime = "";
+export async function listMicrophones(): Promise<MediaDeviceInfo[]> {
+  if (!navigator.mediaDevices?.enumerateDevices) return [];
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  return devices.filter((d) => d.kind === "audioinput");
+}
 
+/** Below this peak the chunk is treated as room noise and never uploaded. */
+export const SILENCE_PEAK = 0.012;
+
+export class LectureRecorder {
   private stream: MediaStream | null = null;
-  private full: MediaRecorder | null = null;
-  private fullParts: Blob[] = [];
-  private chunker: MediaRecorder | null = null;
-  private chunkTimer: number | null = null;
+  private master: MediaRecorder | null = null;
+  private live: MediaRecorder | null = null;
+  private pass: MediaRecorder | null = null;
+  private liveTimer: number | null = null;
+  private passTimer: number | null = null;
   private running = false;
   private startedAt = 0;
+  private liveIdx = 0;
+  private passIdx = 0;
 
   private audioCtx: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
-  private meterRaf: number | null = null;
-  private peak = 0;
-  private lastLevelEmit = 0;
+  private raf: number | null = null;
+  private livePeak = 0;
+  private passPeak = 0;
+  private lastLevelAt = 0;
 
-  constructor(opts: RecorderOptions) {
-    this.opts = opts;
-  }
+  mime = "";
 
-  /** Seconds since start() */
+  constructor(
+    private readonly cb: RecorderCallbacks,
+    private readonly settings: RecorderSettings,
+  ) {}
+
   elapsed(): number {
-    if (!this.startedAt) return 0;
-    return (performance.now() - this.startedAt) / 1000;
+    return this.startedAt ? (performance.now() - this.startedAt) / 1000 : 0;
   }
 
   async start(): Promise<void> {
-    if (!isRecordingSupported()) {
-      throw new Error("This browser cannot record audio. Use Chrome, Edge or Safari 14.1+.");
+    if (!isSupported()) {
+      throw new Error(
+        "このブラウザは録音に対応していません。Chrome または Edge をお使いください。",
+      );
     }
+    const { deviceId, noiseSuppression, echoCancellation, autoGainControl } = this.settings;
     this.stream = await navigator.mediaDevices.getUserMedia({
       audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        channelCount: 1,
+        noiseSuppression,
+        echoCancellation,
+        autoGainControl,
       },
     });
     this.mime = pickMimeType();
-    const recOpts = this.mime ? { mimeType: this.mime } : undefined;
-
-    this.full = new MediaRecorder(this.stream, recOpts);
-    this.full.ondataavailable = (e) => {
-      if (e.data.size > 0) this.fullParts.push(e.data);
-    };
-    this.full.onerror = () => this.opts.onError?.(new Error("Recording error"));
-    // Flush the continuous recording every second so a crash loses at most 1s.
-    this.full.start(1000);
-
     this.running = true;
     this.startedAt = performance.now();
+
+    this.master = this.makeRecorder();
+    this.master.ondataavailable = (e) => {
+      if (e.data.size > 0) this.cb.onMaster(e.data, this.elapsed());
+    };
+    this.master.onerror = () => this.cb.onError(new Error("録音エラーが発生しました"));
+    // Flushed every 5 s, so a crash costs at most five seconds of audio.
+    this.master.start(5000);
+
     this.setupMeter();
-    this.startChunker();
+    this.cycle("live");
+    this.cycle("pass");
   }
 
-  private startChunker(): void {
+  private makeRecorder(): MediaRecorder {
+    const options: MediaRecorderOptions = {
+      audioBitsPerSecond: this.settings.audioBitsPerSecond,
+    };
+    if (this.mime) options.mimeType = this.mime;
+    return new MediaRecorder(this.stream!, options);
+  }
+
+  /** Starts one standalone chunk and schedules its stop. */
+  private cycle(kind: "live" | "pass"): void {
     if (!this.running || !this.stream) return;
-    const rec = new MediaRecorder(
-      this.stream,
-      this.mime ? { mimeType: this.mime } : undefined,
-    );
+    const rec = this.makeRecorder();
     const startSec = this.elapsed();
+    const idx = kind === "live" ? this.liveIdx++ : this.passIdx++;
     const parts: Blob[] = [];
-    this.peak = 0;
+    if (kind === "live") this.livePeak = 0;
+    else this.passPeak = 0;
 
     rec.ondataavailable = (e) => {
       if (e.data.size > 0) parts.push(e.data);
     };
     rec.onstop = () => {
       const endSec = this.elapsed();
-      const type = rec.mimeType || this.mime || "audio/webm";
-      const blob = new Blob(parts, { type });
+      const blob = new Blob(parts, { type: rec.mimeType || this.mime || "audio/webm" });
       if (blob.size > 0) {
-        this.opts.onChunk({
+        const payload: ChunkPayload = {
           blob,
-          mime: type,
+          idx,
           startSec,
           endSec,
-          peak: this.peak,
-        });
+          peak: kind === "live" ? this.livePeak : this.passPeak,
+        };
+        if (kind === "live") this.cb.onLiveChunk(payload);
+        else this.cb.onPassChunk(payload);
       }
-      // Immediately begin the next chunk (unless stop() was called).
-      this.startChunker();
+      this.cycle(kind);
     };
     rec.start();
-    this.chunker = rec;
-    this.chunkTimer = window.setTimeout(() => {
+
+    const ms =
+      (kind === "live" ? this.settings.liveChunkSec : this.settings.passChunkSec) * 1000;
+    const timer = window.setTimeout(() => {
       if (rec.state !== "inactive") rec.stop();
-    }, this.opts.chunkMs);
+    }, ms);
+
+    if (kind === "live") {
+      this.live = rec;
+      this.liveTimer = timer;
+    } else {
+      this.pass = rec;
+      this.passTimer = timer;
+    }
   }
 
   private setupMeter(): void {
@@ -171,67 +222,62 @@ export class ChunkedRecorder {
           const v = Math.abs(data[i] - 128) / 128;
           if (v > max) max = v;
         }
-        if (max > this.peak) this.peak = max;
+        if (max > this.livePeak) this.livePeak = max;
+        if (max > this.passPeak) this.passPeak = max;
         const now = performance.now();
-        if (now - this.lastLevelEmit > 80) {
-          this.lastLevelEmit = now;
-          this.opts.onLevel?.(max);
+        if (now - this.lastLevelAt > 80) {
+          this.lastLevelAt = now;
+          this.cb.onLevel(max);
         }
-        this.meterRaf = requestAnimationFrame(tick);
+        this.raf = requestAnimationFrame(tick);
       };
-      this.meterRaf = requestAnimationFrame(tick);
+      this.raf = requestAnimationFrame(tick);
     } catch {
-      // Level meter is optional; recording works without it.
+      // The level meter is a convenience; recording works without it.
     }
   }
 
-  async stop(): Promise<{ blob: Blob; mime: string; durationSec: number }> {
+  /** Stops everything and resolves once the final chunks have been emitted. */
+  async stop(): Promise<{ durationSec: number }> {
     this.running = false;
-    if (this.chunkTimer !== null) {
-      clearTimeout(this.chunkTimer);
-      this.chunkTimer = null;
-    }
-    // Emit the final partial chunk.
-    if (this.chunker && this.chunker.state !== "inactive") {
-      await new Promise<void>((resolve) => {
-        const rec = this.chunker!;
-        const prev = rec.onstop;
-        rec.onstop = (ev) => {
-          if (typeof prev === "function") prev.call(rec, ev);
-          resolve();
-        };
-        rec.stop();
-      });
-    }
-    const durationSec = this.elapsed();
+    if (this.liveTimer !== null) clearTimeout(this.liveTimer);
+    if (this.passTimer !== null) clearTimeout(this.passTimer);
+    this.liveTimer = null;
+    this.passTimer = null;
 
-    const blob = await new Promise<Blob>((resolve) => {
-      const full = this.full;
-      if (!full || full.state === "inactive") {
-        resolve(new Blob(this.fullParts, { type: this.mime || "audio/webm" }));
-        return;
-      }
-      full.onstop = () => {
-        resolve(
-          new Blob(this.fullParts, { type: full.mimeType || this.mime || "audio/webm" }),
-        );
-      };
-      full.stop();
-    });
+    await Promise.all([this.finish(this.live), this.finish(this.pass)]);
+    const durationSec = this.elapsed();
+    await this.finish(this.master);
 
     this.teardown();
-    return { blob, mime: blob.type, durationSec };
+    return { durationSec };
+  }
+
+  private finish(rec: MediaRecorder | null): Promise<void> {
+    return new Promise((resolve) => {
+      if (!rec || rec.state === "inactive") {
+        resolve();
+        return;
+      }
+      const previous = rec.onstop;
+      rec.onstop = (event) => {
+        if (typeof previous === "function") previous.call(rec, event);
+        resolve();
+      };
+      rec.stop();
+    });
   }
 
   private teardown(): void {
-    if (this.meterRaf !== null) cancelAnimationFrame(this.meterRaf);
-    this.meterRaf = null;
+    if (this.raf !== null) cancelAnimationFrame(this.raf);
+    this.raf = null;
     this.analyser = null;
     void this.audioCtx?.close().catch(() => undefined);
     this.audioCtx = null;
     this.stream?.getTracks().forEach((t) => t.stop());
     this.stream = null;
-    this.full = null;
-    this.chunker = null;
+    this.master = null;
+    this.live = null;
+    this.pass = null;
   }
 }

@@ -1,13 +1,12 @@
 import { Suspense } from "react";
-import ClientOnly from "@/components/ClientOnly";
-import LiveRecorder from "@/components/LiveRecorder";
+import Recorder from "@/components/Recorder";
+
+export const dynamic = "force-dynamic";
 
 export default function RecordPage() {
   return (
-    <ClientOnly fallback={<p className="text-sm text-ink-soft">読み込み中… / Loading…</p>}>
-      <Suspense fallback={null}>
-        <LiveRecorder />
-      </Suspense>
-    </ClientOnly>
+    <Suspense fallback={<p className="text-sm text-ink-soft">読み込み中…</p>}>
+      <Recorder />
+    </Suspense>
   );
 }

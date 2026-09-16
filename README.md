@@ -9,7 +9,7 @@ A premium one-page job-hunting portfolio for AI/DX consulting, AI solutions, and
 > **Other apps in this repository**
 >
 > - [`miraipath/`](miraipath/README.md) — MiraiPath Japan, education-route marketplace MVP (Next.js + Supabase)
-> - [`lecture-recorder/`](lecture-recorder/README.md) — 講義レコーダー: records Japanese lectures with live JA/EN transcription, then produces a full transcript, summary and main points (Next.js, local-first)
+> - [`lecture-recorder/`](lecture-recorder/README.md) — 講義レコーダー: a local Windows app that records Japanese university lectures with live JA/EN captions, then produces the full transcript, summaries, topic points, terminology, assignments, exam topics, flashcards and a grounded Q&A chat (Next.js, runs on your own machine)
 
 ## 1. Run it locally
 

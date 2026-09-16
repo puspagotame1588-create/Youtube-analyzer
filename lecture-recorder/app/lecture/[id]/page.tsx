@@ -1,5 +1,6 @@
-import ClientOnly from "@/components/ClientOnly";
-import LectureDetail from "@/components/LectureDetail";
+import LectureView from "@/components/LectureView";
+
+export const dynamic = "force-dynamic";
 
 export default async function LecturePage({
   params,
@@ -7,9 +8,5 @@ export default async function LecturePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return (
-    <ClientOnly fallback={<p className="text-sm text-ink-soft">読み込み中… / Loading…</p>}>
-      <LectureDetail id={id} />
-    </ClientOnly>
-  );
+  return <LectureView id={id} />;
 }
