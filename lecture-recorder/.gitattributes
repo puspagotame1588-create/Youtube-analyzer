@@ -1,0 +1,4 @@
+# Batch files must keep Windows line endings: cmd.exe mis-parses labels and
+# goto targets in a file that uses bare LF.
+*.cmd text eol=crlf
+*.bat text eol=crlf
