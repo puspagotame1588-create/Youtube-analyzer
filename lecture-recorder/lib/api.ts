@@ -37,9 +37,11 @@ const json = (value: unknown): RequestInit => ({
 
 export interface Health {
   ready: boolean;
+  /** Which build is installed, so the settings screen can show it. */
+  version: { label: string; note: string };
   modelCheck: { missing: string[]; checked: boolean };
   dataDir: string;
-  models: { live: string; transcribe: string; notes: string; fast: string };
+  models: { live: string; transcribe: string; notes: string };
   recording: { liveChunkSec: number; passChunkSec: number; audioBitsPerSecond: number };
 }
 

@@ -1,3 +1,5 @@
+import { promises as fs } from "fs";
+import path from "path";
 import { CONFIG, hasKey } from "@/lib/server/config";
 import { dataDir } from "@/lib/server/paths";
 import { ok } from "@/lib/server/http";
@@ -37,9 +39,27 @@ function checkModels() {
   return modelCheck;
 }
 
+/**
+ * Which build this is. Read from the VERSION file that ships with the app, so
+ * "am I on the latest version?" is answerable from the settings screen instead
+ * of by reading the code. Installs come from a ZIP with no git metadata, which
+ * is why the answer is a committed file rather than a commit hash.
+ */
+async function readVersion(): Promise<{ label: string; note: string }> {
+  try {
+    const raw = await fs.readFile(path.join(process.cwd(), "VERSION"), "utf8");
+    const [label = "", ...rest] = raw.trim().split("\n");
+    return { label: label.trim(), note: rest.join(" ").trim() };
+  } catch {
+    // An older install has no VERSION file, which is itself the answer.
+    return { label: "不明（旧版）", note: "update.cmd で最新版に更新できます。" };
+  }
+}
+
 export async function GET() {
   const models = hasKey() ? await checkModels() : { missing: [], checked: false };
   return ok({
+    version: await readVersion(),
     modelCheck: models,
     ready: hasKey(),
     dataDir: dataDir(),

@@ -28,6 +28,18 @@ export default function Settings() {
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">設定</h1>
 
+      <section className="card p-5">
+        <h2 className="section-title mb-2">バージョン</h2>
+        <p className="text-sm font-medium">{health.version.label}</p>
+        {health.version.note && (
+          <p className="mt-1 text-sm text-ink-soft">{health.version.note}</p>
+        )}
+        <p className="mt-3 text-xs text-ink-soft">
+          更新するには、アプリを閉じてから <code className="rounded bg-surface-2 px-1">update.cmd</code>{" "}
+          をダブルクリックしてください。録音・全文・ノート・API キーはそのまま残ります。
+        </p>
+      </section>
+
       {health.ready ? (
         <Notice tone="ok">OpenAI API キーを読み込みました。すべての機能が使えます。</Notice>
       ) : (
