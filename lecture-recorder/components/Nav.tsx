@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const LINKS = [
   { href: "/", label: "ライブラリ" },
+  { href: "/import", label: "音声を読み込む" },
   { href: "/settings", label: "設定" },
 ];
 

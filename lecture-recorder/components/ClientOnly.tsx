@@ -23,3 +23,4 @@ function clientOnly<P extends object>(load: () => Promise<{ default: ComponentTy
 export const LibraryClient = clientOnly(() => import("./Library"));
 export const RecorderClient = clientOnly(() => import("./Recorder"));
 export const SettingsClient = clientOnly(() => import("./Settings"));
+export const ImportAudioClient = clientOnly(() => import("./ImportAudio"));
