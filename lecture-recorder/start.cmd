@@ -60,12 +60,25 @@ if not exist "node_modules" (
   call npm install || goto :error
 )
 
-if not exist ".next" (
+rem Copying a new version over an old folder leaves the previous build in
+rem .next, and starting then serves the old app from new source files: the
+rem screen never changes and nothing says why. So the build is stamped with
+rem the VERSION it came from, and rebuilt whenever the two disagree.
+set "NEEDBUILD=1"
+if not exist ".next" goto :needbuild
+if not exist "VERSION" goto :needbuild
+if not exist ".next\BUILT_FROM" goto :needbuild
+fc /b "VERSION" ".next\BUILT_FROM" >nul 2>nul
+if not errorlevel 1 set "NEEDBUILD="
+:needbuild
+
+if defined NEEDBUILD (
   echo.
   echo [3/4] アプリを準備しています。1 分ほどかかります。
   echo       Building the app. About one minute.
   echo.
   call npm run build || goto :error
+  if exist "VERSION" copy /y "VERSION" ".next\BUILT_FROM" >nul 2>nul
 )
 
 echo.

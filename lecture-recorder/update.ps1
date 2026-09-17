@@ -102,6 +102,13 @@ try {
   & npm run build
   if ($LASTEXITCODE -ne 0) { Fail "準備に失敗しました。" "npm run build failed." }
 
+  # start.cmd compares this stamp with VERSION to decide whether the build on
+  # disk matches the source on disk.
+  $version = Join-Path $here "VERSION"
+  if (Test-Path $version) {
+    Copy-Item $version (Join-Path $here ".next\BUILT_FROM") -Force -ErrorAction SilentlyContinue
+  }
+
   Write-Host ""
   Write-Host "更新が完了しました。start.cmd（またはデスクトップのショートカット）で起動してください。"
   Write-Host "Update complete. Start the app with start.cmd or the desktop shortcut."
