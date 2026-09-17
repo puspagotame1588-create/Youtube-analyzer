@@ -149,6 +149,30 @@ export async function readLiveSegments(id: string): Promise<LiveSegment[]> {
   return [...byIdx.values()].sort((a, b) => a.idx - b.idx);
 }
 
+/**
+ * Everything written since the caller last looked.
+ *
+ * A caption is written more than once: first with the recognised Japanese,
+ * then again once its translation arrives. Asking only for higher segment
+ * numbers would deliver the first write and never the second, so the page
+ * tracks its position in the log instead, and a rewritten caption reaches it.
+ */
+export async function readLiveUpdates(
+  id: string,
+  afterSeq: number,
+): Promise<{ segments: LiveSegment[]; lastSeq: number }> {
+  const lines = await readLines<LiveSegment>(lecturePaths(id).live);
+  const from = Number.isFinite(afterSeq) ? Math.max(-1, afterSeq) : -1;
+  const byIdx = new Map<number, LiveSegment>();
+  for (let seq = from + 1; seq < lines.length; seq++) {
+    byIdx.set(lines[seq].idx, lines[seq]);
+  }
+  return {
+    segments: [...byIdx.values()].sort((a, b) => a.idx - b.idx),
+    lastSeq: lines.length - 1,
+  };
+}
+
 export function appendLiveSegment(id: string, seg: LiveSegment): Promise<void> {
   return appendLine(lecturePaths(id).live, seg);
 }

@@ -85,8 +85,24 @@ export async function listMicrophones(): Promise<MediaDeviceInfo[]> {
   return devices.filter((d) => d.kind === "audioinput");
 }
 
-/** Below this peak the chunk is treated as room noise and never uploaded. */
-export const SILENCE_PEAK = 0.012;
+/**
+ * Absolute floor below which a chunk carries no speech at all. Deliberately
+ * very low: a microphone at the back of a lecture hall produces a weak signal,
+ * and skipping real speech to save an API call is the worst trade available.
+ */
+export const SILENCE_FLOOR = 0.004;
+
+/**
+ * A chunk is also skipped if it is far quieter than the loudest audio heard so
+ * far this lecture, which adapts to the room and the microphone instead of
+ * assuming a level.
+ */
+export const SILENCE_RATIO = 0.06;
+
+/** Whether a chunk is quiet enough to skip, given the loudest audio so far. */
+export function isSilent(peak: number, sessionPeak: number): boolean {
+  return peak < Math.max(SILENCE_FLOOR, sessionPeak * SILENCE_RATIO);
+}
 
 export class LectureRecorder {
   private stream: MediaStream | null = null;

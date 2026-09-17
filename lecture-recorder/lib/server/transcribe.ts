@@ -60,7 +60,6 @@ interface TranscribeOptions {
   model: string;
   language: LectureLanguage;
   keywords: string[];
-  previousText: string;
   /** Added to every timestamp, so chunk times become lecture times. */
   offsetSec: number;
   /** Ask for per-line timestamps. Only used by the accurate pass. */
@@ -115,6 +114,40 @@ export function attemptLadder(
   });
 }
 
+/**
+ * How much two lines share, 0 to 1, by longest common subsequence.
+ *
+ * Used to catch a speech model repeating itself: consecutive lines that are
+ * near-identical are an artefact, not a lecturer saying the same sentence
+ * twice in a row.
+ */
+export function similarity(a: string, b: string): number {
+  const x = a.replace(/[\s、。,.!?！？]/gu, "");
+  const y = b.replace(/[\s、。,.!?！？]/gu, "");
+  if (!x || !y) return 0;
+  if (x === y) return 1;
+  // Guard against pathological input; real captions are far shorter.
+  if (x.length > 600 || y.length > 600) return x.slice(0, 600) === y.slice(0, 600) ? 1 : 0;
+
+  let previous = new Array<number>(y.length + 1).fill(0);
+  let current = new Array<number>(y.length + 1).fill(0);
+  for (let i = 1; i <= x.length; i++) {
+    for (let j = 1; j <= y.length; j++) {
+      current[j] =
+        x[i - 1] === y[j - 1] ? previous[j - 1] + 1 : Math.max(previous[j], current[j - 1]);
+    }
+    [previous, current] = [current, previous];
+    current.fill(0);
+  }
+  return previous[y.length] / Math.max(x.length, y.length);
+}
+
+/** True when a line is effectively a repeat of the one before it. */
+export function isRepeat(text: string, previous: string): boolean {
+  if (!previous.trim() || !text.trim()) return false;
+  return similarity(text, previous) >= 0.85;
+}
+
 /** A rejection of the request itself, where a simpler request may still work. */
 function rejectsRequest(err: unknown): boolean {
   if (!(err instanceof OpenAI.APIError)) return false;
@@ -137,7 +170,7 @@ export async function transcribeFile(
   const uploadable = await toFile(bytes, path.basename(file), {
     type: MIME_BY_EXT[ext] ?? "application/octet-stream",
   });
-  const prompt = speechPrompt(opts.language, opts.keywords, opts.previousText);
+  const prompt = speechPrompt(opts.language, opts.keywords);
 
   const ladder = attemptLadder(opts.model, {
     timestamps: opts.timestamps,

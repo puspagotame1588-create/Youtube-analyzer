@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { attemptLadder, isFiller } from "@/lib/server/transcribe";
+import { attemptLadder, isFiller, isRepeat, similarity } from "@/lib/server/transcribe";
 import { contextWindows, findCues, normalize } from "@/lib/highlight";
+import { isSilent } from "@/lib/recorder";
 import { safeId } from "@/lib/server/paths";
 import { speechPrompt } from "@/lib/server/prompts";
 import { NotesSchema } from "@/lib/schemas";
@@ -17,6 +18,32 @@ describe("isFiller", () => {
   });
 });
 
+describe("isRepeat", () => {
+  it("catches the loop seen in a real lecture", () => {
+    const a = "それで、じゃあ何でやるかというと、だいたい段取り説明しながら考えます。授業の段取りなんですけども。";
+    const b = "それで、じゃあなんでやるかというと、だいたい段取りを説明しながら考えます。授業の段取りなんですけども。";
+    expect(isRepeat(b, a)).toBe(true);
+  });
+
+  it("leaves two different sentences alone", () => {
+    expect(
+      isRepeat("価格設定では知覚価値を考えます。", "4Pとは製品、価格、流通、販促のことです。"),
+    ).toBe(false);
+  });
+
+  it("treats an exact repeat as a repeat", () => {
+    expect(isRepeat("同じ文です。", "同じ文です。")).toBe(true);
+  });
+
+  it("never flags the first line, which has nothing before it", () => {
+    expect(isRepeat("最初の行です。", "")).toBe(false);
+  });
+
+  it("ignores punctuation and spacing differences", () => {
+    expect(similarity("ここは試験に出します", "ここは、試験に出します。")).toBe(1);
+  });
+});
+
 describe("safeId", () => {
   it("accepts generated ids and rejects path traversal", () => {
     expect(safeId("abc123")).toBe("abc123");
@@ -28,12 +55,14 @@ describe("safeId", () => {
 
 describe("speechPrompt", () => {
   it("passes course terminology and recent context to the speech model", () => {
-    const prompt = speechPrompt("ja", ["知覚価値", "STP"], "前の文です。");
+    const prompt = speechPrompt("ja", ["知覚価値", "STP"]);
     expect(prompt).toContain("知覚価値、STP");
-    expect(prompt).toContain("前の文です。");
   });
   it("switches language for an English lecture", () => {
-    expect(speechPrompt("en", [], "")).toContain("English");
+    expect(speechPrompt("en", [])).toContain("English");
+  });
+  it("carries no previous transcript, which is what makes models loop", () => {
+    expect(speechPrompt("ja", [])).not.toContain("前の文");
   });
 });
 
@@ -172,5 +201,29 @@ describe("contextWindows", () => {
 describe("normalize", () => {
   it("ignores whitespace so a quote can be matched against its line", () => {
     expect(normalize("ここは 試験に  出します")).toBe(normalize("ここは試験に出します"));
+  });
+});
+
+describe("isSilent", () => {
+  it("skips a chunk far quieter than the rest of the lecture", () => {
+    expect(isSilent(0.01, 0.5)).toBe(true);
+  });
+
+  it("keeps speech from a quiet microphone at the back of a hall", () => {
+    // A weak signal throughout: everything is quiet, so nothing is "too quiet".
+    expect(isSilent(0.03, 0.05)).toBe(false);
+    expect(isSilent(0.012, 0.05)).toBe(false);
+  });
+
+  it("still skips true silence", () => {
+    expect(isSilent(0.001, 0.05)).toBe(true);
+    expect(isSilent(0, 0)).toBe(true);
+  });
+
+  it("adapts as the lecture gets louder", () => {
+    // The same chunk is speech early on, and room noise once the teacher
+    // starts speaking at a normal level.
+    expect(isSilent(0.02, 0.06)).toBe(false);
+    expect(isSilent(0.02, 0.9)).toBe(true);
   });
 });

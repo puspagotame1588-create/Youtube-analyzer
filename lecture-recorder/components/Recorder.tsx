@@ -9,8 +9,8 @@ import { findCues, CATEGORY_LABEL } from "@/lib/highlight";
 import {
   DEFAULT_SETTINGS,
   LectureRecorder,
-  SILENCE_PEAK,
   extensionFor,
+  isSilent,
   isSupported,
   listMicrophones,
   pickMimeType,
@@ -63,8 +63,12 @@ export default function Recorder() {
   const masterUp = useRef<Uploader | null>(null);
   const liveUp = useRef<Uploader | null>(null);
   const passUp = useRef<Uploader | null>(null);
-  const lastIdxRef = useRef(-1);
+  // Position in the caption log, so a caption rewritten with its translation
+  // is delivered again rather than skipped.
+  const lastSeqRef = useRef(-1);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  /** Loudest audio heard so far, used to judge what counts as silence. */
+  const sessionPeakRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const startRef = useRef<() => void>(() => undefined);
 
@@ -143,12 +147,10 @@ export default function Recorder() {
       const id = lectureIdRef.current;
       if (!id) return;
       try {
-        const result = await api.liveSegments(id, lastIdxRef.current);
-        if (cancelled || result.segments.length === 0) return;
-        lastIdxRef.current = Math.max(
-          lastIdxRef.current,
-          ...result.segments.map((s) => s.idx),
-        );
+        const result = await api.liveSegments(id, lastSeqRef.current);
+        if (cancelled) return;
+        lastSeqRef.current = Math.max(lastSeqRef.current, result.lastSeq);
+        if (result.segments.length === 0) return;
         setSegments((prev) => {
           const map = new Map(prev.map((s) => [s.idx, s]));
           for (const seg of result.segments) map.set(seg.idx, seg);
@@ -229,10 +231,11 @@ export default function Recorder() {
         audioMime: mime || "audio/webm",
       });
       lectureIdRef.current = lecture.id;
-      lastIdxRef.current = -1;
+      lastSeqRef.current = -1;
       setSegments([]);
       setSavedBytes(0);
       setPeakSeen(0);
+      sessionPeakRef.current = 0;
 
       const onFailure = (err: Error) => setError(err.message);
       masterUp.current = new Uploader(onFailure);
@@ -258,9 +261,11 @@ export default function Recorder() {
             }, "音声");
           },
           onLiveChunk: (chunk) => {
-            setPeakSeen((p) => Math.max(p, chunk.peak));
+            sessionPeakRef.current = Math.max(sessionPeakRef.current, chunk.peak);
+            setPeakSeen(sessionPeakRef.current);
+            const quiet = isSilent(chunk.peak, sessionPeakRef.current);
             void liveUp.current?.send(
-              () => uploadChunk(id, "live", chunk, recorder.mime),
+              () => uploadChunk(id, "live", chunk, recorder.mime, quiet),
               "字幕用の音声",
             );
           },
@@ -668,9 +673,10 @@ async function uploadChunk(
   kind: "live" | "pass",
   chunk: ChunkPayload,
   mime: string,
+  quiet = false,
 ): Promise<void> {
   const form = new FormData();
-  const silent = kind === "live" && chunk.peak < SILENCE_PEAK;
+  const silent = kind === "live" && quiet;
   if (!silent) {
     form.append("file", chunk.blob, `${chunk.idx}.${extensionFor(mime || chunk.blob.type)}`);
   }

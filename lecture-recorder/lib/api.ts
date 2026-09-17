@@ -80,13 +80,15 @@ export const api = {
   deleteLecture: (id: string) =>
     request<{ deleted: true }>(`/api/lectures/${id}`, { method: "DELETE" }),
 
-  liveSegments: (id: string, after: number) =>
+  /** `afterSeq` is a position in the caption log, not a caption number. */
+  liveSegments: (id: string, afterSeq: number) =>
     request<{
       segments: LiveSegment[];
+      lastSeq: number;
       status: Lecture["status"];
       pendingChunks: number;
       durationSec: number;
-    }>(`/api/lectures/${id}/live?after=${after}`),
+    }>(`/api/lectures/${id}/live?after=${afterSeq}`),
 
   stop: (id: string, durationSec: number) =>
     request<{ stopped: true; finalizing: boolean }>(

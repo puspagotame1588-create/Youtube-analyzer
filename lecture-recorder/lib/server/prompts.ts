@@ -6,8 +6,14 @@ export function otherLanguage(language: LectureLanguage): LectureLanguage {
   return language === "ja" ? "en" : "ja";
 }
 
-/** Steering text given to the speech model. Must be in the audio's language. */
-export function speechPrompt(language: LectureLanguage, keywords: string[], previous: string) {
+/**
+ * Steering text given to the speech model. Must be in the audio's language.
+ *
+ * Deliberately carries no previous transcript. Speech models complete the text
+ * they are primed with, so a rolling hint makes them repeat the last sentence
+ * whenever the audio goes quiet or unclear, which is worse than a gap.
+ */
+export function speechPrompt(language: LectureLanguage, keywords: string[]) {
   const base =
     language === "ja"
       ? "大学の講義の録音です。教員が日本語で話しています。専門用語を正確に、句読点を付けて書き起こしてください。"
@@ -17,10 +23,7 @@ export function speechPrompt(language: LectureLanguage, keywords: string[], prev
       ? ` この講義で使われる用語: ${keywords.join("、")}。`
       : ` Terms used in this lecture: ${keywords.join(", ")}.`
     : "";
-  // The tail of the previous chunk keeps names and terminology consistent
-  // across chunk boundaries. Kept short: the prompt field is token-limited.
-  const carry = previous ? ` ${previous.slice(-180)}` : "";
-  return `${base}${terms}${carry}`;
+  return `${base}${terms}`;
 }
 
 export const LIVE_TRANSLATE_SYSTEM = (from: LectureLanguage) => {

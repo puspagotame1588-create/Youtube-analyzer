@@ -27,7 +27,7 @@ import {
   writeNotes,
   writeTranscript,
 } from "./store";
-import { isFiller, transcribeFile, type RawSegment } from "./transcribe";
+import { isFiller, isRepeat, transcribeFile, type RawSegment } from "./transcribe";
 import { describe } from "./openai";
 import {
   ChatAnswerSchema,
@@ -116,11 +116,15 @@ async function processLiveChunk(
       model: CONFIG.liveTranscribeModel,
       language: lecture.language,
       keywords: course?.keywords ?? [],
-      previousText: carry.source,
       offsetSec: startSec,
       timestamps: false,
     });
     if (!text || isFiller(text)) {
+      await write({ source: "", translation: "", status: "silent" });
+      return;
+    }
+    // A line that merely repeats the previous one is a recognition artefact.
+    if (isRepeat(text, carry.source)) {
       await write({ source: "", translation: "", status: "silent" });
       return;
     }
@@ -220,7 +224,6 @@ async function runFinalize(lectureId: string): Promise<void> {
   if (passFiles.length > 0) {
     const raw: RawSegment[] = [];
     const passIndex = await readPassIndex(lectureId);
-    let carry = "";
     for (let i = 0; i < passFiles.length; i++) {
       await progress("音声を精密に文字起こし中", i, passFiles.length);
       const entry = passIndex.find((e) => e.idx === i);
@@ -229,7 +232,6 @@ async function runFinalize(lectureId: string): Promise<void> {
         model: CONFIG.transcribeModel,
         language: lecture.language,
         keywords,
-        previousText: carry,
         offsetSec,
         timestamps: true,
       });
@@ -243,15 +245,18 @@ async function runFinalize(lectureId: string): Promise<void> {
           text: result.text,
         });
       }
-      carry = result.text.slice(-200);
       if (result.fallback) usedFallbackModel = true;
     }
-    segments = raw.map((s) => ({
-      startSec: Math.round(s.startSec * 10) / 10,
-      endSec: Math.round(s.endSec * 10) / 10,
-      source: s.text,
-      translation: "",
-    }));
+    segments = raw
+      // Consecutive near-identical lines come from the speech model looping,
+      // not from the lecturer repeating a sentence word for word.
+      .filter((line, i) => i === 0 || !isRepeat(line.text, raw[i - 1].text))
+      .map((s) => ({
+        startSec: Math.round(s.startSec * 10) / 10,
+        endSec: Math.round(s.endSec * 10) / 10,
+        source: s.text,
+        translation: "",
+      }));
     refined = segments.length > 0;
   }
 
