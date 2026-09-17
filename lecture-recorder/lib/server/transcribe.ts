@@ -20,7 +20,15 @@ export interface TranscribeResult {
   fallback: boolean;
 }
 
-/** Available on every account, and the safety net when a newer model is not. */
+/**
+ * Tried in order when the configured model is not available to the account,
+ * best Japanese first. gpt-4o-transcribe is well ahead of whisper-1 on kanji
+ * and technical vocabulary; whisper-1 is last because it is the only one every
+ * account is guaranteed to have.
+ */
+export const FALLBACK_MODELS = ["gpt-4o-transcribe", "whisper-1"] as const;
+
+/** The last resort, present on every account. */
 export const FALLBACK_MODEL = "whisper-1";
 
 const MIME_BY_EXT: Record<string, string> = {
@@ -100,10 +108,16 @@ export function attemptLadder(
     { model, verbose, keywords: false },
     // Same model, nothing optional attached.
     { model, verbose: false, keywords: false },
-    // Whisper still returns segment timestamps, which the accurate pass wants.
-    { model: FALLBACK_MODEL, verbose: opts.timestamps, keywords: false },
-    { model: FALLBACK_MODEL, verbose: false, keywords: false },
   ];
+
+  // Then the other models, keeping the most accurate Japanese available rather
+  // than dropping straight to the oldest one.
+  for (const fallback of FALLBACK_MODELS) {
+    if (fallback === model) continue;
+    const canVerbose = opts.timestamps && VERBOSE_MODELS.test(fallback);
+    ladder.push({ model: fallback, verbose: canVerbose, keywords: false });
+    if (canVerbose) ladder.push({ model: fallback, verbose: false, keywords: false });
+  }
 
   const seen = new Set<string>();
   return ladder.filter((a) => {
@@ -146,6 +160,40 @@ export function similarity(a: string, b: string): number {
 export function isRepeat(text: string, previous: string): boolean {
   if (!previous.trim() || !text.trim()) return false;
   return similarity(text, previous) >= 0.85;
+}
+
+/**
+ * Splits a block of recognised text into sentences and lays them out evenly
+ * across the window the audio came from. Used only when the speech model
+ * returned no timestamps of its own.
+ */
+export function spreadOverWindow(
+  text: string,
+  startSec: number,
+  endSec: number,
+): RawSegment[] {
+  // Keep the terminator with the sentence it ends.
+  const parts = text
+    .split(/(?<=[。．.!?！？])\s*/u)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+  if (parts.length <= 1) {
+    return [{ startSec, endSec, text: text.trim() }];
+  }
+
+  // Longer sentences took longer to say, so share the window by length rather
+  // than giving a two-word aside the same slice as a paragraph.
+  const total = parts.reduce((sum, p) => sum + p.length, 0);
+  const span = Math.max(0, endSec - startSec);
+  const out: RawSegment[] = [];
+  let at = startSec;
+  for (const part of parts) {
+    const next = at + (span * part.length) / total;
+    out.push({ startSec: at, endSec: next, text: part });
+    at = next;
+  }
+  out[out.length - 1].endSec = endSec;
+  return out;
 }
 
 /** A rejection of the request itself, where a simpler request may still work. */

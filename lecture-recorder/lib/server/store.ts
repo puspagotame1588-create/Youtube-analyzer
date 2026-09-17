@@ -153,7 +153,7 @@ export async function readLiveSegments(id: string): Promise<LiveSegment[]> {
  * Everything written since the caller last looked.
  *
  * A caption is written more than once: first with the recognised Japanese,
- * then again once its translation arrives. Asking only for higher segment
+ * then again once a later state arrives. Asking only for higher segment
  * numbers would deliver the first write and never the second, so the page
  * tracks its position in the log instead, and a rewritten caption reaches it.
  */

@@ -23,7 +23,6 @@ function checkModels() {
           CONFIG.liveTranscribeModel,
           CONFIG.transcribeModel,
           CONFIG.llmModel,
-          CONFIG.fastModel,
         ];
         return {
           missing: [...new Set(wanted)].filter((m) => !available.has(m)),
@@ -48,7 +47,6 @@ export async function GET() {
       live: CONFIG.liveTranscribeModel,
       transcribe: CONFIG.transcribeModel,
       notes: CONFIG.llmModel,
-      fast: CONFIG.fastModel,
     },
     recording: {
       liveChunkSec: CONFIG.liveChunkSec,

@@ -32,8 +32,6 @@ export interface LiveSegment {
   endSec: number;
   /** Text in the lecture's own language. */
   source: string;
-  /** Translation into the other language. Empty until it arrives. */
-  translation: string;
   status: "pending" | "done" | "silent" | "error";
   error?: string;
 }
@@ -43,7 +41,6 @@ export interface TranscriptSegment {
   startSec: number;
   endSec: number;
   source: string;
-  translation: string;
 }
 
 export interface TranscriptFile {

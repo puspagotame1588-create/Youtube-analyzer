@@ -6,7 +6,7 @@ import { patchLecture, readLecture } from "@/lib/server/store";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Runs (or re-runs) transcription, proofreading, translation and the notes. */
+/** Runs (or re-runs) transcription, proofreading and the notes. */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await ctx.params;

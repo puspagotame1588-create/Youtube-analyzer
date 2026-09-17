@@ -63,7 +63,7 @@ export default function Recorder() {
   const masterUp = useRef<Uploader | null>(null);
   const liveUp = useRef<Uploader | null>(null);
   const passUp = useRef<Uploader | null>(null);
-  // Position in the caption log, so a caption rewritten with its translation
+  // Position in the caption log, so a caption rewritten after it was first
   // is delivered again rather than skipped.
   const lastSeqRef = useRef(-1);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
@@ -478,7 +478,7 @@ export default function Recorder() {
 
         {showAdvanced && (
           <div className="mt-2 grid gap-3 rounded-lg bg-surface-2/60 p-3 md:grid-cols-3">
-            <Field label="字幕の更新間隔（秒）" hint="短いほど速く出ますが、精度はやや落ちます。">
+            <Field label="字幕の更新間隔（秒）" hint="短いほど速く出ますが、文が途中で切れて精度が落ちます。15 秒が推奨です。">
               <input
                 type="number"
                 className="input"
@@ -507,7 +507,7 @@ export default function Recorder() {
                 onChange={(v) => setSettings((s) => ({ ...s, autoGainControl: v }))}
               />
             </div>
-            <Field label="音質（bps）" hint="32000 が音声には十分です。上げるとファイルが大きくなります。">
+            <Field label="音質（bps）" hint="広い教室では 64000 を推奨します。下げるとファイルは小さくなりますが、聞き取り精度が落ちます。">
               <select
                 className="select"
                 value={settings.audioBitsPerSecond}
@@ -516,10 +516,10 @@ export default function Recorder() {
                 }
                 disabled={!idle}
               >
-                <option value={24000}>24000（軽い）</option>
-                <option value={32000}>32000（推奨）</option>
-                <option value={48000}>48000（高音質）</option>
-                <option value={64000}>64000（最高音質）</option>
+                <option value={32000}>32000（軽い・近くの声向け）</option>
+                <option value={48000}>48000（標準）</option>
+                <option value={64000}>64000（推奨・広い教室）</option>
+                <option value={96000}>96000（最高音質）</option>
               </select>
             </Field>
           </div>
@@ -579,32 +579,26 @@ export default function Recorder() {
       )}
 
       <section className="card overflow-hidden">
-        <div className="grid grid-cols-2 border-b border-line text-xs font-semibold">
-          <div className="bg-src-soft px-4 py-2 text-src">
-            {language === "ja" ? "日本語（先生の言葉）" : "English (lecture)"}
-          </div>
-          <div className="bg-dst-soft px-4 py-2 text-dst">
-            {language === "ja" ? "English（ライブ翻訳）" : "日本語（ライブ翻訳）"}
-          </div>
+        <div className="border-b border-line bg-src-soft px-4 py-2 text-xs font-semibold text-src">
+          {language === "ja" ? "日本語（先生の言葉）" : "English (lecture)"}
         </div>
         <div className="max-h-[52vh] overflow-y-auto">
           {spoken.length === 0 ? (
             <p className="p-8 text-center text-sm text-ink-soft">
               {phase === "recording"
                 ? `最初の ${settings.liveChunkSec} 秒を聞き取っています…`
-                : "録音を開始すると、ここに日本語と英語が同時に表示されます。"}
+                : "録音を開始すると、ここに先生の言葉が表示されます。"}
             </p>
           ) : (
             spoken.map((s) => {
               const cues = s.source ? findCues(s.source, language) : [];
               return (
-              <div
-                key={s.idx}
-                className={`grid grid-cols-2 border-b border-line/60 last:border-0 ${
-                  cues.length ? "bg-warn-soft/50" : ""
-                }`}
-              >
-                <div className="px-4 py-2.5 text-sm leading-relaxed">
+                <div
+                  key={s.idx}
+                  className={`border-b border-line/60 px-4 py-2.5 text-sm leading-relaxed last:border-0 ${
+                    cues.length ? "bg-warn-soft/50" : ""
+                  }`}
+                >
                   <span className="mr-2 font-mono text-[11px] text-ink-soft">
                     {fmtSec(s.startSec)}
                   </span>
@@ -624,10 +618,6 @@ export default function Recorder() {
                     s.source || <span className="text-ink-soft">…</span>
                   )}
                 </div>
-                <div className="border-l border-line/60 px-4 py-2.5 text-sm leading-relaxed text-ink-soft">
-                  {s.translation || (s.status === "done" ? "" : "…")}
-                </div>
-              </div>
               );
             })
           )}

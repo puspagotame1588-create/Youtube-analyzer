@@ -80,7 +80,6 @@ export default function Settings() {
         <dl className="grid gap-2 text-sm sm:grid-cols-2">
           <Row label="ライブ字幕の文字起こし" value={health.models.live} />
           <Row label="精密文字起こし（録音後）" value={health.models.transcribe} />
-          <Row label="ライブ翻訳" value={health.models.fast} />
           <Row label="要約・ノート・質問応答" value={health.models.notes} />
         </dl>
         <p className="mt-3 text-xs text-ink-soft">

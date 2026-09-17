@@ -53,10 +53,6 @@ export const ProofreadSchema = z.object({
   lines: z.array(z.object({ i: z.number(), text: z.string() })),
 });
 
-export const TranslateSchema = z.object({
-  lines: z.array(z.object({ i: z.number(), text: z.string() })),
-});
-
 export const HighlightsSchema = z.object({
   items: z.array(
     z.object({

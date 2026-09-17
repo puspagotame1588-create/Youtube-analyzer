@@ -27,7 +27,6 @@ export async function POST(req: Request, ctx: Ctx) {
         startSec,
         endSec,
         source: "",
-        translation: "",
         status: "silent",
       });
       return ok({ queued: false, silent: true });

@@ -5,7 +5,7 @@
  *
  *   master — one continuous recording, flushed to disk every few seconds. This
  *            is the permanent archive and the only one that is gapless.
- *   live   — restarted every ~10 s; each stop yields a standalone file that can
+ *   live   — restarted every ~15 s; each stop yields a standalone file that can
  *            be transcribed immediately for live captions.
  *   pass   — restarted every ~10 min; standalone files for the accurate pass
  *            after the lecture, where long context means far better Japanese.
@@ -44,9 +44,9 @@ export interface RecorderSettings {
 }
 
 export const DEFAULT_SETTINGS: RecorderSettings = {
-  liveChunkSec: 10,
+  liveChunkSec: 15,
   passChunkSec: 600,
-  audioBitsPerSecond: 32000,
+  audioBitsPerSecond: 64000,
   noiseSuppression: false,
   echoCancellation: false,
   autoGainControl: true,

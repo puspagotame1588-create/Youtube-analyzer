@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { attemptLadder, isFiller, isRepeat, similarity } from "@/lib/server/transcribe";
+import {
+  attemptLadder,
+  isFiller,
+  isRepeat,
+  similarity,
+  spreadOverWindow,
+} from "@/lib/server/transcribe";
 import { contextWindows, findCues, normalize } from "@/lib/highlight";
 import { isSilent } from "@/lib/recorder";
 import { safeId } from "@/lib/server/paths";
@@ -138,9 +144,24 @@ describe("attemptLadder", () => {
 
   it("gives up optional parameters before giving up the model", () => {
     const ladder = attemptLadder("gpt-transcribe", { timestamps: true, hasKeywords: true });
-    const beforeFallback = ladder.slice(0, ladder.findIndex((a) => a.model === "whisper-1"));
-    expect(beforeFallback.length).toBeGreaterThan(1);
-    expect(beforeFallback.every((a) => a.model === "gpt-transcribe")).toBe(true);
+    const firstOtherModel = ladder.findIndex((a) => a.model !== "gpt-transcribe");
+    expect(firstOtherModel).toBeGreaterThan(1);
+  });
+
+  it("falls back through the better Japanese model before reaching whisper", () => {
+    // Japanese accuracy is the whole point, so a chunk only lands on whisper-1
+    // once nothing newer will take it.
+    const ladder = attemptLadder("gpt-transcribe", { timestamps: true, hasKeywords: true });
+    const models = ladder.map((a) => a.model);
+    expect(models.indexOf("gpt-4o-transcribe")).toBeGreaterThan(-1);
+    expect(models.indexOf("gpt-4o-transcribe")).toBeLessThan(models.indexOf("whisper-1"));
+  });
+
+  it("never asks a json-only fallback for timestamps", () => {
+    const ladder = attemptLadder("gpt-transcribe", { timestamps: true, hasKeywords: true });
+    expect(ladder.filter((a) => a.model === "gpt-4o-transcribe")).toEqual([
+      { model: "gpt-4o-transcribe", verbose: false, keywords: false },
+    ]);
   });
 
   it("ends on whisper, which every account can use", () => {
@@ -225,5 +246,39 @@ describe("isSilent", () => {
     // starts speaking at a normal level.
     expect(isSilent(0.02, 0.06)).toBe(false);
     expect(isSilent(0.02, 0.9)).toBe(true);
+  });
+});
+
+describe("spreadOverWindow", () => {
+  const text = "今日は4Pを扱います。まず製品について話します。次に価格です。";
+
+  it("splits a timestamp-less block into sentences", () => {
+    const out = spreadOverWindow(text, 600, 1200);
+    expect(out.map((s) => s.text)).toEqual([
+      "今日は4Pを扱います。",
+      "まず製品について話します。",
+      "次に価格です。",
+    ]);
+  });
+
+  it("covers the whole window without gaps or overlap", () => {
+    const out = spreadOverWindow(text, 600, 1200);
+    expect(out[0].startSec).toBe(600);
+    expect(out.at(-1)!.endSec).toBe(1200);
+    for (let i = 1; i < out.length; i++) {
+      expect(out[i].startSec).toBeCloseTo(out[i - 1].endSec);
+    }
+  });
+
+  it("gives a longer sentence a longer slice", () => {
+    const out = spreadOverWindow(text, 0, 600);
+    const span = (i: number) => out[i].endSec - out[i].startSec;
+    expect(span(1)).toBeGreaterThan(span(2));
+  });
+
+  it("leaves a single sentence exactly as it was", () => {
+    expect(spreadOverWindow("  一文だけです。 ", 10, 20)).toEqual([
+      { startSec: 10, endSec: 20, text: "一文だけです。" },
+    ]);
   });
 });

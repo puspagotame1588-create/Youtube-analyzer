@@ -21,7 +21,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
           startSec: s.startSec,
           endSec: s.endSec,
           source: s.source,
-          translation: s.translation,
         })),
     });
   } catch (err) {

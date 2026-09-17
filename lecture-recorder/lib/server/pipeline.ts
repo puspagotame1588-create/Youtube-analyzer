@@ -1,12 +1,11 @@
 import { promises as fs } from "fs";
 import { CONFIG } from "./config";
-import { llmJson, llmText } from "./llm";
+import { llmJson } from "./llm";
 import { materialsContext } from "./materials";
 import {
   CHAT_SYSTEM,
   FLASHCARDS_SYSTEM,
   HIGHLIGHTS_SYSTEM,
-  LIVE_TRANSLATE_SYSTEM,
   NOTES_SYSTEM,
   PROOFREAD_SYSTEM,
 } from "./prompts";
@@ -27,7 +26,13 @@ import {
   writeNotes,
   writeTranscript,
 } from "./store";
-import { isFiller, isRepeat, transcribeFile, type RawSegment } from "./transcribe";
+import {
+  isFiller,
+  isRepeat,
+  spreadOverWindow,
+  transcribeFile,
+  type RawSegment,
+} from "./transcribe";
 import { describe } from "./openai";
 import {
   ChatAnswerSchema,
@@ -35,7 +40,6 @@ import {
   HighlightsSchema,
   NotesSchema,
   ProofreadSchema,
-  TranslateSchema,
   type ChatAnswer,
 } from "@/lib/schemas";
 import type {
@@ -57,21 +61,12 @@ async function courseOf(courseId: string): Promise<Course | undefined> {
 /* ------------------------------------------------------------ live pass --- */
 
 /**
- * Live captions run one chunk at a time so that chunk N's text can steer the
- * recognition of chunk N+1. The queue lives only in memory: audio is already on
- * disk, so a crash costs captions, never the recording.
+ * Live captions run one chunk at a time, in order, so the page never shows a
+ * later line above an earlier one. The queue lives only in memory: audio is
+ * already on disk, so a crash costs captions, never the recording.
  */
 const liveQueues = new Map<string, Promise<void>>();
-const lastText = new Map<string, { source: string; translation: string }>();
-const waiting = new Map<string, number>();
-
-/**
- * When more than this many chunks are waiting, the captions are falling behind
- * the lecture. Translation is dropped for those chunks so the Japanese column,
- * which matters most, catches back up. The full translation is produced after
- * the lecture anyway.
- */
-const BEHIND_THRESHOLD = 3;
+const lastText = new Map<string, string>();
 
 export function enqueueLiveChunk(input: {
   lectureId: string;
@@ -81,32 +76,23 @@ export function enqueueLiveChunk(input: {
   endSec: number;
 }): void {
   const { lectureId } = input;
-  waiting.set(lectureId, (waiting.get(lectureId) ?? 0) + 1);
   const previous = liveQueues.get(lectureId) ?? Promise.resolve();
-  const next = previous
-    .then(() => processLiveChunk(input, (waiting.get(lectureId) ?? 1) - 1))
-    .catch(() => undefined)
-    .finally(() => {
-      waiting.set(lectureId, Math.max(0, (waiting.get(lectureId) ?? 1) - 1));
-    });
+  const next = previous.then(() => processLiveChunk(input)).catch(() => undefined);
   liveQueues.set(lectureId, next);
 }
 
-async function processLiveChunk(
-  input: {
-    lectureId: string;
-    idx: number;
-    file: string;
-    startSec: number;
-    endSec: number;
-  },
-  queueDepth: number,
-): Promise<void> {
+async function processLiveChunk(input: {
+  lectureId: string;
+  idx: number;
+  file: string;
+  startSec: number;
+  endSec: number;
+}): Promise<void> {
   const { lectureId, idx, file, startSec, endSec } = input;
   const lecture = await readLecture(lectureId);
   if (!lecture) return;
   const course = await courseOf(lecture.courseId);
-  const carry = lastText.get(lectureId) ?? { source: "", translation: "" };
+  const carry = lastText.get(lectureId) ?? "";
 
   const write = (seg: Omit<LiveSegment, "idx" | "startSec" | "endSec">) =>
     appendLiveSegment(lectureId, { idx, startSec, endSec, ...seg });
@@ -120,41 +106,18 @@ async function processLiveChunk(
       timestamps: false,
     });
     if (!text || isFiller(text)) {
-      await write({ source: "", translation: "", status: "silent" });
+      await write({ source: "", status: "silent" });
       return;
     }
     // A line that merely repeats the previous one is a recognition artefact.
-    if (isRepeat(text, carry.source)) {
-      await write({ source: "", translation: "", status: "silent" });
+    if (isRepeat(text, carry)) {
+      await write({ source: "", status: "silent" });
       return;
     }
-    await write({ source: text, translation: "", status: "pending" });
-
-    let translation = "";
-    if (queueDepth > BEHIND_THRESHOLD) {
-      lastText.set(lectureId, { source: text, translation: "" });
-      await write({ source: text, translation: "", status: "done" });
-      return;
-    }
-    try {
-      const out = await llmText({
-        model: CONFIG.fastModel,
-        instructions: LIVE_TRANSLATE_SYSTEM(lecture.language),
-        input: `直前の断片（文脈用、訳出済み）:\n${carry.source}\n→ ${carry.translation}\n\n今回の断片:\n${text}`,
-        maxOutputTokens: 800,
-        effort: "none",
-        label: "ライブ翻訳",
-      });
-      translation = out === "-" ? "" : out;
-    } catch {
-      // A failed translation must not lose the recognised text.
-      translation = "";
-    }
-
-    lastText.set(lectureId, { source: text, translation });
-    await write({ source: text, translation, status: "done" });
+    lastText.set(lectureId, text);
+    await write({ source: text, status: "done" });
   } catch (err) {
-    await write({ source: "", translation: "", status: "error", error: describe(err) });
+    await write({ source: "", status: "error", error: describe(err) });
     await patchLecture(lectureId, (l) => ({
       pendingChunks: (l.pendingChunks ?? 0) + 1,
     })).catch(() => undefined);
@@ -174,7 +137,6 @@ export async function drainLiveQueue(lectureId: string): Promise<void> {
     pending = current === pending ? undefined : current;
   }
   lastText.delete(lectureId);
-  waiting.delete(lectureId);
 }
 
 /* -------------------------------------------------------- accurate pass --- */
@@ -187,7 +149,7 @@ export function isFinalizing(lectureId: string): boolean {
 
 /**
  * Runs after the lecture ends: re-transcribes the long chunks (far fewer cut
- * points than the live ones), proofreads, translates, then writes the notes.
+ * points than the live ones), proofreads, then writes the notes.
  */
 export async function finalizeLecture(lectureId: string): Promise<void> {
   if (running.has(lectureId)) return;
@@ -238,12 +200,13 @@ async function runFinalize(lectureId: string): Promise<void> {
       if (result.segments.length > 0) {
         raw.push(...result.segments);
       } else if (result.text && !isFiller(result.text)) {
-        // Model returned no timestamps: keep the text against the chunk window.
-        raw.push({
-          startSec: offsetSec,
-          endSec: entry ? entry.endSec : offsetSec + CONFIG.passChunkSec,
-          text: result.text,
-        });
+        // Model returned no timestamps (a fallback model that only speaks
+        // plain JSON). Ten minutes as one undivided block would break seeking,
+        // the study list and the proofreading batches alike, so split it into
+        // sentences and spread the chunk's own window across them. The times
+        // are approximate, and the text is not.
+        const endOfChunk = entry ? entry.endSec : offsetSec + CONFIG.passChunkSec;
+        raw.push(...spreadOverWindow(result.text, offsetSec, endOfChunk));
       }
       if (result.fallback) usedFallbackModel = true;
     }
@@ -255,7 +218,6 @@ async function runFinalize(lectureId: string): Promise<void> {
         startSec: Math.round(s.startSec * 10) / 10,
         endSec: Math.round(s.endSec * 10) / 10,
         source: s.text,
-        translation: "",
       }));
     refined = segments.length > 0;
   }
@@ -270,7 +232,6 @@ async function runFinalize(lectureId: string): Promise<void> {
         startSec: s.startSec,
         endSec: s.endSec,
         source: s.source,
-        translation: s.translation,
       }));
   }
 
@@ -291,16 +252,7 @@ async function runFinalize(lectureId: string): Promise<void> {
     createdAt: Date.now(),
   });
 
-  /* 3. Translate into the other language. */
-  segments = await translate(lectureId, segments, lecture.language, progress);
-  await writeTranscript(lectureId, {
-    language: lecture.language,
-    segments,
-    refined,
-    createdAt: Date.now(),
-  });
-
-  /* 4. Notes. */
+  /* 3. Notes. */
   await patchLecture(lectureId, { status: "analyzing" });
   await progress("ノートを作成中", 0, 1);
   const notes = await buildNotes(lectureId, segments, lecture.language, keywords, {
@@ -311,7 +263,7 @@ async function runFinalize(lectureId: string): Promise<void> {
   });
   await writeNotes(lectureId, notes);
 
-  /* 5. Passages the teacher flagged as worth studying. */
+  /* 4. Passages the teacher flagged as worth studying. */
   await progress("重要ポイントを抽出中", 0, 1);
   try {
     await extractHighlights(lectureId, segments, lecture.language);
@@ -319,7 +271,7 @@ async function runFinalize(lectureId: string): Promise<void> {
     // A lecture with notes is still useful; this section can be rebuilt later.
   }
 
-  /* 6. The working chunks have served their purpose; the master stays. */
+  /* 5. The working chunks have served their purpose; the master stays. */
   if (refined) await removeWorkingChunks(lectureId).catch(() => undefined);
 
   await patchLecture(lectureId, {
@@ -373,43 +325,6 @@ async function proofread(
       }
     } catch {
       // Proofreading is an improvement, not a requirement: keep the raw text.
-    }
-  }
-  return out;
-}
-
-async function translate(
-  lectureId: string,
-  segments: TranscriptSegment[],
-  language: "ja" | "en",
-  progress: ProgressFn,
-): Promise<TranscriptSegment[]> {
-  const out = [...segments];
-  const batches = Math.ceil(segments.length / BATCH);
-  const target = language === "ja" ? "英語" : "日本語";
-  for (let b = 0; b < batches; b++) {
-    await progress(`全文を${target}に翻訳中`, b, batches);
-    const start = b * BATCH;
-    const slice = segments.slice(start, start + BATCH);
-    const input = [
-      `次の各行を${target}に翻訳してください。行番号 i はそのまま返すこと。行を結合・分割しないこと。訳文のみを返し、注釈は付けないこと。`,
-      ...slice.map((s, i) => `${start + i}\t${s.source}`),
-    ].join("\n");
-    try {
-      const result = await llmJson(TranslateSchema, {
-        instructions: `あなたは大学講義の翻訳者です。原文の意味と専門用語を正確に保ち、自然な${target}に訳します。内容を追加・省略しないこと。`,
-        input,
-        schemaName: "translation",
-        maxOutputTokens: 8000,
-        effort: "low",
-        label: "翻訳",
-      });
-      for (const line of result.lines) {
-        const item = out[line.i];
-        if (item) item.translation = line.text.trim();
-      }
-    } catch {
-      // Translation is secondary to the source transcript.
     }
   }
   return out;

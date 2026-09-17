@@ -2,41 +2,29 @@ import type { LectureLanguage } from "@/lib/types";
 
 const LANG_NAME: Record<LectureLanguage, string> = { ja: "日本語", en: "英語" };
 
-export function otherLanguage(language: LectureLanguage): LectureLanguage {
-  return language === "ja" ? "en" : "ja";
-}
-
 /**
  * Steering text given to the speech model. Must be in the audio's language.
  *
  * Deliberately carries no previous transcript. Speech models complete the text
  * they are primed with, so a rolling hint makes them repeat the last sentence
  * whenever the audio goes quiet or unclear, which is worse than a gap.
+ *
+ * The Japanese text also fixes the writing system. Left to itself the model
+ * drifts between kanji, kana and romaji across chunks, which is most of what
+ * makes a Japanese transcript unreadable.
  */
 export function speechPrompt(language: LectureLanguage, keywords: string[]) {
   const base =
     language === "ja"
-      ? "大学の講義の録音です。教員が日本語で話しています。専門用語を正確に、句読点を付けて書き起こしてください。"
-      : "This is a university lecture recording. The lecturer speaks English. Transcribe accurately with punctuation.";
+      ? "大学の講義の録音です。広い教室で、教員が日本語で話しています。標準的な漢字仮名交じり文で、句読点を付けて書き起こしてください。ローマ字や英語に置き換えないでください。専門用語・固有名詞・数値・日付は正確に。聞き取れない部分は推測で埋めず、その部分を書かないでください。"
+      : "This is a university lecture recording in a large hall. The lecturer speaks English. Transcribe accurately with punctuation. Keep technical terms, proper nouns, numbers and dates exact. Do not guess at audio you cannot make out.";
   const terms = keywords.length
     ? language === "ja"
-      ? ` この講義で使われる用語: ${keywords.join("、")}。`
-      : ` Terms used in this lecture: ${keywords.join(", ")}.`
+      ? ` この講義で使われる用語（この表記で書くこと）: ${keywords.join("、")}。`
+      : ` Terms used in this lecture, spelled this way: ${keywords.join(", ")}.`
     : "";
   return `${base}${terms}`;
 }
-
-export const LIVE_TRANSLATE_SYSTEM = (from: LectureLanguage) => {
-  const to = otherLanguage(from);
-  return `あなたは大学講義の同時通訳者です。${LANG_NAME[from]}の音声が約10秒ごとに文字起こしされ、その断片を${LANG_NAME[to]}に訳します。
-
-規則:
-- 出力は訳文のみ。前置き、注釈、引用符は禁止。
-- 断片は文の途中で切れています。有る内容だけを訳し、続きを創作しないこと。前の断片を繰り返さないこと。
-- 専門用語は正確に。重要な用語は初出時のみ括弧で原語を添えてよい。
-- 固有名詞・数値・日付・締切はそのまま保持。
-- 相槌やつなぎ言葉だけの断片は、ハイフン1文字「-」を出力。`;
-};
 
 export const PROOFREAD_SYSTEM = (language: LectureLanguage, keywords: string[]) => `あなたは大学講義の書き起こしを校正する専門家です。音声認識の生の出力を、意味を変えずに読みやすく直します。
 

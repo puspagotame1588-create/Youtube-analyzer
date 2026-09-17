@@ -39,8 +39,8 @@ const transcript: TranscriptFile = {
   refined: true,
   createdAt: 0,
   segments: [
-    { startSec: 0, endSec: 8, source: "今日は4Pを扱います。", translation: "Today we cover the 4Ps." },
-    { startSec: 620, endSec: 630, source: "価格は知覚価値で決まります。", translation: "Price follows perceived value." },
+    { startSec: 0, endSec: 8, source: "今日は4Pを扱います。" },
+    { startSec: 620, endSec: 630, source: "価格は知覚価値で決まります。" },
   ],
 };
 

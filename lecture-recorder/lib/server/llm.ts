@@ -92,28 +92,3 @@ function findRefusal(output: unknown): string | null {
   }
   return null;
 }
-
-/** One plain-text call, used for short outputs such as a live translation. */
-export async function llmText(opts: {
-  model?: string;
-  instructions: string;
-  input: string;
-  maxOutputTokens?: number;
-  effort?: "none" | "minimal" | "low" | "medium" | "high";
-  label?: string;
-}): Promise<string> {
-  const response = await withRetry(opts.label ?? "AI 生成", async () =>
-    withModelFallback(opts.model ?? CONFIG.fastModel, (activeModel) => {
-      const client = openai();
-      return client.responses.create({
-        model: activeModel,
-        instructions: opts.instructions,
-        input: opts.input,
-        max_output_tokens: opts.maxOutputTokens ?? 1200,
-        reasoning: opts.effort ? { effort: opts.effort } : undefined,
-        store: false,
-      });
-    }),
-  );
-  return (response.output_text ?? "").trim();
-}

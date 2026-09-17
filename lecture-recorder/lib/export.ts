@@ -175,7 +175,6 @@ export function buildMarkdown({
   } else {
     for (const s of transcript.segments) {
       out.push(`**[${fmtSec(s.startSec)}]** ${s.source}`);
-      if (s.translation) out.push(`> ${s.translation}`);
       out.push("");
     }
   }

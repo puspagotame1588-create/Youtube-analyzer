@@ -376,7 +376,6 @@ export default function LectureView({ id }: { id: string }) {
       {tab === "transcript" && (
         <TranscriptPanel
           segments={transcript?.segments ?? []}
-          language={lecture.language}
           canSeek={lecture.masterBytes > 0}
           onSeek={seek}
         />
@@ -504,22 +503,17 @@ function TitleEditor({
 
 function TranscriptPanel({
   segments,
-  language,
   canSeek,
   onSeek,
 }: {
-  segments: { startSec: number; source: string; translation: string }[];
-  language: "ja" | "en";
+  segments: { startSec: number; source: string }[];
   canSeek: boolean;
   onSeek: (sec: number) => void;
 }) {
-  const [mode, setMode] = useState<"both" | "source" | "translation">("both");
   const [query, setQuery] = useState("");
 
   const filtered = query.trim()
-    ? segments.filter(
-        (s) => s.source.includes(query.trim()) || s.translation.includes(query.trim()),
-      )
+    ? segments.filter((s) => s.source.includes(query.trim()))
     : segments;
 
   if (segments.length === 0) {
@@ -535,23 +529,9 @@ function TranscriptPanel({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <div className="flex gap-1 rounded-lg border border-line p-1 text-xs">
-          {(
-            [
-              ["both", "両方"],
-              ["source", language === "ja" ? "日本語のみ" : "英語のみ"],
-              ["translation", language === "ja" ? "英語のみ" : "日本語のみ"],
-            ] as [typeof mode, string][]
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setMode(key)}
-              className={`rounded-md px-2.5 py-1 ${mode === key ? "bg-surface-2 font-medium" : "text-ink-soft"}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <span className="text-xs text-ink-soft">
+          {query.trim() ? `${filtered.length} 件` : `${segments.length} 行`}
+        </span>
       </div>
       <ul className="divide-y divide-line/60">
         {filtered.map((s, i) => (
@@ -564,12 +544,7 @@ function TranscriptPanel({
               {canSeek ? "▶ " : ""}
               {fmtSec(s.startSec)}
             </button>
-            <div className={mode === "both" ? "grid gap-1.5 lg:grid-cols-2 lg:gap-4" : ""}>
-              {mode !== "translation" && <p className="text-sm leading-relaxed">{s.source}</p>}
-              {mode !== "source" && (
-                <p className="text-sm leading-relaxed text-ink-soft">{s.translation}</p>
-              )}
-            </div>
+            <p className="text-sm leading-relaxed">{s.source}</p>
           </li>
         ))}
       </ul>
