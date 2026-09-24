@@ -33,6 +33,19 @@ export const CONFIG = {
    */
   audioBitsPerSecond: Number(process.env.AUDIO_BITRATE || 64000),
 
+  /**
+   * Lecture Flow. The transcript is fed to the model in chunks measured in
+   * characters, because a segment can be five characters or five hundred.
+   * These are deliberately well inside the model's context: a smaller window
+   * is read more carefully than a larger one.
+   */
+  flowChunkChars: Number(process.env.FLOW_CHUNK_CHARS || 6000),
+  flowChunkSegments: Number(process.env.FLOW_CHUNK_SEGMENTS || 90),
+  /** Neighbouring segments sent for context, so transitions make sense. */
+  flowContextSegments: Number(process.env.FLOW_CONTEXT_SEGMENTS || 4),
+  /** Sections written per request. Batched so a long lecture is not truncated. */
+  flowSectionsPerCall: Number(process.env.FLOW_SECTIONS_PER_CALL || 4),
+
   /** Hard limits of the transcription endpoint, used to pick a safe strategy. */
   maxUploadBytes: 24 * 1024 * 1024,
   maxAudioSeconds: 1350,

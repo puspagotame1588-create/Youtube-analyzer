@@ -4,13 +4,26 @@ import type {
   ChatTurn,
   Course,
   Flashcards,
+  FlowJob,
   Highlights,
   Lecture,
+  LectureFlow,
   LiveSegment,
   MaterialFile,
   Notes,
   TranscriptFile,
 } from "./types";
+
+/** Everything the Lecture Flow tab needs to decide what to show. */
+export interface FlowState {
+  flow: LectureFlow | null;
+  job: FlowJob | null;
+  running: boolean;
+  transcriptRevision: string;
+  /** The stored flow describes an older transcript than the one on disk. */
+  outdated: boolean;
+  hasTranscript: boolean;
+}
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
@@ -104,6 +117,15 @@ export const api = {
     ),
 
   transcript: (id: string) => request<TranscriptFile>(`/api/lectures/${id}/transcript`),
+
+  flow: (id: string) => request<FlowState>(`/api/lectures/${id}/flow`),
+  startFlow: (id: string, outputLanguage: "ja" | "en") =>
+    request<{ started: boolean; running: boolean }>(
+      `/api/lectures/${id}/flow`,
+      json({ outputLanguage }),
+    ),
+  cancelFlow: (id: string) =>
+    request<{ cancelled: boolean }>(`/api/lectures/${id}/flow`, { method: "DELETE" }),
   notes: (id: string) => request<Notes | null>(`/api/lectures/${id}/notes`),
 
   highlights: (id: string) => request<Highlights | null>(`/api/lectures/${id}/highlights`),

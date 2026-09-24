@@ -113,7 +113,7 @@ describe("todayISO", () => {
 });
 
 describe("buildMarkdown", () => {
-  const md = buildMarkdown({ lecture, course, transcript, notes, highlights, flashcards });
+  const md = buildMarkdown({ lecture, course, transcript, notes, highlights, flashcards, flow: null });
 
   it("includes the lecture heading and metadata", () => {
     expect(md).toContain("# マーケティング論 第3回 4Pの基礎");
@@ -147,6 +147,7 @@ describe("buildMarkdown", () => {
       notes: null,
       highlights: null,
       flashcards: null,
+      flow: null,
     });
     expect(rough).toContain("精密文字起こしが未完了");
   });
@@ -167,6 +168,7 @@ describe("buildMarkdown", () => {
       notes,
       highlights: { items: [], scanned: 3, createdAt: 0, model: "t" },
       flashcards: null,
+      flow: null,
     });
     expect(none).not.toContain("重要ポイント（先生が強調した箇所）");
   });
@@ -179,6 +181,7 @@ describe("buildMarkdown", () => {
       notes: { ...notes, terms: [{ term: "A|B", reading: "", meaning: "", example: "" }] },
       highlights: null,
       flashcards: null,
+      flow: null,
     });
     expect(md2).toContain("| A\\|B |");
   });

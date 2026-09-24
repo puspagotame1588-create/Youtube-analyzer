@@ -37,6 +37,10 @@ export const lecturePaths = (id: string) => {
     notes: path.join(base, "notes.json"),
     flashcards: path.join(base, "flashcards.json"),
     highlights: path.join(base, "highlights.json"),
+    /** The last flow that passed validation. Never overwritten by a failed run. */
+    flow: path.join(base, "flow.json"),
+    /** State of the current or most recent generation run, kept separately. */
+    flowJob: path.join(base, "flow-job.json"),
     chat: path.join(base, "chat.jsonl"),
     materials: path.join(base, "materials"),
     materialsIndex: path.join(base, "materials", "index.json"),

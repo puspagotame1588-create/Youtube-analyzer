@@ -12,8 +12,10 @@ import type {
   ChatTurn,
   Course,
   Flashcards,
+  FlowJob,
   Highlights,
   Lecture,
+  LectureFlow,
   LiveSegment,
   MaterialIndex,
   Notes,
@@ -207,6 +209,26 @@ export function readHighlights(id: string): Promise<Highlights | null> {
 
 export function writeHighlights(id: string, value: Highlights): Promise<void> {
   return writeJson(lecturePaths(id).highlights, value);
+}
+
+/**
+ * The last flow that passed validation. A run that fails, is cancelled or
+ * produces an invalid result leaves this untouched.
+ */
+export function readFlow(id: string): Promise<LectureFlow | null> {
+  return readJson<LectureFlow | null>(lecturePaths(id).flow, null);
+}
+
+export function writeFlow(id: string, value: LectureFlow): Promise<void> {
+  return writeJson(lecturePaths(id).flow, value);
+}
+
+export function readFlowJob(id: string): Promise<FlowJob | null> {
+  return readJson<FlowJob | null>(lecturePaths(id).flowJob, null);
+}
+
+export function writeFlowJob(id: string, value: FlowJob): Promise<void> {
+  return writeJson(lecturePaths(id).flowJob, value);
 }
 
 export function readChat(id: string): Promise<ChatTurn[]> {

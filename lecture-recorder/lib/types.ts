@@ -166,3 +166,119 @@ export interface MaterialFile {
 export interface MaterialIndex {
   files: MaterialFile[];
 }
+
+/* ---------------------------------------------------------- lecture flow -- */
+
+/**
+ * One piece of text in a flow, carrying where it came from.
+ *
+ * `basis` is the load-bearing field: it separates what the lecturer said from
+ * what was computed from their numbers and from what the AI wrote to join the
+ * lecture together. It is never collapsed into a claim about the lecturer.
+ */
+export interface EvidenceText {
+  text: string;
+  basis: "transcript" | "derived_calculation" | "ai_explanation";
+  /** Ids of the transcript segments this rests on, e.g. ["s4", "s5"]. */
+  sourceSegmentIds: string[];
+  /** A stated qualification or an unclear passage. Never an invented probability. */
+  uncertainty: string | null;
+}
+
+export type FlowDetailKind =
+  | "definition"
+  | "reasoning"
+  | "example"
+  | "calculation"
+  | "qualification"
+  | "student_question";
+
+export interface FlowDetail {
+  kind: FlowDetailKind;
+  label: string;
+  content: EvidenceText;
+}
+
+export interface FlowSection {
+  id: string;
+  chapterId: string;
+  title: string;
+  sourceSegmentIds: string[];
+  /** One sentence: what this part of the lecture explains. */
+  purpose: EvidenceText;
+  explanation: EvidenceText[];
+  connectionFromPrevious: EvidenceText | null;
+  details: FlowDetail[];
+  connectionToNext: EvidenceText | null;
+}
+
+export type FlowRelationshipType =
+  | "next_topic"
+  | "prerequisite"
+  | "example_of"
+  | "contrast"
+  | "cause"
+  | "return_to_topic";
+
+export interface FlowRelationship {
+  fromSectionId: string;
+  toSectionId: string;
+  type: FlowRelationshipType;
+  explanation: EvidenceText;
+}
+
+export interface FlowAssignment {
+  task: EvidenceText;
+  /** The lecturer's own words, e.g. 「次回の授業」. */
+  deadlineOriginal: string | null;
+  /** Only set when the wording plus the recording date make one date certain. */
+  deadlineISO: string | null;
+}
+
+export interface FlowCoverageEntry {
+  segmentId: string;
+  status: "represented" | "non_instructional" | "unresolved";
+  sectionIds: string[];
+  reason: string | null;
+}
+
+export interface LectureFlow {
+  schemaVersion: "1.0";
+  lectureId: string;
+  /** Hash of the transcript this was built from. A mismatch means outdated. */
+  transcriptRevision: string;
+  outputLanguage: LectureLanguage;
+  title: string;
+  mainQuestions: EvidenceText[];
+  overview: EvidenceText[];
+  chapters: { id: string; title: string; sectionIds: string[] }[];
+  sections: FlowSection[];
+  relationships: FlowRelationship[];
+  conclusion: EvidenceText[];
+  unresolvedQuestions: EvidenceText[];
+  assignments: FlowAssignment[];
+  examMentions: EvidenceText[];
+  coverage: FlowCoverageEntry[];
+  availability: "complete_for_available_transcript" | "partial";
+  warnings: string[];
+  createdAt: number;
+  model: string;
+  promptVersion: string;
+}
+
+export type FlowJobStatus = "running" | "done" | "error" | "cancelled";
+
+/** The state of a generation run, kept apart from the last good flow. */
+export interface FlowJob {
+  status: FlowJobStatus;
+  /** Which of the four stages is running, for the progress display. */
+  stage: "reading" | "topics" | "connecting" | "coverage";
+  done: number;
+  total: number;
+  /** The transcript this run started from; a later transcript invalidates it. */
+  transcriptRevision: string;
+  outputLanguage: LectureLanguage;
+  startedAt: number;
+  updatedAt: number;
+  error: string | null;
+}

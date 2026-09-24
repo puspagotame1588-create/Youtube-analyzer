@@ -7,10 +7,12 @@ import { api, type Health, type LectureBundle } from "@/lib/api";
 import { fmtDuration, fmtSec } from "@/lib/export";
 import { CATEGORY_LABEL, CATEGORY_ORDER, type HighlightCategory } from "@/lib/highlight";
 import type { ChatTurn, Flashcards, Highlights, MaterialFile } from "@/lib/types";
+import LectureFlowPanel from "./LectureFlow";
 import { Empty, Field, Notice, Spinner, StatusPill } from "./ui";
 
 type Tab =
   | "summary"
+  | "flow"
   | "highlights"
   | "points"
   | "terms"
@@ -22,6 +24,7 @@ type Tab =
 
 const TABS: [Tab, string][] = [
   ["summary", "概要・要約"],
+  ["flow", "講義の流れ"],
   ["highlights", "重要ポイント"],
   ["points", "要点"],
   ["terms", "用語"],
@@ -372,6 +375,15 @@ export default function LectureView({ id }: { id: string }) {
         ) : (
           <NotYet status={lecture.status} />
         ))}
+
+      {tab === "flow" && (
+        <LectureFlowPanel
+          id={id}
+          segments={transcript?.segments ?? []}
+          canSeek={lecture.masterBytes > 0}
+          onSeek={seek}
+        />
+      )}
 
       {tab === "transcript" && (
         <TranscriptPanel
